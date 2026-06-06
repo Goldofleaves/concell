@@ -1,5 +1,23 @@
+local function hex(hex)
+	if string.sub(hex, 1, 1) == "#" then
+		hex = string.sub(hex, 2, string.len(hex))
+	end
+	if #hex <= 6 then hex = hex .. "FF" end
+	local _, _, r, g, b, a = hex:find('(%x%x)(%x%x)(%x%x)(%x%x)')
+	local color = { tonumber(r, 16) / 255, tonumber(g, 16) / 255, tonumber(b, 16) / 255, tonumber(a, 16) / 255 or 255 }
+	return color
+end
+
 Macros = {
-    singleSubdivision = 5,
-    screenDimentions = { y = 3, x = 4}, -- 3/4
-    screenStretchTolerance = { max = 1, min = 1/2 }
+	gridSingleSubdivision = 5,
+	screenDimentions = { y = 3, x = 4}, -- 3/4
+	screenStretchTolerance = { max = 1, min = 1/2 },
+	colors = {
+		white = {1,1,1,1},
+		black = {0,0,0,1},
+		red = hex("#d31212"),
+		lightRed = hex("#ff99c5"),
+		night = hex("#150c41")
+	},
+	posCenter = {x = 10, y = 7.5}
 }
