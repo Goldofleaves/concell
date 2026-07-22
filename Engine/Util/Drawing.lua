@@ -1,7 +1,4 @@
--- we draw
 local drawLib = {}
--- uhh what the fuck do i do now
-
 
 --- Draw an slanted rectangle.
 --- @param x number
@@ -37,5 +34,16 @@ function drawLib.drawRotatedRectangle(x, y, w, h, angle, centered)
 	end
 	love.graphics.polygon("fill", px1, py1, px2, py2, px3, py3, px4, py4)
 end
-
+function drawLib.drawVectorPolygon(mode, vectors)
+	local function megaUnpack(v)
+		local t = {}
+		for k, vec in ipairs(v) do
+			for kk, value in ipairs({vec:unpack()}) do
+				table.insert(t, value)
+			end
+		end
+		return unpack(t)
+	end
+	love.graphics.polygon(mode, megaUnpack(vectors))
+end
 Util.Draw = drawLib

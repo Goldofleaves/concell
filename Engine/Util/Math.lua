@@ -175,3 +175,14 @@ Util.Math.weightedChance = function(chances)
 	end
 	return Util.Math.randomElement(a).v
 end
+
+function Util.Math.indexModulo(a, mod)
+	return ((a - 1) % mod) + 1
+end
+
+function Util.Math.rotatePointAroundOrigin(x, y, theta)
+	return {
+		x = x * math.cos(theta) - y * math.sin(theta),
+		y = x * math.sin(theta) + y * math.cos(theta),
+	}
+end

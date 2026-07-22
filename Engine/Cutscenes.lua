@@ -83,7 +83,6 @@ Macros.CDefs.Opening = function ()
 		end,
 		endFunc = function()
 			love.window.updateMode(800, 600, { resizable = true, centered = false })
-			print("ended")
 		end
 	})
 end

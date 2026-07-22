@@ -50,38 +50,31 @@ function Game:update(dt)
 	self.drawinfo.gridUnit = idealHeight / Macros.screenDimentions.y / Macros.gridSingleSubdivision
 	self.drawinfo.origin = { x = (actualWidth - idealWidth) / 2, y = (actualHeight - idealHeight) / 2 }
 	self.drawinfo.gridSize = {x = idealWidth, y = idealHeight}
-	local function updateAllMoveablesRecursively(filter)
-		filter = filter or {}
-		local min_update_order = -math.huge
-		local updated_moveable
+	local union = {}
+	for k, v in pairs(self.I.MOVEABLES) do
+		table.insert(union,v)
+	end
+	for k, v in pairs(self.I.SPRITES) do
+		table.insert(union, v)
+	end
+	local function updateAllObjects(filter)
+		local max_update_order = -math.huge
+		local updated_object
 		local updated_k
-		for k, v in pairs(self.I.MOVEABLES) do
-			if v.updateOrder > min_update_order and not filter[k] then
-				updated_moveable = v
+		for k, v in pairs(union) do
+			if v.updateOrder > max_update_order and not filter[k] then
+				max_update_order = v.updateOrder
+				updated_object = v
 				updated_k = k
 			end
 		end
 		if updated_k then
 			filter[updated_k] = true
-			updated_moveable:update(dt)
-			updateAllMoveablesRecursively(filter)
+			updated_object:update(dt)
+			updateAllObjects(filter)
 		end
-		return
 	end
-	local function updateAllSpritesRecursively(filter)
-		filter = filter or {}
-		for k, v in pairs(self.I.SPRITES) do
-			if not filter[k] then
-				filter[k] = true
-				v:update(dt)
-				updateAllSpritesRecursively(filter)
-				break
-			end
-		end
-		return
-	end
-	updateAllMoveablesRecursively()
-	updateAllSpritesRecursively()
+	updateAllObjects({})
 end
 
 function Game:draw()

@@ -45,7 +45,7 @@ function Sprite:new(args)
 		x = args.x or 0,
 		y = args.y or 0,
 	}
-	self.Xflipped = false
+	self.objectType = 'SPRITE'
 	self.transparency = args.transparency or 1
 	self.atlasInfo = {
 		key = args.atlasKey,
@@ -53,6 +53,7 @@ function Sprite:new(args)
 		y = args.atlasY or 0
 	}
 	self.updateFunc = args.updateFunc or function(s, dt) return end
+	self.updateOrder = args.updateOrder or 1
 	self.drawOrder = args.drawOrder or 1
 	self.drawTiled = args.drawTiled == nil and false or args.drawTiled
 	self.extra = args.extra or {}
@@ -67,15 +68,21 @@ function Sprite:new(args)
 		x = args.offsetX or 0,
 		y = args.offsetY or 0
 	}
+	self.scale = {
+		x = args.scaleX or 1,
+		y = args.scaleY or 1,
+	}
+	self.center = {
+		x = args.centerX or 0,
+		y = args.centerY or 0
+	}
+	self.rotation = args.rotation or 0
 	return self
 end
 
 function Sprite:draw()
-	local dir = self.Xflipped and -1 or 1
-	local XFlpiiedOffset = self.Xflipped and Atlases[self.atlasInfo.key].singleDimention.w or 0
 	local draw_func = function(kx, ky)
-		local x = self.T.x + kx
-		local y = self.T.y + ky
+		local x, y = Util.UI.convertPosToUIPos(self.T.x + kx, self.T.y + ky)
 		local r, g, b, a = love.graphics.getColor()
 		love.graphics.setColor { r, g, b, a * self.transparency }
 		if self.mask.ShouldApply then
@@ -99,25 +106,35 @@ function Sprite:draw()
 			love.graphics.setStencilTest("greater", 0)
 		end
 		if not self.drawTiled then
+			local scalex = self.scale.x / 40 * G.drawinfo.gridUnit
+			local scaley = self.scale.y / 40 * G.drawinfo.gridUnit
+			local xcenter, ycenter = self.center.x * Atlases[self.atlasInfo.key].singleDimention.w * scalex,
+			self.center.y * Atlases[self.atlasInfo.key].singleDimention.h * scaley
+			local rot = Util.Math.rotatePointAroundOrigin(-xcenter, -ycenter, self.rotation)
+			local rotationoffsetx, rotationoffsety = rot.x + xcenter, rot.y + ycenter
+			local scaleoffsetx, scaleoffsety =
+			(1 - scalex) * self.center.x * Atlases[self.atlasInfo.key].singleDimention.w,
+			(1 - scaley) * self.center.y * Atlases[self.atlasInfo.key].singleDimention.h
 			love.graphics.draw(
-				Atlases[self.atlasInfo.key].image,
-				Atlases[self.atlasInfo.key].splicedImages[self.atlasInfo.x][self.atlasInfo.y],
-				x + XFlpiiedOffset, y,
-				0, dir, 1
+				Atlases[self.atlasInfo.key].image, Atlases[self.atlasInfo.key].splicedImages[self.atlasInfo.x][self.atlasInfo.y],
+				x + rotationoffsetx + scaleoffsetx, y + rotationoffsety + scaleoffsety,
+				self.rotation, scalex, scaley
 			)
 		else
-			local moduloX = x % Atlases[self.atlasInfo.key].singleDimention.w
-			local moduloY = y % Atlases[self.atlasInfo.key].singleDimention.h
-			local xSegments = math.ceil(Macros.baseResolution.w / Atlases[self.atlasInfo.key].singleDimention.w)
-			local ySegments = math.ceil(Macros.baseResolution.h / Atlases[self.atlasInfo.key].singleDimention.h)
+			local scalex = self.scale.x / 40 * G.drawinfo.gridUnit
+			local scaley = self.scale.y / 40 * G.drawinfo.gridUnit
+			local moduloX = x % Atlases[self.atlasInfo.key].singleDimention.w * scalex
+			local moduloY = y % Atlases[self.atlasInfo.key].singleDimention.h * scaley
+			local xSegments = math.ceil(G.drawinfo.gridSize.x / Atlases[self.atlasInfo.key].singleDimention.w * scalex)
+			local ySegments = math.ceil(G.drawinfo.gridSize.y / Atlases[self.atlasInfo.key].singleDimention.h * scaley)
 			for i = -1, xSegments + 1 do
 				for j = -1, ySegments + 1 do
 					love.graphics.draw(
 						Atlases[self.atlasInfo.key].image,
 						Atlases[self.atlasInfo.key].splicedImages[self.atlasInfo.x][self.atlasInfo.y],
-						moduloX + i * Atlases[self.atlasInfo.key].singleDimention.w + XFlpiiedOffset,
+						moduloX + i * Atlases[self.atlasInfo.key].singleDimention.w,
 						moduloY + j * Atlases[self.atlasInfo.key].singleDimention.h,
-						0, dir, 1
+						0, scalex, scaley
 					)
 				end
 			end
@@ -139,7 +156,7 @@ function Sprite:draw()
 			love.graphics.stencil(myStencilFunction, "replace", 1)
 			love.graphics.setStencilTest("greater", 0)
 			love.graphics.setColor(self.properties.OutlineColor)
-			love.graphics.rectangle("fill", 0, 0, Macros.baseResolution.w, Macros.baseResolution.h)
+			love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 			love.graphics.setColor { r, g, b, a }
 			love.graphics.setStencilTest()
 		end
