@@ -2,7 +2,6 @@ love.graphics.setDefaultFilter("nearest", "nearest", 1)
 
 Util = {}
 require "Engine.Util.Other"
-require "Engine.Util.Audio"
 require "Engine.Util.Splines and Easing"
 require "Engine.Util.UI"
 require "Engine.Util.Math"
@@ -19,6 +18,7 @@ require "Engine.Event"
 require "Engine.Cutscenes"
 require "Engine.Sprites"
 require "Engine.Moveable"
+require "Engine.Util.Audio"
 function love.load()
     Macros.CDefs.Opening()
 end
