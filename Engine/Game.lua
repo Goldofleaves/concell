@@ -22,14 +22,16 @@ function Game:update(dt)
 
 	-- Handling Events
 	for k, event in ipairs(self.events) do
-		event.curTime = event.curTime or 0
-		if event.easeFunc then
-			event.easeFunc(event.curTime / event.duration, event)
-		end
-		event.curTime = event.curTime + dt
-		if event.curTime > event.duration then
-			if event.endFunc then event.endFunc(event) end
-			self.events[k] = nil
+		if not event.paused then
+			event.curTime = event.curTime or 0
+			if event.easeFunc then
+				event.easeFunc(event.curTime / event.duration, event)
+			end
+			event.curTime = event.curTime + dt
+			if event.curTime > event.duration then
+				if event.endFunc then event.endFunc(event) end
+				self.events[k] = nil
+			end
 		end
 	end
 

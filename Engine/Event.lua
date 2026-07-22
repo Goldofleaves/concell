@@ -22,6 +22,7 @@ function Event:new(args)
 	self.drawFunc = args.drawFunc or function () end
 	self.drawOrder = args.drawOrder or 0
 	self.type = "event"
+	self.paused = false
 	return self
 end
 Util.Event = {}
@@ -34,6 +35,13 @@ function getEventByNid(nid)
 		end
 	end
 	return false
+end
+function Event:pause()
+	self.paused = true
+end
+
+function Event:unpause()
+	self.paused = false
 end
 function Util.Event.addEvent(e)
 	table.insert(G.events, e)
