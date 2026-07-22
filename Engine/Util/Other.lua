@@ -188,7 +188,7 @@ function getObjectById(id)
 end
 
 ---@param nid any
----@return boolean|Object
+---@return false|Object
 function getObjectByNid(nid)
 	for k, v in pairs(G.I) do
 		for kk, vv in ipairs(v) do

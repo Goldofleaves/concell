@@ -9,15 +9,25 @@ local function hex(hex)
 end
 
 Macros = {
+	fileSuffix = ".con",
 	gridSingleSubdivision = 5,
 	screenDimentions = { y = 3, x = 4}, -- 3/4
 	screenStretchTolerance = { max = 1, min = 1/2 },
 	colors = {
+		transparent = { 0, 0, 0, 0 },
+		darkRed = hex("#6d1d51"),
+		yellow = hex("#ffd94d"),
+		green = hex("#3ea121"),
+		blue = hex("#4deae9"),
+		purple = hex("#cc28dc"),
 		white = {1,1,1,1},
 		black = {0,0,0,1},
 		red = hex("#d31212"),
 		lightRed = hex("#ff99c5"),
 		night = hex("#150c41")
 	},
-	posCenter = {x = 10, y = 7.5}
+	posCenter = {x = 10, y = 7.5},
+	fonts = {
+		base = love.graphics.newFont("Assets/Fonts/aseprite.ttf", 7)
+	}
 }

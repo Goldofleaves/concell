@@ -12,6 +12,42 @@ function Game:new()
 		MOVEABLES = {},
 		SPRITES = {}
 	}
+	self.audio = {
+		sfx = {},
+		music = {},
+		musicHandler = {}
+	}
+	self.settings = {
+		fullscreen = false,
+		sound = {
+			master = 100,
+			music = 100,
+			sfx = 100
+		},
+		keybinds = {
+			up = { "w", "up" },
+			down = { "s", "down" },
+			left = { "a", "left" },
+			right = { "d", "right" },
+			select = { "z", "return" },
+			cancel = { "x", "lshift", "rshift" },
+			pause = { "c", "escape" }
+		}
+	}
+	self.controller = {
+		up = { pressed = false, held = false, released = false },
+		down = { pressed = false, held = false, released = false },
+		left = { pressed = false, held = false, released = false },
+		right = { pressed = false, held = false, released = false },
+		select = { pressed = false, held = false, released = false },
+		cancel = { pressed = false, held = false, released = false },
+		pause = { pressed = false, held = false, released = false },
+	}
+	self.mouseController = {
+		{ pressed = false, held = false, released = false },
+		{ pressed = false, held = false, released = false },
+		{ pressed = false, held = false, released = false },
+	}
 	G = self
 	return self
 end
@@ -19,7 +55,97 @@ function Game:update(dt)
 	self.timer = self.timer + dt
 
 	-- Misc
+	-- Controller
+	for k, v in pairs(self.controller) do
+		if (function()
+				for kk, vv in pairs(G.settings.keybinds[k]) do
+					if type(vv) ~= "table" then
+						if love.keyboard.isDown(vv) then
+							return true
+						end
+					else
+						local bool = true
+						for kkk, vvv in pairs(vv) do
+							if not love.keyboard.isDown(vvv) then
+								bool = false
+							end
+						end
+						return bool
+					end
+				end
+				return false
+			end)() then
+			v.held = true
+			if not v.pressTemp then
+				v.pressed = true
+				v.pressTemp = true
+			else
+				v.pressed = false
+			end
+		else
+			if v.held then
+				v.released = true
+			else
+				v.released = false
+			end
+			v.held = false
+			v.pressed = false
+			v.pressTemp = nil
+		end
+	end
+	-- Mouse Controller
+	for k, v in pairs(self.mouseController) do
+		if love.mouse.isDown(k) then
+			v.held = true
+			if not v.pressTemp then
+				v.pressed = true
+				v.pressTemp = true
+			else
+				v.pressed = false
+			end
+		else
+			if v.held then
+				v.released = true
+			else
+				v.released = false
+			end
+			v.held = false
+			v.pressed = false
+			v.pressTemp = nil
+		end
+	end
+	-- Sounds
+	-- Sfx
+	for i, v in ipairs(self.audio.sfx) do
+		if not v.source:isPlaying() and not v.no_delete then
+			v.source:release()
+			self.audio.sfx[i] = nil
+		end
+	end
+	self.audio.sfx = Util.Other.removeNils(self.audio.sfx)
 
+	-- Music
+	local targetBgm = Util.Audio.getHighestPriorityMusic() --self.audio.music[#self.audio.music]
+	local previousBgm = self.audio.musicHandler.previousBgm
+	for i, v in ipairs(self.audio.music) do
+		if v.priority < targetBgm.priority and v.source:isPlaying() then
+			v.source:pause()
+		end
+	end
+	if targetBgm then
+		if previousBgm and previousBgm ~= targetBgm and previousBgm.group == targetBgm.group then
+			targetBgm.source:seek(previousBgm.source:tell('seconds'), 'seconds')
+		end
+		local source = targetBgm.source
+		if not source:isPlaying() then
+			if type(targetBgm.endFunc) == "function" then
+				targetBgm.endFunc()
+				Util.Audio.musicPop(targetBgm.id)
+			end
+		end
+		source:setVolume(targetBgm.volume * G.settings.sound.music / 100 * G.settings.sound.master / 100)
+	end
+	self.audio.musicHandler.previousBgm = targetBgm
 	-- Handling Events
 	for k, queue in pairs(self.events) do
 		event = queue[1]
