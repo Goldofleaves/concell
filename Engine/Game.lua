@@ -21,7 +21,8 @@ function Game:update(dt)
 	-- Misc
 
 	-- Handling Events
-	for k, event in ipairs(self.events) do
+	for k, queue in pairs(self.events) do
+		event = queue[1]
 		if not event.paused then
 			event.curTime = event.curTime or 0
 			if event.easeFunc then
@@ -30,12 +31,13 @@ function Game:update(dt)
 			event.curTime = event.curTime + dt
 			if event.curTime > event.duration then
 				if event.endFunc then event.endFunc(event) end
-				self.events[k] = nil
+				table.remove(queue, 1)
+				if not next(queue) then
+					self.events[k] = nil
+				end
 			end
 		end
 	end
-
-	self.events = Util.Other.removeNils(self.events)
 
 	-- preportions
 	local actualHeight, actualWidth = love.graphics.getHeight(), love.graphics.getWidth()

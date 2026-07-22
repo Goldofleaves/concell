@@ -43,8 +43,14 @@ end
 function Event:unpause()
 	self.paused = false
 end
-function Util.Event.addEvent(e)
-	table.insert(G.events, e)
+function Util.Event.addEvent(e, queue, front)
+	G.events[queue or "main"] = G.events[queue or "main"] or {}
+	local q = G.events[queue or "main"]
+	if front then
+		table.insert(q, 1, e)
+	else
+		table.insert(q, e)
+	end
 end
 
 function Util.Event.delayFunc(t, f)
