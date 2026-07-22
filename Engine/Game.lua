@@ -91,8 +91,10 @@ function Game:draw()
 	for _, v in pairs(self.I.MOVEABLES) do
 		table.insert(Table, v)
 	end
-	for _, v in pairs(self.events) do
-		table.insert(Table, v)
+	for _, queue in pairs(self.events) do
+		for _, v in pairs(queue) do
+			table.insert(Table, v)
+		end
 	end
 	for _, v in pairs(self.I.SPRITES) do
 		table.insert(Table, v)
