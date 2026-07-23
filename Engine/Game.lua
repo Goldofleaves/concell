@@ -17,6 +17,10 @@ function Game:new()
 		music = {},
 		musicHandler = {}
 	}
+	self.debug = {
+		drawWorldGrid = false,
+		drawIsoGrid = true,
+	}
 	self.settings = {
 		fullscreen = false,
 		sound = {
@@ -245,12 +249,14 @@ function Game:draw()
 		idealHeight = actualHeight
 		idealWidth = idealHeight / Macros.screenDimentions.y * Macros.screenDimentions.x
 	end
-	love.graphics.setColor(Macros.colors.red)
-	for i = 1, Macros.screenDimentions.x * Macros.gridSingleSubdivision do
-		for j = 1, Macros.screenDimentions.y * Macros.gridSingleSubdivision do
-			love.graphics.rectangle("line", self.drawinfo.origin.x + (i - 1) * self.drawinfo.gridUnit,
-				self.drawinfo.origin.y + (j - 1) * self.drawinfo.gridUnit, self.drawinfo.gridUnit,
-				self.drawinfo.gridUnit)
+	if self.debug.drawWorldGrid then
+		love.graphics.setColor(Macros.colors.red)
+		for i = 1, Macros.screenDimentions.x * Macros.gridSingleSubdivision do
+			for j = 1, Macros.screenDimentions.y * Macros.gridSingleSubdivision do
+				love.graphics.rectangle("line", self.drawinfo.origin.x + (i - 1) * self.drawinfo.gridUnit,
+					self.drawinfo.origin.y + (j - 1) * self.drawinfo.gridUnit, self.drawinfo.gridUnit,
+					self.drawinfo.gridUnit)
+			end
 		end
 	end
 	if actualPreportion > Macros.screenStretchTolerance.max then

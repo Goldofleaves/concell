@@ -77,12 +77,16 @@ function Sprite:new(args)
 		y = args.centerY or 0
 	}
 	self.rotation = args.rotation or 0
+	self.worldCoords = args.worldCoords == nil and true or args.worldCoords
 	return self
 end
 
 function Sprite:draw()
 	local draw_func = function(kx, ky)
-		local x, y = Util.UI.convertPosToUIPos(self.T.x + kx, self.T.y + ky)
+		local x, y
+		if self.worldCoords then
+			x, y = Util.UI.convertPosToUIPos(self.T.x + kx, self.T.y + ky)
+		end
 		local r, g, b, a = love.graphics.getColor()
 		love.graphics.setColor { r, g, b, a * self.transparency }
 		if self.mask.ShouldApply then

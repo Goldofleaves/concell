@@ -18,9 +18,10 @@ require "Engine.Cutscenes"
 require "Engine.Sprites"
 require "Engine.Moveable"
 require "Engine.UI Definitions"
+require "Engine.Moveable Definitions"
 require "Engine.Util.Audio"
 function love.load()
-    Macros.CDefs.Opening()
+    Macros.MDef.isometricGrid()
 end
 function love.update(dt)
     DELTATIME = dt
