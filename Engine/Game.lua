@@ -20,6 +20,8 @@ function Game:new()
 	self.debug = {
 		drawWorldGrid = false,
 		drawIsoGrid = true,
+		console = false,
+		constext = ""
 	}
 	self.worldOffsetVector = Vector(0,0)
 	self.settings = {
@@ -61,41 +63,43 @@ function Game:update(dt)
 
 	-- Misc
 	-- Controller
-	for k, v in pairs(self.controller) do
-		if (function()
-				for kk, vv in pairs(G.settings.keybinds[k]) do
-					if type(vv) ~= "table" then
-						if love.keyboard.isDown(vv) then
-							return true
-						end
-					else
-						local bool = true
-						for kkk, vvv in pairs(vv) do
-							if not love.keyboard.isDown(vvv) then
-								bool = false
+	if not G.debug.console then
+		for k, v in pairs(self.controller) do
+			if (function()
+					for kk, vv in pairs(G.settings.keybinds[k]) do
+						if type(vv) ~= "table" then
+							if love.keyboard.isDown(vv) then
+								return true
 							end
+						else
+							local bool = true
+							for kkk, vvv in pairs(vv) do
+								if not love.keyboard.isDown(vvv) then
+									bool = false
+								end
+							end
+							return bool
 						end
-						return bool
 					end
+					return false
+				end)() then
+				v.held = true
+				if not v.pressTemp then
+					v.pressed = true
+					v.pressTemp = true
+				else
+					v.pressed = false
 				end
-				return false
-			end)() then
-			v.held = true
-			if not v.pressTemp then
-				v.pressed = true
-				v.pressTemp = true
 			else
+				if v.held then
+					v.released = true
+				else
+					v.released = false
+				end
+				v.held = false
 				v.pressed = false
+				v.pressTemp = nil
 			end
-		else
-			if v.held then
-				v.released = true
-			else
-				v.released = false
-			end
-			v.held = false
-			v.pressed = false
-			v.pressTemp = nil
 		end
 	end
 	-- Mouse Controller
@@ -211,6 +215,34 @@ function Game:update(dt)
 	end
 	updateAllObjects({})
 end
+love.keyboard.setTextInput(true)
+function love.textinput(t)
+	if G.debug.console then
+		G.debug.constext = G.debug.constext .. t
+	end
+end
+
+function love.keypressed(key)
+	if key == "backspace" and G.debug.console then
+		G.debug.constext = string.sub(G.debug.constext, 1, -2)
+	end
+	if key == "k" then
+		G.debug.console = not G.debug.console
+	end
+	if key == "return" and G.debug.console then
+		if string.sub(G.debug.constext,1,1) == "=" then
+			G.debug.constext = "return ".. string.sub(G.debug.constext, 2, #G.debug.constext)
+		end
+		local func, err = load(G.debug.constext)
+		G.debug.constext = ""
+		if func then
+			local suc, res = pcall(func)
+			print(res or "nil")
+		else
+			print(err)
+		end
+	end
+end
 
 function Game:draw()
 	-- preportions
@@ -277,8 +309,10 @@ function Game:draw()
 		love.graphics.rectangle("fill", (actualWidth - 2 * actualHeight) / 2 + 2 * actualHeight + 2, 0, 2, actualHeight)
 	end
 	love.graphics.setColor { r, g, b, a }
-	local t = AdvancedText("|c:red|Penis")
-	t:draw(2,2, true, true, Macros.colors.blue)
+	if G.debug.console then
+		local t = AdvancedText("|s:3,3||c:red|"..G.debug.constext)
+		t:draw(1,1, true)
+	end
 end
 
 Game()
