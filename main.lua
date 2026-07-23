@@ -20,6 +20,7 @@ require "Engine.Moveable"
 require "Engine.UI Definitions"
 require "Engine.Moveable Definitions"
 require "Engine.Util.Audio"
+require "Engine.Util.World"
 function love.load()
     Macros.MDef.isometricGrid()
 end

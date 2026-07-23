@@ -21,6 +21,7 @@ function Game:new()
 		drawWorldGrid = false,
 		drawIsoGrid = true,
 	}
+	self.worldOffsetVector = Vector(0,0)
 	self.settings = {
 		fullscreen = false,
 		sound = {
