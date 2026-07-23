@@ -398,8 +398,8 @@ function TextChar:draw(x, y)
 		self.other.displacement.y + (self.effects.effects == "wavy" and self.other.waveDisplacement.y or 0)
 	dispy = dispy + (self.effects.font == Macros.fonts.small and 2 or 0)
 	local r, g, b, a = love.graphics.getColor()
-	local sx = self.effects.textScale.x / 40 * G.drawinfo.gridUnit
-	local sy = self.effects.textScale.y / 40 * G.drawinfo.gridUnit
+	local sx = self.effects.textScale.x * Util.UI.getScalingFactor()
+	local sy = self.effects.textScale.y * Util.UI.getScalingFactor()
 	local ddx, ddy = x + dispx, y + dispy
 	if self.effects.outlineColor then
 		local color = Macros.colors[self.effects.outlineColor] or Util.Other.hex(self.effects.outlineColor)
@@ -421,8 +421,8 @@ function TextChar:draw(x, y)
 end
 
 function TextChar:getWidth()
-	return self.effects.font:getWidth(self.char) * self.effects.textScale.x / 40 * G.drawinfo.gridUnit
+	return self.effects.font:getWidth(self.char) * self.effects.textScale.x * Util.UI.getScalingFactor()
 end
 function TextChar:getHeight()
-	return (self.effects.font == Macros.fonts.base and (self.effects.font:getHeight(self.char) + 2) * self.effects.textScale.y or self.effects.font:getHeight(self.char) * self.effects.textScale.y) / 40 * G.drawinfo.gridUnit
+	return (self.effects.font == Macros.fonts.base and (self.effects.font:getHeight(self.char) + 2) * self.effects.textScale.y or self.effects.font:getHeight(self.char) * self.effects.textScale.y)  * Util.UI.getScalingFactor()
 end

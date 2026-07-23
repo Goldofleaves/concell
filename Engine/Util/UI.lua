@@ -5,6 +5,9 @@ end
 function Util.UI.convertUIPosToPos(x, y)
 	return (x - G.drawinfo.origin.x) / G.drawinfo.gridUnit, (y - G.drawinfo.origin.y) / G.drawinfo.gridUnit
 end
+function Util.UI.getScalingFactor()
+	return G.drawinfo.gridUnit/Macros.baseTileSize
+end
 ---comment
 ---@param entries table
 ---@param info table?

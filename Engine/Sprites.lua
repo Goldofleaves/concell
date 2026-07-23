@@ -110,8 +110,8 @@ function Sprite:draw()
 			love.graphics.setStencilTest("greater", 0)
 		end
 		if not self.drawTiled then
-			local scalex = self.scale.x / 40 * G.drawinfo.gridUnit
-			local scaley = self.scale.y / 40 * G.drawinfo.gridUnit
+			local scalex = self.scale.x * Util.UI.getScalingFactor()
+			local scaley = self.scale.y * Util.UI.getScalingFactor()
 			local xcenter, ycenter = self.center.x * Atlases[self.atlasInfo.key].singleDimention.w * scalex,
 			self.center.y * Atlases[self.atlasInfo.key].singleDimention.h * scaley
 			local rot = Util.Math.rotatePointAroundOrigin(-xcenter, -ycenter, self.rotation)
@@ -125,8 +125,8 @@ function Sprite:draw()
 				self.rotation, scalex, scaley
 			)
 		else
-			local scalex = self.scale.x / 40 * G.drawinfo.gridUnit
-			local scaley = self.scale.y / 40 * G.drawinfo.gridUnit
+			local scalex = self.scale.x * Util.UI.getScalingFactor()
+			local scaley = self.scale.y * Util.UI.getScalingFactor()
 			local moduloX = x % Atlases[self.atlasInfo.key].singleDimention.w * scalex
 			local moduloY = y % Atlases[self.atlasInfo.key].singleDimention.h * scaley
 			local xSegments = math.ceil(G.drawinfo.gridSize.x / Atlases[self.atlasInfo.key].singleDimention.w * scalex)
