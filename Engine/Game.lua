@@ -277,6 +277,8 @@ function Game:draw()
 		love.graphics.rectangle("fill", (actualWidth - 2 * actualHeight) / 2 + 2 * actualHeight + 2, 0, 2, actualHeight)
 	end
 	love.graphics.setColor { r, g, b, a }
+	local t = AdvancedText("|c:red|Penis")
+	t:draw(2,2, true, true, Macros.colors.blue)
 end
 
 Game()
