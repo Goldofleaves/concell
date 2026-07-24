@@ -89,15 +89,43 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
     end
     return room
 end
-
+function Util.World.getArea(index)
+    if index <= 5 then
+        return "prison"
+    end
+    if index == 6 then
+        return "p2f"
+    end
+    if index > 6 and index <= 11 then
+        return "field"
+    end
+    if index == 12 then
+        return "f2r"
+    end
+    return "ruins"
+end
 function Util.World.generateDungeon()
     local rooms = {}
     local main_counter = 1
     local dungeon_counter = 0
-    local main_len = 6
-    local redirect = love.math.random(2, 4)
+    local main_len = 17
+    local redirect = love.math.random(8, 10)
     local branch_len = love.math.random(2, 3)
-    local alphabet = "abc"
+    local alphabet = "abcdefghij"
+    local function getprevletter(a)
+        local array = {
+            j = "i",
+            i = "h",
+            h = "g",
+            g = "f",
+            f = "e",
+            e = "d",
+            d = "c",
+            c = "b",
+            b = "a"
+        }
+        return array[a]
+    end
     local function getInfo()
         if main_counter == 1 then
             return {type = "init_room"}
@@ -125,7 +153,7 @@ function Util.World.generateDungeon()
         elseif i == "a" then
             return redirect
         else
-            return i == "b" and "a" or "b"
+            return getprevletter(i)
         end
     end
     local function incrementCounters()
@@ -155,9 +183,9 @@ function Util.World.generateDungeon()
             end
         end
     end
-    for k, v in ipairs(rooms[6].doors) do
-        if v.index == 4 then
-            v.index = 5
+    for k, v in ipairs(rooms[17].doors) do
+        if v.index == 15 then
+            v.index = 16
         end
     end
     return rooms
