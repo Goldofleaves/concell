@@ -1,5 +1,7 @@
 Macros.MDef = {}
 function Macros.MDef.isometricGrid(w, h)
+    local phi1, phi2, chi, a1, a2 = math.betterrandom(0.5, 1.1), math.betterrandom(0.5, 1.1),
+    math.betterrandom(0, math.tau), math.betterrandom(1, 2), math.betterrandom(1, 2)
     w = w or 4
     h = h or 7
     local deltawV = Util.World.toIsoPos(Vector(w - 1, 0)):sub(Util.World.toIsoPos(Vector(0, h - 1)), true)
@@ -40,24 +42,24 @@ function Macros.MDef.isometricGrid(w, h)
                 end)(),
                 foley = (function()
                     local t = {}
-                    local g = {}
-                    for i = 1, math.ceil(w * h / 4) do
-                        table.insert(g, { love.math.random(0, w - 1), love.math.random(0, h - 1) })
-                    end
-                    for k, v in ipairs(g) do
-                        local vertex = Util.World.toIsoPos(Vector(v[1], v[2]))
-                        table.insert(t, {
-                            pos = { v[1], v[2] },
-                            sprite = Sprite {
-                                scaleX = 2,
-                                scaleY = 2,
-                                atlasKey = "grassFoley",
-                                x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                y = vertex.contents[2] - G.drawinfo.gridUnit / 21,
-                                worldCoords = false,
-                                drawOrder = 4
-                            }
-                        })
+                    for x = 0, w - 1 do
+                        for y = 0, h - 1 do
+                            if Util.Math.chance(1/4) then
+                                local vertex = Util.World.toIsoPos(Vector(x, y))
+                                table.insert(t, {
+                                    pos = { x, y },
+                                    sprite = Sprite {
+                                        scaleX = 2,
+                                        scaleY = 2,
+                                        atlasKey = "grassFoley",
+                                        x = vertex.contents[1] + G.drawinfo.gridUnit,
+                                        y = vertex.contents[2] - G.drawinfo.gridUnit / 21,
+                                        worldCoords = false,
+                                        drawOrder = 4
+                                    }
+                                })
+                            end
+                        end
                     end
                     return t
                 end)(),
@@ -143,6 +145,7 @@ function Macros.MDef.isometricGrid(w, h)
         },
         drawOrder = 5,
         updateFunc = function (s, dt)
+            local vec = Vector(a1 * math.sin(phi1 * G.timer) * Util.UI.getScalingFactor(), a2 * math.sin(phi2 * (chi + G.timer))* Util.UI.getScalingFactor())
             local deltawV = Util.World.toIsoPos(Vector(s.extra.w - 1, 0)):sub(Util.World.toIsoPos(Vector(0, s.extra.h - 1)), true)
             local ddeltawV = Util.World.toIsoPos(Vector(s.extra.h - 1, 0)):sub(Util.World.toIsoPos(Vector(0, 0)), true)
             local deltahV = Util.World.toIsoPos(Vector(0, 0)):sub(Util.World.toIsoPos(Vector(s.extra.w - 1, s.extra.h - 1)), true)
@@ -151,7 +154,7 @@ function Macros.MDef.isometricGrid(w, h)
             local dh = math.abs(deltahV.contents[2])
             local w = G.drawinfo.gridUnit * Macros.screenDimentions.x * Macros.gridSingleSubdivision
             local h = G.drawinfo.gridUnit * Macros.screenDimentions.y * Macros.gridSingleSubdivision
-            G.worldOffsetVector = Vector((w-dw)/2+ddw,(h-dh)/2)
+            G.worldOffsetVector = Vector((w-dw)/2+ddw,(h-dh)/2):add(vec, true)
             for k, venue in pairs(s.extra.sprites) do
                 if k ~= "edge" then
                     for kk, obj in ipairs(venue) do
