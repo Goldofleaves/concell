@@ -183,3 +183,6 @@ function Macros.UIDef.title()
         end
     })
 end
+
+function Macros.UIDef.overlay()
+end
