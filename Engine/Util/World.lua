@@ -120,18 +120,7 @@ function Util.World.generateDungeon()
     local branch_len = love.math.random(2, 3)
     local alphabet = "abcdefghij"
     local function getprevletter(a)
-        local array = {
-            j = "i",
-            i = "h",
-            h = "g",
-            g = "f",
-            f = "e",
-            e = "d",
-            d = "c",
-            c = "b",
-            b = "a"
-        }
-        return array[a]
+        return string.char(string.byte(a)-1)
     end
     local function getInfo()
         if main_counter == 1 then

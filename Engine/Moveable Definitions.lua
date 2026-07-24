@@ -262,10 +262,12 @@ function Macros.MDef.isometricGrid(w, h, area)
                         if not alreadyExists(p.contents) and isAdjacent(p.contents) then
                             table.insert(s.extra.path, { point = p, coords = p.contents })
                         end
-                        if alreadyExists(p.contents) and isAdjacent(p.contents) and #s.extra.path>1 and
-                        p.contents[1] == s.extra.path[#s.extra.path-1].coords[1] and p.contents[2] == s.extra.path[#s.extra.path-1].coords[2] then
-                            table.remove(s.extra.path,#s.extra.path)
-                        end
+                    end
+                    -- Move backwards
+                    -- btw naku pls comment ure code -elle.
+                    if rr < min and alreadyExists(p.contents) and isAdjacent(p.contents) and #s.extra.path>1 and
+                    p.contents[1] == s.extra.path[#s.extra.path-1].coords[1] and p.contents[2] == s.extra.path[#s.extra.path-1].coords[2] then
+                        table.remove(s.extra.path,#s.extra.path)
                     end
                 elseif #s.extra.path > 1 then
                     s.extra.drawAlpha = 1
