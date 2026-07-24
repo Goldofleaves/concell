@@ -85,27 +85,5 @@ function WorldMoveable:update(dt)
             end
             switchRoom()
         end
-        -- wip movement code
-        if G.controller.left.pressed then
-            if PLAYER and PLAYER.TMod.y.base == self.TMod.y.base and PLAYER.TMod.x.base == 0 then
-                switchRoom()
-            end
-        end
-        if G.controller.right.pressed then
-            if PLAYER and PLAYER.TMod.y.base == self.TMod.y.base and PLAYER.TMod.x.base == G.flags.saveData.curRoom.size.w - 1 then
-                switchRoom()
-
-            end
-        end
-        if G.controller.up.pressed then
-            if PLAYER and PLAYER.TMod.x.base == self.TMod.x.base and PLAYER.TMod.y.base == 0 then
-                switchRoom()
-            end
-        end
-        if G.controller.down.pressed then
-            if PLAYER and PLAYER.TMod.x.base == self.TMod.x.base and PLAYER.TMod.y.base == G.flags.saveData.curRoom.size.h - 1 then
-                switchRoom()
-            end
-        end
     end
 end
