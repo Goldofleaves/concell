@@ -201,3 +201,10 @@ function Sprite:remove()
 	end
 	self = nil
 end
+function Sprite:getHeight()
+	return Atlases[self.atlasInfo.key].singleDimention.h * self.scale.y * Util.UI.getScalingFactor()
+end
+
+function Sprite:getWidth()
+	return Atlases[self.atlasInfo.key].singleDimention.w * self.scale.x * Util.UI.getScalingFactor()
+end

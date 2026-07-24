@@ -10,9 +10,7 @@ end
 function Object:extend()
 	local cls = {}
 	for k, v in pairs(self) do
-		if k:find("__") == 1 then
-			cls[k] = v
-		end
+		cls[k] = v
 	end
 	cls.__index = cls
 	cls.super = self
@@ -54,4 +52,8 @@ function Object:__call(...)
 	local obj = setmetatable({}, self)
 	obj:new(...)
 	return obj
+end
+function Object:__index(key)
+---@diagnostic disable-next-line: undefined-field
+	return self.super.key
 end

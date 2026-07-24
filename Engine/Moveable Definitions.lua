@@ -13,12 +13,11 @@ function Macros.MDef.isometricGrid(w, h)
     local ww = G.drawinfo.gridUnit * Macros.screenDimentions.x * Macros.gridSingleSubdivision
     local hh = G.drawinfo.gridUnit * Macros.screenDimentions.y * Macros.gridSingleSubdivision
     G.worldOffsetVector = Vector((ww - dw) / 2 + ddw, (hh - dh) / 2)
-    local t = {
+    local t1 = {
         nid = "isoGrid",
         extra = {
             w = w,
             h = h,
-            drawAlpha = 1,
             sprites = {
                 base = (function ()
                     local t = {}
@@ -144,7 +143,7 @@ function Macros.MDef.isometricGrid(w, h)
                 }
             }
         },
-        drawOrder = 5,
+        updateOrder = 0,
         updateFunc = function(s, dt)
             local vec = Vector(a1 * math.sin(phi1 * G.timer) * Util.UI.getScalingFactor(), a2 * math.sin(phi2 * (chi + G.timer))* Util.UI.getScalingFactor())
             local deltawV = Util.World.toIsoPos(Vector(s.extra.w - 1, 0)):sub(Util.World.toIsoPos(Vector(0, s.extra.h - 1)), true)
@@ -189,6 +188,18 @@ function Macros.MDef.isometricGrid(w, h)
                     end
                 end
             end
+        end
+    }
+    local t2 = {
+        extra = {
+            w = w,
+            h = h,
+            drawAlpha = 1,
+        },
+        nid = "isoGridWeb",
+        drawOrder = 10,
+        updateOrder = 1,
+        drawFunc = function (s)
             love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.night, 0.1 * s.extra.drawAlpha))
             for i = 1, s.extra.w - 1 do
                 for j = 1, s.extra.h - 1 do
@@ -205,7 +216,7 @@ function Macros.MDef.isometricGrid(w, h)
             end
             Util.Draw.drawVectorPolygon("line", {
                 Util.World.toIsoPos(Vector(0.5, 0.5)),
-                Util.World.toIsoPos(Vector(0.5, h-0.5)),
+                Util.World.toIsoPos(Vector(0.5, h - 0.5)),
                 Util.World.toIsoPos(Vector(w - 0.5, h - 0.5)),
                 Util.World.toIsoPos(Vector(w - 0.5, 0.5)),
             })
@@ -228,6 +239,7 @@ function Macros.MDef.isometricGrid(w, h)
             end
         end
     }
-    local m = Moveable(t)
-    return m
+    local m1 = Moveable(t1)
+    local m2 = Moveable(t2)
+    return m1, m2
 end

@@ -22,7 +22,7 @@ function Game:new()
 		musicHandler = {}
 	}
 	self.debug = {
-		drawWorldGrid = false,
+		drawWorldGrid = true,
 		drawIsoGrid = false,
 		console = false,
 		constext = ""
@@ -59,10 +59,15 @@ function Game:new()
 		{ pressed = false, held = false, released = false },
 		{ pressed = false, held = false, released = false },
 	}
+	self.mousepos = {
+		oldx = 0, oldy = 0,
+		x = 0, y = 0
+	}
 	G = self
 	return self
 end
 function Game:update(dt)
+	self.mousepos.x, self.mousepos.y = Util.UI.convertUIPosToPos(love.mouse.getX(), love.mouse.getY())
 	love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
 	self.timer = self.timer + dt
 
@@ -219,6 +224,7 @@ function Game:update(dt)
 		end
 	end
 	updateAllObjects({})
+	self.mousepos.oldx, self.mousepos.oldy = Util.UI.convertUIPosToPos(love.mouse.getX(), love.mouse.getY())
 end
 love.keyboard.setTextInput(true)
 function love.textinput(t)
@@ -233,6 +239,9 @@ function love.keypressed(key)
 	end
 	if key == "k" then
 		G.debug.console = not G.debug.console
+	end
+	if key == "g" then
+		print(G.mousepos)
 	end
 	if key == "return" and G.debug.console then
 		if string.sub(G.debug.constext,1,1) == "=" then
@@ -288,7 +297,7 @@ function Game:draw()
 		idealWidth = idealHeight / Macros.screenDimentions.y * Macros.screenDimentions.x
 	end
 	if self.debug.drawWorldGrid then
-		love.graphics.setColor(Macros.colors.red)
+		love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.red, 0.15))
 		for i = 1, Macros.screenDimentions.x * Macros.gridSingleSubdivision do
 			for j = 1, Macros.screenDimentions.y * Macros.gridSingleSubdivision do
 				love.graphics.rectangle("line", self.drawinfo.origin.x + (i - 1) * self.drawinfo.gridUnit,

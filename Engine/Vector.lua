@@ -247,3 +247,5 @@ function Util.Math.dotProduct(a, b)
 		error("Attempted to take dot product of 2 vectors with different dimentions")
 	end
 end
+
+Macros.grandOffsetVector = Vector(-5, -2.5)
