@@ -99,7 +99,7 @@ function Macros.UIDef.title()
                     updateOrder = 1,
                     drawOrder = 11
                 })
-                Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h)
+                Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, Util.World.getArea(1))
                 for k, v in ipairs(G.flags.saveData.curRoom.doors) do
                     WorldMoveable({
                         x = v.x,
@@ -113,6 +113,12 @@ function Macros.UIDef.title()
                     })
                 end
             end, "delay1")
+        end,
+        onHover = function()
+            Util.Audio.playSfx("blip_hover", 2)
+        end,
+        onLeftHover = function()
+            Util.Audio.playSfx("blip_unhover", 2)
         end
     })
     SimpleDrawableButton({
@@ -147,6 +153,12 @@ function Macros.UIDef.title()
             self.extra.text:recalculate({}, "|s:" .. (2 * (1 + 1.5 * delta)) ..
                 "," .. (2 * (1 + 1.5 * delta)) .. "|Resume run")
             self.extra.text:draw(self.T.x + 0.25 + 2 * dh, 11 + 0.29 - dh, true)
+        end,
+        onHover = function()
+            Util.Audio.playSfx("blip_hover", 2)
+        end,
+        onLeftHover = function()
+            Util.Audio.playSfx("blip_unhover", 2)
         end
     })
     SimpleDrawableButton({
@@ -181,6 +193,12 @@ function Macros.UIDef.title()
             self.extra.text:recalculate({}, "|s:" .. (2 * (1 + 1.5 * delta)) ..
                 "," .. (2 * (1 + 1.5 * delta)) .. "|Settings")
             self.extra.text:draw(self.T.x + 0.25 + 2 * dh, 12.5 + 0.29 - dh, true)
+        end,
+        onHover = function()
+            Util.Audio.playSfx("blip_hover", 2)
+        end,
+        onLeftHover = function()
+            Util.Audio.playSfx("blip_unhover", 2)
         end
     })
 end
@@ -202,6 +220,71 @@ function Macros.UIDef.overlay()
                 s.atlasInfo.key = "UIMoveInactive"
             end
         end
+    })
+    SimpleDrawableButton({
+        nid = "MoveButton",
+        x = -5,
+        y = -2.5,
+        w = 10,
+        h = 4.5,
+        outlineWidth = 3,
+        drawOrder = 10,
+        outlineColor = Macros.colors.transparent,
+        inlineColor = Macros.colors.transparent,
+        onClick = function(self)
+            local function getDoor(coords)
+                for k, v in pairs(G.I.MOVEABLES) do
+                    if v.objectType == "WORLDMOVEABLE" then
+                        if v.properties.type == "door" and Util.Math.precisionCheck(coords[1] - 0.2, v.TMod.x.base, 0.1) and Util.Math.precisionCheck(coords[2] - 0.2, v.TMod.y.base, 0.1) then
+                            return v
+                        end
+                    end
+                end
+            end
+            local s = getObjectByNid("isoGridWeb")
+            if s and # s.extra.path > 1 then
+                local function Eventify()
+                    Util.Event.delayFunc(0.3, function()
+                        if # s.extra.path > 1 then
+                            table.remove(s.extra.path, 1)
+                            PLAYER.TMod.x.base = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
+                            PLAYER.TMod.y.base = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
+                            PLAYER:juice()
+                            Eventify()
+                        else
+                            Util.World.modTime(1)
+                            if getDoor(s.extra.path[#s.extra.path].coords) then
+                                getDoor(s.extra.path[#s.extra.path].coords):switchRoom()
+                            end
+                        end
+                    end)
+                end
+                table.remove(s.extra.path, 1)
+                PLAYER.TMod.x.base = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
+                PLAYER.TMod.y.base = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
+                PLAYER:juice()
+                Eventify()
+            end
+        end,
+    })
+    SimpleDrawableButton({
+        nid = "CancelButton",
+        x = -5,
+        y = 2,
+        w = 9,
+        h = 2,
+        outlineWidth = 3,
+        drawOrder = 10,
+        outlineColor = Macros.colors.transparent,
+        inlineColor = Macros.colors.transparent,
+        onClick = function(self)
+            local s = getObjectByNid("isoGridWeb")
+            if s then
+                s.extra.path = {
+                    { point = Vector(PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2), coords = { PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2 } }
+                }
+            end
+        end,
     })
     Sprite({
         nid = "UICancel",
@@ -276,7 +359,7 @@ function Macros.UIDef.overlay()
         scaleX = 2,
         scaleY = 2,
         drawFunc = function (s)
-            local hours = Util.Math.div(G.flags.saveData.timer, 60)
+            local hours = Util.Math.div(G.flags.saveData.timer, 60) + 3
             local minutes = G.flags.saveData.timer % 60
             hours = tostring(hours)
             if #hours == 1 then
