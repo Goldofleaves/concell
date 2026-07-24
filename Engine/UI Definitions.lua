@@ -75,6 +75,7 @@ function Macros.UIDef.title()
         onClick = function(s)
             Util.Event.easeOutMusic(2, "titleID")
             Util.Event.transition(4, function()
+                Macros.UIDef.overlay()
                 Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
                 local list_of_nids = {
                     "titlebutton1",
@@ -185,4 +186,90 @@ function Macros.UIDef.title()
 end
 
 function Macros.UIDef.overlay()
+    Sprite({
+        nid = "UIMove",
+        drawOrder = 100,
+        x = Macros.grandOffsetVector.contents[1],
+        y = Macros.grandOffsetVector.contents[2],
+        atlasKey = "UIMove",
+        scaleX = 2,
+        scaleY = 2
+    })
+    Sprite({
+        nid = "UICancel",
+        drawOrder = 99,
+        x = Macros.grandOffsetVector.contents[1],
+        y = Macros.grandOffsetVector.contents[2],
+        atlasKey = "UICancel",
+        scaleX = 2,
+        scaleY = 2
+    })
+    Sprite({
+        nid = "UIHP",
+        drawOrder = 100,
+        x = Macros.grandOffsetVector.contents[1],
+        y = Macros.grandOffsetVector.contents[2],
+        atlasKey = "UIHP",
+        scaleX = 2,
+        scaleY = 2
+    })
+    Sprite({
+        nid = "UIItemRibbon",
+        drawOrder = 100,
+        x = Macros.grandOffsetVector.contents[1],
+        y = Macros.grandOffsetVector.contents[2],
+        atlasKey = "UIItemRibbon",
+        scaleX = 2,
+        scaleY = 2
+    })
+    Sprite({
+        nid = "UITimer",
+        drawOrder = 100,
+        x = Macros.grandOffsetVector.contents[1],
+        y = Macros.grandOffsetVector.contents[2],
+        atlasKey = "UITimer",
+        scaleX = 2,
+        scaleY = 2,
+        drawFunc = function (s)
+            local hours = Util.Math.div(G.flags.saveData.timer, 60)
+            local minutes = G.flags.saveData.timer % 60
+            hours = tostring(hours)
+            if #hours == 1 then
+                hours = "0 "..hours
+            else
+                hours = hours:sub(1,1).." "..hours:sub(2,2)
+            end
+            minutes = tostring(minutes)
+            if #minutes == 1 then
+                minutes = "0 " .. minutes
+            else
+                minutes = minutes:sub(1, 1) .. " " .. minutes:sub(2, 2)
+            end
+            AdvancedText("|s:2,2||c:night||f:timer|" .. hours):draw(
+            G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 317,
+            G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 13)
+            AdvancedText("|s:2,2||c:night||f:timer|" .. minutes):draw(
+            G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 358,
+            G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 13)
+            AdvancedText("|s:2,2||o:night||c:red|" .. (Macros.maxtime - G.flags.saveData.timer) .. "|o:00000000||c:night| mins til sunrise"):draw(
+            G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 319,
+            G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 40)
+        end
+    })
+    Moveable({
+        nid = "UITimerIcon",
+        drawOrder = 99,
+        x = Macros.grandOffsetVector.contents[1],
+        y = Macros.grandOffsetVector.contents[2],
+        drawFunc = function (self)
+            love.graphics.setColor(1,1,1,1)
+            love.graphics.draw(
+                Atlases.UITimerIcon.image,
+                Atlases.UITimerIcon.splicedImages[0][0],
+                G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 285,
+                G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 12,
+                0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+            )
+        end,
+    })
 end

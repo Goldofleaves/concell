@@ -223,6 +223,25 @@ function Macros.MDef.isometricGrid(w, h)
                 end
                 return false
             end
+            local function existsDoor(coords)
+                for k, v in pairs(G.I.MOVEABLES) do
+                    if v.objectType == "WORLDMOVEABLE" then
+                        if v.properties.type == "door" and Util.Math.precisionCheck(coords[1] - 0.2, v.TMod.x.base, 0.1) and Util.Math.precisionCheck(coords[2] - 0.2, v.TMod.y.base, 0.1) then
+                            return true
+                        end
+                    end
+                end
+                return false
+            end
+            local function getDoor(coords)
+                for k, v in pairs(G.I.MOVEABLES) do
+                    if v.objectType == "WORLDMOVEABLE" then
+                        if v.properties.type == "door" and Util.Math.precisionCheck(coords[1] - 0.2, v.TMod.x.base, 0.1) and Util.Math.precisionCheck(coords[2] - 0.2, v.TMod.y.base, 0.1) then
+                            return v
+                        end
+                    end
+                end
+            end
             local function isAdjacent(coords)
                 if Vector(unpack(s.extra.path[#s.extra.path].coords)):sub(Vector(unpack(coords)),true):abs() <= 1.1 then
                     return true
@@ -242,9 +261,15 @@ function Macros.MDef.isometricGrid(w, h)
                     end
                     s.extra.drawAlpha = 1
                     local p, rr = getClosestPointAndDistance()
-                    if rr < min and p.contents[1] >= 0 and p.contents[1] <= G.flags.saveData.curRoom.size.w and p.contents[2] >= 0 and p.contents[2] <= G.flags.saveData.curRoom.size.h then
-                        if not alreadyExists({ p.contents[1], p.contents[2] }) and isAdjacent({ p.contents[1], p.contents[2] }) then
-                            table.insert(s.extra.path, { point = p, coords = { p.contents[1], p.contents[2] } })
+                    if rr < min and
+                    (p.contents[1] >= 0 and
+                    p.contents[1] <= G.flags.saveData.curRoom.size.w and
+                    p.contents[2] >= 0 and
+                    p.contents[2] <= G.flags.saveData.curRoom.size.h)
+                    or existsDoor(p.contents)
+                    then
+                        if not alreadyExists(p.contents) and isAdjacent(p.contents) then
+                            table.insert(s.extra.path, { point = p, coords = p.contents })
                         end
                     end
                 elseif #s.extra.path > 1 then
@@ -270,6 +295,9 @@ function Macros.MDef.isometricGrid(w, h)
             if G.controller.select.pressed then
                 PLAYER.TMod.x.base = Util.Math.round(s.extra.path[#s.extra.path].coords[1] - 0.2)
                 PLAYER.TMod.y.base = Util.Math.round(s.extra.path[#s.extra.path].coords[2] - 0.2)
+                if getDoor(s.extra.path[#s.extra.path].coords) then
+                    getDoor(s.extra.path[#s.extra.path].coords):switchRoom()
+                end
                 s.extra.path = {
                     { point = Vector(PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2), coords = { PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2 } }
                 }
@@ -320,7 +348,7 @@ function Macros.MDef.isometricGrid(w, h)
                 end
             end
             love.graphics.setLineWidth(2.5 * Util.UI.getScalingFactor())
-            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.darkRed, s.extra.drawAlpha))
+            love.graphics.setColor(Macros.colors.darkRed)
             for i = 1, #s.extra.path - 1 do
                 local grp = { Util.World.toIsoPos(s.extra.path[i].point), Util.World.toIsoPos(s.extra.path[i + 1].point) }
                 love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
@@ -331,7 +359,7 @@ function Macros.MDef.isometricGrid(w, h)
                 love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
                 love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
             end
-            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.red, s.extra.drawAlpha))
+            love.graphics.setColor(Macros.colors.red)
             for i = 1, #s.extra.path - 1 do
                 local grp = { Util.World.toIsoPos(s.extra.path[i].point), Util.World.toIsoPos(s.extra.path[i + 1].point) }
                 love.graphics.circle("fill", grp[1].contents[1], grp[1].contents[2], 4 * Util.UI.getScalingFactor())

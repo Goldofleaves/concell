@@ -13,7 +13,9 @@ function Game:new()
 	self.events = {}
 	self.currentID = 0
 	self.flags = {
-		saveData = {}
+		saveData = {
+			timer = 0
+		}
 	}
 	self.I = {
 		MOVEABLES = {},
@@ -329,10 +331,6 @@ function Game:draw()
 	if G.debug.console then
 		local t = AdvancedText("|s:3,3||c:red|"..G.debug.constext)
 		t:draw(1,1, true)
-	end
-	if G.flags.saveData.curRoomIndex then
-		local t = AdvancedText("|s:3,3||c:red|" .. "Press Z to proceed and X to cancel")
-		t:draw(1, 1, true)
 	end
 end
 
