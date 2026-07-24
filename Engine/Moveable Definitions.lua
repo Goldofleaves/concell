@@ -311,7 +311,7 @@ function Macros.MDef.isometricGrid(w, h, area)
                 Util.World.toIsoPos(Vector(w - 0.5, h - 0.5)),
                 Util.World.toIsoPos(Vector(w - 0.5, 0.5)),
             })
-            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white, s.extra.drawAlpha))
+            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white, 0.7*s.extra.drawAlpha))
             for i = 1, s.extra.w - 1 do
                 for j = 1, s.extra.h - 1 do
                     local x = i - 1 + 0.2
