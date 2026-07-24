@@ -18,7 +18,7 @@ function Macros.MDef.isometricGrid(w, h)
         extra = {
             w = w,
             h = h,
-            draw = true,
+            drawAlpha = 1,
             sprites = {
                 base = (function ()
                     local t = {}
@@ -189,42 +189,40 @@ function Macros.MDef.isometricGrid(w, h)
                     end
                 end
             end
-            if s.extra.draw then
-                love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.night, 0.1))
-                for i = 1, s.extra.w - 1 do
-                    for j = 1, s.extra.h - 1 do
-                        local x = i - 1 + 0.5
-                        local y = j - 1 + 0.5
-                        local vertices = {
-                            Util.World.toIsoPos(Vector(x, y)),
-                            Util.World.toIsoPos(Vector(x + 1, y)),
-                            Util.World.toIsoPos(Vector(x + 1, y + 1)),
-                            Util.World.toIsoPos(Vector(x, y + 1)),
-                        }
-                        Util.Draw.drawVectorPolygon("line", vertices)
-                    end
+            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.night, 0.1 * s.extra.drawAlpha))
+            for i = 1, s.extra.w - 1 do
+                for j = 1, s.extra.h - 1 do
+                    local x = i - 1 + 0.5
+                    local y = j - 1 + 0.5
+                    local vertices = {
+                        Util.World.toIsoPos(Vector(x, y)),
+                        Util.World.toIsoPos(Vector(x + 1, y)),
+                        Util.World.toIsoPos(Vector(x + 1, y + 1)),
+                        Util.World.toIsoPos(Vector(x, y + 1)),
+                    }
+                    Util.Draw.drawVectorPolygon("line", vertices)
                 end
-                Util.Draw.drawVectorPolygon("line", {
-                    Util.World.toIsoPos(Vector(0.5, 0.5)),
-                    Util.World.toIsoPos(Vector(0.5, h-0.5)),
-                    Util.World.toIsoPos(Vector(w - 0.5, h - 0.5)),
-                    Util.World.toIsoPos(Vector(w - 0.5, 0.5)),
-                })
-                love.graphics.setColor(Macros.colors.white)
-                for i = 1, s.extra.w - 1 do
-                    for j = 1, s.extra.h - 1 do
-                        local x = i - 1 + 0.2
-                        local y = j - 1 + 0.2
-                        local vertices = {
-                            Util.World.toIsoPos(Vector(x, y)),
-                            Util.World.toIsoPos(Vector(x + 1, y)),
-                            Util.World.toIsoPos(Vector(x + 1, y + 1)),
-                            Util.World.toIsoPos(Vector(x, y + 1)),
-                        }
-                        Util.Draw.drawVectorPolygon("line", vertices)
-                        for k, v in ipairs(vertices) do
-                            love.graphics.circle("fill", v.contents[1], v.contents[2], 3 * Util.UI.getScalingFactor())
-                        end
+            end
+            Util.Draw.drawVectorPolygon("line", {
+                Util.World.toIsoPos(Vector(0.5, 0.5)),
+                Util.World.toIsoPos(Vector(0.5, h-0.5)),
+                Util.World.toIsoPos(Vector(w - 0.5, h - 0.5)),
+                Util.World.toIsoPos(Vector(w - 0.5, 0.5)),
+            })
+            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white, s.extra.drawAlpha))
+            for i = 1, s.extra.w - 1 do
+                for j = 1, s.extra.h - 1 do
+                    local x = i - 1 + 0.2
+                    local y = j - 1 + 0.2
+                    local vertices = {
+                        Util.World.toIsoPos(Vector(x, y)),
+                        Util.World.toIsoPos(Vector(x + 1, y)),
+                        Util.World.toIsoPos(Vector(x + 1, y + 1)),
+                        Util.World.toIsoPos(Vector(x, y + 1)),
+                    }
+                    Util.Draw.drawVectorPolygon("line", vertices)
+                    for k, v in ipairs(vertices) do
+                        love.graphics.circle("fill", v.contents[1], v.contents[2], 3 * Util.UI.getScalingFactor())
                     end
                 end
             end
