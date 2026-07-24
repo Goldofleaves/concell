@@ -93,6 +93,9 @@ function Util.World.modTime(m)
     G.flags.saveData.timer = G.flags.saveData.timer + m
 end
 function Util.World.getArea(index)
+    if type(index) == "string" then
+        return "thorn"
+    end
     if index <= 5 then
         return "prison"
     end
@@ -100,14 +103,11 @@ function Util.World.getArea(index)
         --return "p2g"
         return "grass"
     end
-    if index > 6 and index <= 11 then
+    if index >= 6 and index <= 11 then
         return "grass"
     end
     if index == 12 then
         return "f2r"
-    end
-    if type(index) == "string" then
-        return "thorn"
     end
     return "ruins"
 end
