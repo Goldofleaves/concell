@@ -35,6 +35,6 @@ Macros = {
 		timer = love.graphics.newImageFont("Assets/Sprites/TimerFont.png", " 0123456789/")
 	},
 	baseTileSize = 40,
-	maxtime = 360,
-	maxhp = 60
+	maxtime = 180,
+	maxhp = 60,
 }

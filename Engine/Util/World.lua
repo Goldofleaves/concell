@@ -89,18 +89,25 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
     end
     return room
 end
+function Util.World.modTime(m)
+    G.flags.saveData.timer = G.flags.saveData.timer + m
+end
 function Util.World.getArea(index)
     if index <= 5 then
         return "prison"
     end
     if index == 6 then
-        return "p2f"
+        --return "p2g"
+        return "grass"
     end
     if index > 6 and index <= 11 then
-        return "field"
+        return "grass"
     end
     if index == 12 then
         return "f2r"
+    end
+    if type(index) == "string" then
+        return "thorn"
     end
     return "ruins"
 end

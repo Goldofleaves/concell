@@ -10,7 +10,7 @@ function WorldMoveable:juice(r)
     r = r or 2
     Util.Event.addEvent(
         Event({
-            duration = 0.4,
+            duration = 0.3,
             easeFunc = function (t, s)
                 self.properties.mult = Util.EaseSplines.createEase(r, 1, nil, {preset = "eoc"})(t)
             end,
@@ -49,7 +49,7 @@ function WorldMoveable:switchRoom()
         Util.Event.transition(2, function()
             G.flags.saveData.curRoomIndex = self.extra.index
             G.flags.saveData.curRoom = G.flags.saveData.rooms[self.extra.index]
-            Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h)
+            Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, Util.World.getArea(self.extra.index))
             getObjectByNid("isoGrid"):remove()
             getObjectByNid("isoGridWeb"):remove()
             local list = {}

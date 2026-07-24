@@ -15,7 +15,8 @@ function Game:new()
 	self.flags = {
 		saveData = {
 			timer = 0,
-			hp = 60
+			hp = 60,
+			gridsPerMove = 5
 		}
 	}
 	self.I = {

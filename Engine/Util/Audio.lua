@@ -1,13 +1,14 @@
 local audioLib = {}
 Macros.sounds = {}
-local registerSource = function(name, path, extra)
+local registerSource = function(name, path, extra, attribute)
+    attribute = attribute or ".ogg"
     extra = extra or {}
     local s_path = ''
     for _, v in ipairs(path) do
         s_path = s_path .. '/' .. v
     end
     s_path = s_path:sub(2, s_path:len())
-    local source = love.audio.newSource(s_path .. ".ogg", "static")
+    local source = love.audio.newSource(s_path .. attribute, "static")
     source:setVolume(extra.volume or 1)
     source:setPitch(extra.pitch or 1)
     source:setLooping(extra.looping or false)
@@ -18,7 +19,7 @@ end
 ---@param name string The internal ID of the sound file.
 ---@param path string[] The path to the sound.
 ---@param extra? {overwrite?:boolean, volume?:integer, pitch?:integer}
-function audioLib.registerSfx(name, path, extra)
+function audioLib.registerSfx(name, path, extra, attribute)
     extra = extra or {}
     extra.overwrite = extra.overwrite or false
     extra.volume = extra.volume or 1
@@ -40,7 +41,7 @@ function audioLib.registerSfx(name, path, extra)
     end
 
     Macros.sounds[name] = {
-        source = registerSource(name, path, extra),
+        source = registerSource(name, path, extra, attribute),
         type = 'sfx'
     }
     print(

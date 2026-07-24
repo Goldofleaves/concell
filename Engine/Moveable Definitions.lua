@@ -1,5 +1,5 @@
 Macros.MDef = {}
-function Macros.MDef.isometricGrid(w, h)
+function Macros.MDef.isometricGrid(w, h, area)
     local phi1, phi2, chi, a1, a2 = math.betterrandom(0.5, 1.1), math.betterrandom(0.5, 1.1),
     math.betterrandom(0, math.tau), math.betterrandom(1, 2), math.betterrandom(1, 2)
     w = w or 4
@@ -29,7 +29,7 @@ function Macros.MDef.isometricGrid(w, h)
                                 sprite = Sprite {
                                     scaleX = 2,
                                     scaleY = 2,
-                                    atlasKey = "grassBase",
+                                    atlasKey = area.."Base",
                                     x = vertex.contents[1] + G.drawinfo.gridUnit,
                                     y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                     worldCoords = false,
@@ -51,7 +51,7 @@ function Macros.MDef.isometricGrid(w, h)
                                     sprite = Sprite {
                                         scaleX = 2,
                                         scaleY = 2,
-                                        atlasKey = "grassFoley",
+                                        atlasKey = area .. "Foley",
                                         x = vertex.contents[1] + G.drawinfo.gridUnit,
                                         y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                         worldCoords = false,
@@ -73,7 +73,7 @@ function Macros.MDef.isometricGrid(w, h)
                                 sprite = Sprite {
                                     scaleX = 2,
                                     scaleY = 2,
-                                    atlasKey = "grassEdge1",
+                                    atlasKey = area .. "Edge1",
                                     x = vertex.contents[1] + G.drawinfo.gridUnit,
                                     y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                     worldCoords = false,
@@ -92,7 +92,7 @@ function Macros.MDef.isometricGrid(w, h)
                                 sprite = Sprite {
                                     scaleX = 2,
                                     scaleY = 2,
-                                    atlasKey = "grassEdge2",
+                                    atlasKey = area .. "Edge2",
                                     x = vertex.contents[1] + G.drawinfo.gridUnit,
                                     y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                     worldCoords = false,
@@ -111,7 +111,7 @@ function Macros.MDef.isometricGrid(w, h)
                                 sprite = Sprite {
                                     scaleX = 2,
                                     scaleY = 2,
-                                    atlasKey = "grassEdge3",
+                                    atlasKey = area .. "Edge3",
                                     x = vertex.contents[1] + G.drawinfo.gridUnit,
                                     y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                     worldCoords = false,
@@ -130,7 +130,7 @@ function Macros.MDef.isometricGrid(w, h)
                                 sprite = Sprite {
                                     scaleX = 2,
                                     scaleY = 2,
-                                    atlasKey = "grassEdge4",
+                                    atlasKey = area .. "Edge4",
                                     x = vertex.contents[1] + G.drawinfo.gridUnit,
                                     y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                     worldCoords = false,
@@ -233,15 +233,6 @@ function Macros.MDef.isometricGrid(w, h)
                 end
                 return false
             end
-            local function getDoor(coords)
-                for k, v in pairs(G.I.MOVEABLES) do
-                    if v.objectType == "WORLDMOVEABLE" then
-                        if v.properties.type == "door" and Util.Math.precisionCheck(coords[1] - 0.2, v.TMod.x.base, 0.1) and Util.Math.precisionCheck(coords[2] - 0.2, v.TMod.y.base, 0.1) then
-                            return v
-                        end
-                    end
-                end
-            end
             local function isAdjacent(coords)
                 if Vector(unpack(s.extra.path[#s.extra.path].coords)):sub(Vector(unpack(coords)),true):abs() <= 1.1 then
                     return true
@@ -262,11 +253,11 @@ function Macros.MDef.isometricGrid(w, h)
                     s.extra.drawAlpha = 1
                     local p, rr = getClosestPointAndDistance()
                     if rr < min and
-                    (p.contents[1] >= 0 and
+                    ((p.contents[1] >= 0 and
                     p.contents[1] <= G.flags.saveData.curRoom.size.w and
                     p.contents[2] >= 0 and
                     p.contents[2] <= G.flags.saveData.curRoom.size.h)
-                    or existsDoor(p.contents)
+                    or existsDoor(p.contents)) and #s.extra.path < G.flags.saveData.gridsPerMove
                     then
                         if not alreadyExists(p.contents) and isAdjacent(p.contents) then
                             table.insert(s.extra.path, { point = p, coords = p.contents })
@@ -295,22 +286,6 @@ function Macros.MDef.isometricGrid(w, h)
                 end
             else
                 s.extra.drawAlpha = 0
-            end
-            if G.controller.select.pressed then
-                PLAYER.TMod.x.base = Util.Math.round(s.extra.path[#s.extra.path].coords[1] - 0.2)
-                PLAYER.TMod.y.base = Util.Math.round(s.extra.path[#s.extra.path].coords[2] - 0.2)
-                if getDoor(s.extra.path[#s.extra.path].coords) then
-                    getDoor(s.extra.path[#s.extra.path].coords):switchRoom()
-                end
-                s.extra.path = {
-                    { point = Vector(PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2), coords = { PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2 } }
-                }
-                PLAYER:juice()
-            end
-            if G.controller.cancel.pressed then
-                s.extra.path = {
-                    { point = Vector(PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2), coords = { PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2 } }
-                }
             end
         end,
         drawFunc = function (s)
@@ -360,7 +335,9 @@ function Macros.MDef.isometricGrid(w, h)
             if s.extra.held then
                 local grp = { Util.World.toIsoPos(s.extra.path[#s.extra.path].point), Vector(love.mouse.getX(),
                 love.mouse.getY()) }
-                love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
+                if grp[1]:sub(grp[2], true):abs() < 100 * Util.UI.getScalingFactor() then
+                    love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
+                end
                 love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
             end
             love.graphics.setColor(Macros.colors.red)
