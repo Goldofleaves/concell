@@ -331,7 +331,9 @@ function Macros.MDef.isometricGrid(w, h, area)
             if s.extra.held then
                 local grp = { Util.World.toIsoPos(s.extra.path[#s.extra.path].point), Vector(love.mouse.getX(),
                 love.mouse.getY()) }
-                love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
+                if grp[1]:sub(grp[2], true):abs() < 100 * Util.UI.getScalingFactor() then
+                    love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
+                end
                 love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
             end
             love.graphics.setColor(Macros.colors.red)

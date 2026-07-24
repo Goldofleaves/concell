@@ -54,6 +54,7 @@ Util.Audio.registerMusic("overworld", { "Assets", "Audio", "Music", "overworld" 
 Util.Audio.registerMusic("battle", { "Assets", "Audio", "Music", "battle" })
 Util.Audio.registerSfx("blip_hover", { "Assets", "Audio", "SFX", "blip_hover" }, {volume = 5}, ".wav")
 Util.Audio.registerSfx("blip_unhover", { "Assets", "Audio", "SFX", "blip_unhover" }, { volume = 5 }, ".wav")
+Util.Audio.registerSfx("blip_stopped", { "Assets", "Audio", "SFX", "blip_stopped" }, { volume = 5 }, ".wav")
 
 function love.load()
     Util.Audio.musicPush("title", "titleID", "title", 1, 1, 1, { looping = true })

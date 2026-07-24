@@ -29,7 +29,7 @@ function Game:new()
 		musicHandler = {}
 	}
 	self.debug = {
-		drawWorldGrid = true,
+		drawWorldGrid = false,
 		drawIsoGrid = false,
 		console = false,
 		constext = ""

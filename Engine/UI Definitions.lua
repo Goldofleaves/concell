@@ -264,6 +264,8 @@ function Macros.UIDef.overlay()
                 PLAYER.TMod.y.base = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
                 PLAYER:juice()
                 Eventify()
+            else
+                Util.Audio.playSfx("blip_stopped", 2)
             end
         end,
     })
