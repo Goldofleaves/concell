@@ -5,6 +5,9 @@ end
 function Util.UI.convertUIPosToPos(x, y)
 	return (x - G.drawinfo.origin.x) / G.drawinfo.gridUnit, (y - G.drawinfo.origin.y) / G.drawinfo.gridUnit
 end
+function Util.UI.getScalingFactor()
+	return G.drawinfo.gridUnit/Macros.baseTileSize
+end
 ---comment
 ---@param entries table
 ---@param info table?
@@ -42,11 +45,11 @@ Util.UI.CreatePagedList = function(entries, info, extra)
 			if not self.extra.inMenu then
 				if G.controller[extra.orientation == "horizontal" and "left" or "up"].pressed then
 					self.extra.curPage = Util.Math.clamp(1, self.extra.max, self.extra.curPage - 1)
-					Util.Audio.playSfx("MenuSwitchSubjects", 0.3, math.random() * 0.5 + 0.75)
+					Util.Audio.playSfx("MenuSwitchSubjects", 0.3, love.math.random() * 0.5 + 0.75)
 				end
 				if G.controller[extra.orientation == "horizontal" and "right" or "down"].pressed then
 					self.extra.curPage = Util.Math.clamp(1, self.extra.max, self.extra.curPage + 1)
-					Util.Audio.playSfx("MenuSwitchSubjects", 0.3, math.random() * 0.5 + 0.75)
+					Util.Audio.playSfx("MenuSwitchSubjects", 0.3, love.math.random() * 0.5 + 0.75)
 				end
 			end
 		end
@@ -86,15 +89,15 @@ Util.UI.CreateList = function(entries, info, extra)
 			if not self.extra.inMenu then
 				if G.controller[extra.orientation == "horizontal" and "left" or "up"].pressed then
 					self.extra.curOption = Util.Math.clamp(1, self.extra.max, self.extra.curOption - 1)
-					Util.Audio.playSfx("MenuSwitchSubjects", 0.3, math.random() * 0.5 + 0.75)
+					Util.Audio.playSfx("MenuSwitchSubjects", 0.3, love.math.random() * 0.5 + 0.75)
 				end
 				if G.controller[extra.orientation == "horizontal" and "right" or "down"].pressed then
 					self.extra.curOption = Util.Math.clamp(1, self.extra.max, self.extra.curOption + 1)
-					Util.Audio.playSfx("MenuSwitchSubjects", 0.3, math.random() * 0.5 + 0.75)
+					Util.Audio.playSfx("MenuSwitchSubjects", 0.3, love.math.random() * 0.5 + 0.75)
 				end
 				if G.controller.select.pressed then
 					if not G.flags.listInitiation then
-						Util.Audio.playSfx("Select", 0.3, math.random() * 0.5 + 0.75)
+						Util.Audio.playSfx("Select", 0.3, love.math.random() * 0.5 + 0.75)
 						self.extra.entryMoveables[self.extra.curOption].properties.state = "targeted"
 						self.extra.inMenu = true
 						if self.master then
@@ -159,7 +162,7 @@ function Util.UI.CreateSlider(info, text, rTab, rVal, min, max, extra)
 					rTab[rVal] = Util.Math.clamp(min, max, rTab[rVal] - 1)
 					recalcText()
 					if rTab[rVal] ~= min then
-						Util.Audio.playSfx("SliderSound1", 0.3, math.random() * 0.5 + 0.75)
+						Util.Audio.playSfx("SliderSound1", 0.3, love.math.random() * 0.5 + 0.75)
 					end
 				end
 			end
@@ -169,13 +172,13 @@ function Util.UI.CreateSlider(info, text, rTab, rVal, min, max, extra)
 					rTab[rVal] = Util.Math.clamp(min, max, rTab[rVal] + 1)
 					recalcText()
 					if rTab[rVal] ~= max then
-						Util.Audio.playSfx("SliderSound1", 0.3, math.random() * 0.5 + 0.75)
+						Util.Audio.playSfx("SliderSound1", 0.3, love.math.random() * 0.5 + 0.75)
 					end
 				end
 			end
 			s.extra.t = math.max(s.extra.t - dt, -0.02)
 			if G.controller.cancel.pressed then
-				Util.Audio.playSfx("Deselect", 0.3, math.random() * 0.5 + 0.75)
+				Util.Audio.playSfx("Deselect", 0.3, love.math.random() * 0.5 + 0.75)
 				s.master.extra.inMenu = false
 				local v = s.master
 				while v.master do
@@ -237,16 +240,16 @@ function Util.UI.CreateOption(info, text, rTab, rVal, values, extra)
 				s.extra.curOption = Util.Math.clamp(1, max, s.extra.curOption - 1)
 				rTab[rVal] = values[s.extra.curOption]
 				recalcText()
-				Util.Audio.playSfx("MenuSwitchSubjects", 0.3, math.random() * 0.5 + 0.75)
+				Util.Audio.playSfx("MenuSwitchSubjects", 0.3, love.math.random() * 0.5 + 0.75)
 			end
 			if G.controller.right.pressed then
 				s.extra.curOption = Util.Math.clamp(1, max, s.extra.curOption + 1)
 				rTab[rVal] = values[s.extra.curOption]
 				recalcText()
-				Util.Audio.playSfx("MenuSwitchSubjects", 0.3, math.random() * 0.5 + 0.75)
+				Util.Audio.playSfx("MenuSwitchSubjects", 0.3, love.math.random() * 0.5 + 0.75)
 			end
 			if G.controller.cancel.pressed then
-				Util.Audio.playSfx("Deselect", 0.3, math.random() * 0.5 + 0.75)
+				Util.Audio.playSfx("Deselect", 0.3, love.math.random() * 0.5 + 0.75)
 				s.master.extra.inMenu = false
 				local v = s.master
 				while v.master do
@@ -290,7 +293,7 @@ function Util.UI.CreateButton(info, text, fun, extra)
 		end
 		if s.properties.state == "targeted" then
 			local a = fun(s)
-			Util.Audio.playSfx("Select", 0.3, math.random() * 0.5 + 0.75)
+			Util.Audio.playSfx("Select", 0.3, love.math.random() * 0.5 + 0.75)
 			if type(a) ~= "table" or a.exit then
 				s.master.extra.inMenu = false
 				local v = s.master

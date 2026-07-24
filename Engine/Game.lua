@@ -4,10 +4,20 @@ Game = Object:extend()
 function Game:new()
 	self.timer = 0
 	self.glyphs = {}
-	self.drawinfo = {}
+	self.drawinfo = {
+		gridUnit = 40,
+		origin = {x = 0, y = 0},
+		gridSize = {x=800,y=600},
+		supergridSize = {x = 1200, y = 800}
+	}
 	self.events = {}
 	self.currentID = 0
-	self.flags = {}
+	self.flags = {
+		saveData = {
+			timer = 0,
+			hp = 60
+		}
+	}
 	self.I = {
 		MOVEABLES = {},
 		SPRITES = {}
@@ -17,6 +27,13 @@ function Game:new()
 		music = {},
 		musicHandler = {}
 	}
+	self.debug = {
+		drawWorldGrid = false,
+		drawIsoGrid = false,
+		console = false,
+		constext = ""
+	}
+	self.worldOffsetVector = Vector(0,0)
 	self.settings = {
 		fullscreen = false,
 		sound = {
@@ -48,49 +65,57 @@ function Game:new()
 		{ pressed = false, held = false, released = false },
 		{ pressed = false, held = false, released = false },
 	}
+	self.mousepos = {
+		oldx = 0, oldy = 0,
+		x = 0, y = 0
+	}
 	G = self
 	return self
 end
 function Game:update(dt)
+	self.mousepos.x, self.mousepos.y = Util.UI.convertUIPosToPos(love.mouse.getX(), love.mouse.getY())
+	love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
 	self.timer = self.timer + dt
 
 	-- Misc
 	-- Controller
-	for k, v in pairs(self.controller) do
-		if (function()
-				for kk, vv in pairs(G.settings.keybinds[k]) do
-					if type(vv) ~= "table" then
-						if love.keyboard.isDown(vv) then
-							return true
-						end
-					else
-						local bool = true
-						for kkk, vvv in pairs(vv) do
-							if not love.keyboard.isDown(vvv) then
-								bool = false
+	if not G.debug.console then
+		for k, v in pairs(self.controller) do
+			if (function()
+					for kk, vv in pairs(G.settings.keybinds[k]) do
+						if type(vv) ~= "table" then
+							if love.keyboard.isDown(vv) then
+								return true
 							end
+						else
+							local bool = true
+							for kkk, vvv in pairs(vv) do
+								if not love.keyboard.isDown(vvv) then
+									bool = false
+								end
+							end
+							return bool
 						end
-						return bool
 					end
+					return false
+				end)() then
+				v.held = true
+				if not v.pressTemp then
+					v.pressed = true
+					v.pressTemp = true
+				else
+					v.pressed = false
 				end
-				return false
-			end)() then
-			v.held = true
-			if not v.pressTemp then
-				v.pressed = true
-				v.pressTemp = true
 			else
+				if v.held then
+					v.released = true
+				else
+					v.released = false
+				end
+				v.held = false
 				v.pressed = false
+				v.pressTemp = nil
 			end
-		else
-			if v.held then
-				v.released = true
-			else
-				v.released = false
-			end
-			v.held = false
-			v.pressed = false
-			v.pressTemp = nil
 		end
 	end
 	-- Mouse Controller
@@ -179,7 +204,10 @@ function Game:update(dt)
 	end
 	self.drawinfo.gridUnit = idealHeight / Macros.screenDimentions.y / Macros.gridSingleSubdivision
 	self.drawinfo.origin = { x = (actualWidth - idealWidth) / 2, y = (actualHeight - idealHeight) / 2 }
-	self.drawinfo.gridSize = {x = idealWidth, y = idealHeight}
+	self.drawinfo.gridSize = { x = idealWidth, y = idealHeight }
+	self.drawinfo.supergridSize = { x = 30 * self.drawinfo.gridUnit, y = 20 * self.drawinfo.gridUnit }
+	self.drawinfo.superorigin = { x = self.drawinfo.origin.x - self.drawinfo.gridUnit * 5, y = self.drawinfo.origin.y -
+	self.drawinfo.gridUnit * 2.5 }
 	local union = {}
 	for k, v in pairs(self.I.MOVEABLES) do
 		table.insert(union,v)
@@ -205,13 +233,42 @@ function Game:update(dt)
 		end
 	end
 	updateAllObjects({})
+	self.mousepos.oldx, self.mousepos.oldy = Util.UI.convertUIPosToPos(love.mouse.getX(), love.mouse.getY())
+end
+love.keyboard.setTextInput(true)
+function love.textinput(t)
+	if G.debug.console then
+		G.debug.constext = G.debug.constext .. t
+	end
+end
+
+function love.keypressed(key)
+	if key == "backspace" and G.debug.console then
+		G.debug.constext = string.sub(G.debug.constext, 1, -2)
+	end
+	if key == "k" then
+		G.debug.console = not G.debug.console
+	end
+	if key == "return" and G.debug.console then
+		if string.sub(G.debug.constext,1,1) == "=" then
+			G.debug.constext = "return ".. string.sub(G.debug.constext, 2, #G.debug.constext)
+		end
+		local func, err = load(G.debug.constext)
+		G.debug.constext = ""
+		if func then
+			local suc, res = pcall(func)
+			print(res or "nil")
+		else
+			print(err)
+		end
+	end
 end
 
 function Game:draw()
 	-- preportions
 	local actualHeight, actualWidth = love.graphics.getHeight(), love.graphics.getWidth()
 	local r, g, b, a = love.graphics.getColor()
-	love.graphics.setColor(Macros.colors.white)
+	love.graphics.setColor(Macros.colors.lightBlack)
 	love.graphics.rectangle("fill", 0, 0, actualWidth, actualHeight)
 	local Table = {}
 	for _, v in pairs(self.I.MOVEABLES) do
@@ -245,6 +302,16 @@ function Game:draw()
 		idealHeight = actualHeight
 		idealWidth = idealHeight / Macros.screenDimentions.y * Macros.screenDimentions.x
 	end
+	if self.debug.drawWorldGrid then
+		love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.red, 0.15))
+		for i = 1, Macros.screenDimentions.x * Macros.gridSingleSubdivision do
+			for j = 1, Macros.screenDimentions.y * Macros.gridSingleSubdivision do
+				love.graphics.rectangle("line", self.drawinfo.origin.x + (i - 1) * self.drawinfo.gridUnit,
+					self.drawinfo.origin.y + (j - 1) * self.drawinfo.gridUnit, self.drawinfo.gridUnit,
+					self.drawinfo.gridUnit)
+			end
+		end
+	end
 	if actualPreportion > Macros.screenStretchTolerance.max then
 		love.graphics.setColor(Macros.colors.night)
 		love.graphics.rectangle("fill", 0, 0, actualWidth, (actualHeight - actualWidth) / 2)
@@ -262,6 +329,10 @@ function Game:draw()
 		love.graphics.rectangle("fill", (actualWidth - 2 * actualHeight) / 2 + 2 * actualHeight + 2, 0, 2, actualHeight)
 	end
 	love.graphics.setColor { r, g, b, a }
+	if G.debug.console then
+		local t = AdvancedText("|s:3,3||c:red|"..G.debug.constext)
+		t:draw(1,1, true)
+	end
 end
 
 Game()

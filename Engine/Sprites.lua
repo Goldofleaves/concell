@@ -58,6 +58,7 @@ function Sprite:new(args)
 	self.drawTiled = args.drawTiled == nil and false or args.drawTiled
 	self.extra = args.extra or {}
 	self.drawFunc = args.drawFunc or function(s) return end
+	self.preDraw = args.preDraw or function(s) return end
 	self.mask = {
 		ShouldApply = args.MaskShouldApply == nil and false or args.MaskShouldApply,
 		ImageFpos = args.MaskImageFpos,
@@ -77,12 +78,19 @@ function Sprite:new(args)
 		y = args.centerY or 0
 	}
 	self.rotation = args.rotation or 0
+	self.worldCoords = args.worldCoords == nil and true or args.worldCoords
 	return self
 end
 
 function Sprite:draw()
+	local r, g, b, a = love.graphics.getColor()
+	love.graphics.setColor { 1, 1, 1, 1 }
+	self.preDraw(self)
 	local draw_func = function(kx, ky)
-		local x, y = Util.UI.convertPosToUIPos(self.T.x + kx, self.T.y + ky)
+		local x, y = self.T.x + kx, self.T.y + ky
+		if self.worldCoords then
+			x, y = Util.UI.convertPosToUIPos(self.T.x + kx, self.T.y + ky)
+		end
 		local r, g, b, a = love.graphics.getColor()
 		love.graphics.setColor { r, g, b, a * self.transparency }
 		if self.mask.ShouldApply then
@@ -106,8 +114,8 @@ function Sprite:draw()
 			love.graphics.setStencilTest("greater", 0)
 		end
 		if not self.drawTiled then
-			local scalex = self.scale.x / 40 * G.drawinfo.gridUnit
-			local scaley = self.scale.y / 40 * G.drawinfo.gridUnit
+			local scalex = self.scale.x * Util.UI.getScalingFactor()
+			local scaley = self.scale.y * Util.UI.getScalingFactor()
 			local xcenter, ycenter = self.center.x * Atlases[self.atlasInfo.key].singleDimention.w * scalex,
 			self.center.y * Atlases[self.atlasInfo.key].singleDimention.h * scaley
 			local rot = Util.Math.rotatePointAroundOrigin(-xcenter, -ycenter, self.rotation)
@@ -121,8 +129,8 @@ function Sprite:draw()
 				self.rotation, scalex, scaley
 			)
 		else
-			local scalex = self.scale.x / 40 * G.drawinfo.gridUnit
-			local scaley = self.scale.y / 40 * G.drawinfo.gridUnit
+			local scalex = self.scale.x * Util.UI.getScalingFactor()
+			local scaley = self.scale.y * Util.UI.getScalingFactor()
 			local moduloX = x % Atlases[self.atlasInfo.key].singleDimention.w * scalex
 			local moduloY = y % Atlases[self.atlasInfo.key].singleDimention.h * scaley
 			local xSegments = math.ceil(G.drawinfo.gridSize.x / Atlases[self.atlasInfo.key].singleDimention.w * scalex)
@@ -163,6 +171,7 @@ function Sprite:draw()
 		draw_func(self.offset.x, self.offset.y)
 	end
 	self.drawFunc(self)
+	love.graphics.setColor { r, g, b, a }
 end
 
 function Sprite:setParent(obj)
@@ -193,4 +202,11 @@ function Sprite:remove()
 		end
 	end
 	self = nil
+end
+function Sprite:getHeight()
+	return Atlases[self.atlasInfo.key].singleDimention.h * self.scale.y * Util.UI.getScalingFactor()
+end
+
+function Sprite:getWidth()
+	return Atlases[self.atlasInfo.key].singleDimention.w * self.scale.x * Util.UI.getScalingFactor()
 end

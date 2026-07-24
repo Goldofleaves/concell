@@ -29,9 +29,11 @@ Util.Event = {}
 
 function getEventByNid(nid)
 	if not nid then return false end
-	for k, v in pairs(G.events) do
-		if v.nid == nid then
-			return v
+	for _, queue in pairs(G.events) do
+		for _, v in pairs(queue) do
+			if v.nid == nid then
+				return v
+			end
 		end
 	end
 	return false
@@ -53,11 +55,95 @@ function Util.Event.addEvent(e, queue, front)
 	end
 end
 
-function Util.Event.delayFunc(t, f)
+function Util.Event.delayFunc(t, f, q)
 	Util.Event.addEvent(Event(
 		{
 			duration = t,
-			endFunc = f
+			endFunc = f,
 		}
-	))
+	),q)
+end
+
+function Util.Event.transition(t, f, q, c, endFunc)
+	if not getEventByNid("transition") then
+		f = f or function() end
+		Util.Event.delayFunc(t / 2, f, q)
+		endFunc = endFunc or function() end
+		c = c or Macros.colors.lightBlack
+		Util.Event.addEvent(Event(
+			{
+				drawOrder = 1e30,
+				duration = t,
+				nid = "transition",
+				easeFunc = function(time, s)
+					s.extra.y = Util.EaseSplines.createEase(G.drawinfo.supergridSize.y + 1,
+					-G.drawinfo.supergridSize.y - 1,
+							function(x)
+								return x
+							end, { preset = "eioc", param = 1.75 })(time)
+				end,
+				extra = {
+					y = G.drawinfo.supergridSize.y + 1
+				},
+				drawFunc = function(time, s)
+					local df = function()
+						local r, g, b, a = love.graphics.getColor()
+						love.graphics.setColor(c)
+						love.graphics.rectangle("fill", G.drawinfo.superorigin.x, G.drawinfo.superorigin.y + s.extra.y,
+							G.drawinfo.supergridSize.x, G.drawinfo.supergridSize.y)
+						love.graphics.setColor(Macros.colors.white)
+						love.graphics.rectangle("fill", G.drawinfo.superorigin.x,
+						G.drawinfo.superorigin.y + s.extra.y - 1,
+							G.drawinfo.supergridSize.x, 1)
+						love.graphics.rectangle("fill", G.drawinfo.superorigin.x,
+							G.drawinfo.superorigin.y + s.extra.y + G.drawinfo.supergridSize.y,
+							G.drawinfo.supergridSize.x, 1)
+						love.graphics.setColor(r, b, g, a)
+					end
+					df()
+				end,
+				endFunc = function(s)
+					endFunc()
+				end
+			}
+		))
+	end
+end
+
+function Util.Event.easeOutMusic(t, m)
+	Util.Event.addEvent(Event(
+		{
+			duration = t,
+			easeFunc = function(time, s)
+				local targetBgm = Util.Audio.getHighestPriorityMusic()
+				if targetBgm and targetBgm.source then
+					targetBgm.source:setVolume((1 - time) * targetBgm.volume * G.settings.sound.music / 100 *
+						G.settings.sound.master /
+						100)
+				end
+			end,
+			endFunc = function()
+				Util.Audio.musicPop(m)
+			end
+		}
+	), "musicEase")
+end
+
+function Util.Event.easeInMusic(t, id, pid, grp, extra, prior)
+	extra = extra or { looping = true }
+	prior = prior or 6
+	Util.Audio.musicPush(id, pid, grp, prior, 1, 1, extra)
+	Util.Event.addEvent(Event(
+		{
+			duration = t,
+			easeFunc = function(time, s)
+				local targetBgm = Util.Audio.getHighestPriorityMusic()
+				if targetBgm and targetBgm.source then
+					targetBgm.source:setVolume(time * targetBgm.volume * G.settings.sound.music / 100 *
+						G.settings.sound.master /
+						100)
+				end
+			end
+		}
+	), "musicEase")
 end

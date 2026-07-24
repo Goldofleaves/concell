@@ -255,12 +255,15 @@ function AdvancedText:update()
 	end
 end
 
-function AdvancedText:draw(x, y, textbox, textboxColor, f)
+function AdvancedText:draw(x, y, UI, textbox, textboxColor, f)
+	if UI then
+		x, y = Util.UI.convertPosToUIPos(x, y)
+	end
 	f = f or 0
 	if textbox then
 		local r, g, b, a = love.graphics.getColor()
 		love.graphics.setColor(textboxColor)
-		Util.Draw.drawOutlineRectangle(x - 2, y, self:getTotalWidth() + 2, self:getHeight())
+		love.graphics.rectangle("line", x - 2, y, self:getTotalWidth() + 2, self:getHeight())
 		love.graphics.setColor(r, g, b, a)
 	end
 	for k, v in ipairs(self.contents) do
@@ -370,18 +373,18 @@ function TextChar:update()
 	local chancey = Util.Math.chance(self.effects.effects == "shake" and 2 / 6 or 1 / 24)
 	local offsetVal = self.effects.effects == "shake" and 2 or self.effects.stillness == "still" and 0 or 1
 	if chancex then
-		self.other.displacement.x = (math.random(1, 2) == 1 and 1 or -1) * offsetVal
+		self.other.displacement.x = (love.math.random(1, 2) == 1 and 1 or -1) * offsetVal
 	else
 		self.other.displacement.x = 0
 	end
 	if chancey then
-		self.other.displacement.y = (math.random(1, 2) == 1 and 1 or -1) * offsetVal
+		self.other.displacement.y = (love.math.random(1, 2) == 1 and 1 or -1) * offsetVal
 	else
 		self.other.displacement.y = 0
 	end
 	if self.effects.textEffects == "randomized" then
 		local allChars = "QWERTYUIOPASDFGHJKLZXCCVBNMqwertyuiopasdfghjklzxcvbnm1234567890`~!@#$%^&*()_=+[]\\;',./<>?:\"|"
-		local charPos = math.random(#allChars)
+		local charPos = love.math.random(#allChars)
 		local char = string.sub(allChars, charPos, charPos)
 		self.other.displayChar = char
 	else
@@ -395,9 +398,9 @@ function TextChar:draw(x, y)
 		self.other.displacement.y + (self.effects.effects == "wavy" and self.other.waveDisplacement.y or 0)
 	dispy = dispy + (self.effects.font == Macros.fonts.small and 2 or 0)
 	local r, g, b, a = love.graphics.getColor()
-	local sx = self.effects.textScale.x / 40 * G.drawinfo.gridUnit
-	local sy = self.effects.textScale.y / 40 * G.drawinfo.gridUnit
-	local ddx, ddy = Util.UI.convertPosToUIPos(x + dispx, y + dispy)
+	local sx = self.effects.textScale.x * Util.UI.getScalingFactor()
+	local sy = self.effects.textScale.y * Util.UI.getScalingFactor()
+	local ddx, ddy = x + dispx, y + dispy
 	if self.effects.outlineColor then
 		local color = Macros.colors[self.effects.outlineColor] or Util.Other.hex(self.effects.outlineColor)
 		love.graphics.setColor { color[1], color[2], color[3], self.transparency * color[4] }
@@ -418,8 +421,8 @@ function TextChar:draw(x, y)
 end
 
 function TextChar:getWidth()
-	return self.effects.font:getWidth(self.char) * self.effects.textScale.x
+	return self.effects.font:getWidth(self.char) * self.effects.textScale.x * Util.UI.getScalingFactor()
 end
 function TextChar:getHeight()
-	return self.effects.font == Macros.fonts.small and (self.effects.font:getHeight(self.char) + 2) * self.effects.textScale.y or self.effects.font:getHeight(self.char) * self.effects.textScale.y
+	return (self.effects.font == Macros.fonts.base and (self.effects.font:getHeight(self.char) + 2) * self.effects.textScale.y or self.effects.font:getHeight(self.char) * self.effects.textScale.y)  * Util.UI.getScalingFactor()
 end

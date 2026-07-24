@@ -17,6 +17,7 @@ Macros = {
 		transparent = { 0, 0, 0, 0 },
 		darkRed = hex("#6d1d51"),
 		yellow = hex("#ffd94d"),
+		orange = hex("#f26e26"),
 		green = hex("#3ea121"),
 		blue = hex("#4deae9"),
 		purple = hex("#cc28dc"),
@@ -24,10 +25,16 @@ Macros = {
 		black = {0,0,0,1},
 		red = hex("#d31212"),
 		lightRed = hex("#ff99c5"),
-		night = hex("#150c41")
+		night = hex("#150c41"),
+		lightBlack = hex("#100f24"),
+		grey = hex("#57697f")
 	},
 	posCenter = {x = 10, y = 7.5},
 	fonts = {
-		base = love.graphics.newFont("Assets/Fonts/aseprite.ttf", 7)
-	}
+		base = love.graphics.newFont("Assets/Fonts/aseprite.ttf", 7),
+		timer = love.graphics.newImageFont("Assets/Sprites/TimerFont.png", " 0123456789/")
+	},
+	baseTileSize = 40,
+	maxtime = 360,
+	maxhp = 60
 }

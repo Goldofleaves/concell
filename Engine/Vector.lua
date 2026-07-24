@@ -247,3 +247,12 @@ function Util.Math.dotProduct(a, b)
 		error("Attempted to take dot product of 2 vectors with different dimentions")
 	end
 end
+
+function Util.Math.getDeltaTheta(a, b)
+	return math.acos(Util.Math.dotProduct(a, b)/(a:abs()*b:abs()))
+end
+function Util.Math.get2dMatrixInverse(M)
+	local a, b, c, d = M.contents[1][1], M.contents[2][1], M.contents[1][2], M.contents[2][2]
+	return Matrix({ d, -c }, { -b, a }):scale(1/(a*d - b*c), true)
+end
+Macros.grandOffsetVector = Vector(-5, -2.5)
