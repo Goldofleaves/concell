@@ -245,7 +245,7 @@ function Macros.MDef.isometricGrid(w, h, area)
                 local mousePos = Vector(love.mouse.getX(), love.mouse.getY())
                 local r = vector:sub(mousePos, true):abs()
                 local max = 30
-                local min = 10
+                local min = 20
                 if s.extra.held then
                     if G.mouseController[1].released then
                         s.extra.held = false
@@ -261,6 +261,10 @@ function Macros.MDef.isometricGrid(w, h, area)
                     then
                         if not alreadyExists(p.contents) and isAdjacent(p.contents) then
                             table.insert(s.extra.path, { point = p, coords = p.contents })
+                        end
+                        if alreadyExists(p.contents) and isAdjacent(p.contents) and #s.extra.path>1 and
+                        p.contents[1] == s.extra.path[#s.extra.path-1].coords[1] and p.contents[2] == s.extra.path[#s.extra.path-1].coords[2] then
+                            table.remove(s.extra.path,#s.extra.path)
                         end
                     end
                 elseif #s.extra.path > 1 then
