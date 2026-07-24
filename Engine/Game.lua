@@ -14,7 +14,8 @@ function Game:new()
 	self.currentID = 0
 	self.flags = {
 		saveData = {
-			timer = 0
+			timer = 0,
+			hp = 60
 		}
 	}
 	self.I = {

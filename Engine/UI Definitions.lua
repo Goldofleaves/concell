@@ -193,7 +193,15 @@ function Macros.UIDef.overlay()
         y = Macros.grandOffsetVector.contents[2],
         atlasKey = "UIMove",
         scaleX = 2,
-        scaleY = 2
+        scaleY = 2,
+        updateFunc = function (s, dt)
+            local g = getObjectByNid("isoGridWeb")
+            if g and #g.extra.path > 1 then
+                s.atlasInfo.key = "UIMove"
+            else
+                s.atlasInfo.key = "UIMoveInactive"
+            end
+        end
     })
     Sprite({
         nid = "UICancel",
@@ -202,7 +210,15 @@ function Macros.UIDef.overlay()
         y = Macros.grandOffsetVector.contents[2],
         atlasKey = "UICancel",
         scaleX = 2,
-        scaleY = 2
+        scaleY = 2,
+        updateFunc = function(s, dt)
+            local g = getObjectByNid("isoGridWeb")
+            if g and #g.extra.path > 1 then
+                s.T.y = Util.Math.lerpDt(s.T.y, Macros.grandOffsetVector.contents[2], 0.01)
+            else
+                s.T.y = Util.Math.lerpDt(s.T.y, Macros.grandOffsetVector.contents[2] - 59 * 2 * Util.UI.getScalingFactor(), 0.01)
+            end
+        end
     })
     Sprite({
         nid = "UIHP",
@@ -211,7 +227,36 @@ function Macros.UIDef.overlay()
         y = Macros.grandOffsetVector.contents[2],
         atlasKey = "UIHP",
         scaleX = 2,
-        scaleY = 2
+        scaleY = 2,
+        preDraw = function (s)
+            love.graphics.setColor(Macros.colors.night)
+            love.graphics.rectangle("fill", G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 81,
+                G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 266, 27 * 2 * Util.UI.getScalingFactor(),
+                23 * 2 * Util.UI.getScalingFactor())
+            love.graphics.setColor(Macros.colors.red)
+            local percentage = G.flags.saveData.hp / Macros.maxhp
+            love.graphics.rectangle("fill", G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 81,
+                G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 266, 27 * 2 * Util.UI.getScalingFactor() * percentage,
+                23 * 2 * Util.UI.getScalingFactor())
+            love.graphics.setColor(Macros.colors.white)
+        end,
+        drawFunc = function(s)
+            local txt = G.flags.saveData.hp .. "/" .. Macros.maxhp
+            local str = ""
+            local counter = 1
+            for i = 1, 2 * #txt - 1 do
+                local oddity = i % 2 == 1
+                if oddity then
+                    str = str..txt:sub(counter, counter)
+                    counter = counter + 1
+                else
+                    str = str .. " "
+                end
+            end
+            AdvancedText("|s:2,2||c:red||f:timer|" .. str):draw(
+                G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 128,
+                G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 266)
+        end
     })
     Sprite({
         nid = "UIItemRibbon",
@@ -261,15 +306,23 @@ function Macros.UIDef.overlay()
         drawOrder = 99,
         x = Macros.grandOffsetVector.contents[1],
         y = Macros.grandOffsetVector.contents[2],
+        exrta = {delta = 0},
         drawFunc = function (self)
-            love.graphics.setColor(1,1,1,1)
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.setScissor(G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 285,
+                G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 12, 50 * Util.UI.getScalingFactor(),
+                50 * Util.UI.getScalingFactor())
             love.graphics.draw(
                 Atlases.UITimerIcon.image,
                 Atlases.UITimerIcon.splicedImages[0][0],
                 G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 285,
-                G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 12,
+                G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 12 - self.extra.delta,
                 0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
             )
+            love.graphics.setScissor()
         end,
+        updateFunc = function (s, dt)
+            s.extra.delta = 2 * 24 * Util.UI.getScalingFactor() * G.flags.saveData.timer/Macros.maxtime
+        end
     })
 end

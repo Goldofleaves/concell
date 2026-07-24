@@ -33,8 +33,10 @@ function WorldMoveable:draw()
         },
     }
     local r, g, b, a = love.graphics.getColor()
-    love.graphics.setColor(lookup[self.properties.type].color)
     local vector = Util.World.toIsoPos(Vector(self.TMod.x.base + 0.2, self.TMod.y.base + 0.2))
+    love.graphics.setColor(Macros.colors.night)
+    love.graphics.circle("fill", vector.contents[1], vector.contents[2], (lookup[self.properties.type].radius+2)*Util.UI.getScalingFactor())
+    love.graphics.setColor(lookup[self.properties.type].color)
     love.graphics.circle("fill", vector.contents[1], vector.contents[2], lookup[self.properties.type].radius*Util.UI.getScalingFactor())
     if self.properties.type == "door" then
         AdvancedText("|c:orange|"..tostring(self.extra.index)):draw(vector.contents[1], vector.contents[2] + 6)

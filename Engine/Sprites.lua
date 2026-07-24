@@ -58,6 +58,7 @@ function Sprite:new(args)
 	self.drawTiled = args.drawTiled == nil and false or args.drawTiled
 	self.extra = args.extra or {}
 	self.drawFunc = args.drawFunc or function(s) return end
+	self.preDraw = args.preDraw or function(s) return end
 	self.mask = {
 		ShouldApply = args.MaskShouldApply == nil and false or args.MaskShouldApply,
 		ImageFpos = args.MaskImageFpos,
@@ -84,6 +85,7 @@ end
 function Sprite:draw()
 	local r, g, b, a = love.graphics.getColor()
 	love.graphics.setColor { 1, 1, 1, 1 }
+	self.preDraw(self)
 	local draw_func = function(kx, ky)
 		local x, y = self.T.x + kx, self.T.y + ky
 		if self.worldCoords then
