@@ -245,7 +245,7 @@ function Macros.MDef.isometricGrid(w, h, area)
                 local mousePos = Vector(love.mouse.getX(), love.mouse.getY())
                 local r = vector:sub(mousePos, true):abs()
                 local max = 30
-                local min = 10
+                local min = 20
                 if s.extra.held then
                     if G.mouseController[1].released then
                         s.extra.held = false
