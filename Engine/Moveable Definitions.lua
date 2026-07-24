@@ -31,7 +31,7 @@ function Macros.MDef.isometricGrid(w, h)
                                     scaleY = 2,
                                     atlasKey = "grassBase",
                                     x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 21,
+                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                     worldCoords = false,
                                     drawOrder = 3
                                 }
@@ -53,7 +53,7 @@ function Macros.MDef.isometricGrid(w, h)
                                         scaleY = 2,
                                         atlasKey = "grassFoley",
                                         x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                        y = vertex.contents[2] - G.drawinfo.gridUnit / 21,
+                                        y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                         worldCoords = false,
                                         drawOrder = 4
                                     }
@@ -75,7 +75,7 @@ function Macros.MDef.isometricGrid(w, h)
                                     scaleY = 2,
                                     atlasKey = "grassEdge1",
                                     x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 21,
+                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                     worldCoords = false,
                                     drawOrder = 4
                                 }
@@ -94,7 +94,7 @@ function Macros.MDef.isometricGrid(w, h)
                                     scaleY = 2,
                                     atlasKey = "grassEdge2",
                                     x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 21,
+                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                     worldCoords = false,
                                     drawOrder = 4
                                 }
@@ -113,7 +113,7 @@ function Macros.MDef.isometricGrid(w, h)
                                     scaleY = 2,
                                     atlasKey = "grassEdge3",
                                     x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 21,
+                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                     worldCoords = false,
                                     drawOrder = 4
                                 }
@@ -132,7 +132,7 @@ function Macros.MDef.isometricGrid(w, h)
                                     scaleY = 2,
                                     atlasKey = "grassEdge4",
                                     x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 21,
+                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                                     worldCoords = false,
                                     drawOrder = 4
                                 }
@@ -159,13 +159,13 @@ function Macros.MDef.isometricGrid(w, h)
                 if k ~= "edge" then
                     for kk, obj in ipairs(venue) do
                         obj.sprite.T.x = Util.World.toIsoPos(Vector(obj.pos[1], obj.pos[2])).contents[1] - G.drawinfo.gridUnit
-                        obj.sprite.T.y = Util.World.toIsoPos(Vector(obj.pos[1], obj.pos[2])).contents[2] - G.drawinfo.gridUnit/21
+                        obj.sprite.T.y = Util.World.toIsoPos(Vector(obj.pos[1], obj.pos[2])).contents[2] - G.drawinfo.gridUnit/20
                     end
                 else
                     for kk, subvenue in ipairs(venue) do
                         for kkk, obj in ipairs(subvenue) do
                             obj.sprite.T.x = Util.World.toIsoPos(Vector(obj.pos[1], obj.pos[2])).contents[1] - G.drawinfo.gridUnit
-                            obj.sprite.T.y = Util.World.toIsoPos(Vector(obj.pos[1], obj.pos[2])).contents[2] - G.drawinfo.gridUnit/21
+                            obj.sprite.T.y = Util.World.toIsoPos(Vector(obj.pos[1], obj.pos[2])).contents[2] - G.drawinfo.gridUnit/20
                         end
                     end
                 end
