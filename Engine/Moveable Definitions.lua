@@ -190,15 +190,98 @@ function Macros.MDef.isometricGrid(w, h)
             end
         end
     }
+    local function getClosestPointAndDistance()
+        local m = Util.Math.get2dMatrixInverse(Matrix(
+        { Macros.baseTileSize * Util.UI.getScalingFactor(), 0.5 * Macros.baseTileSize * Util.UI.getScalingFactor() },
+            { -1 * Macros.baseTileSize * Util.UI.getScalingFactor(), 0.5 * Macros.baseTileSize *
+            Util.UI.getScalingFactor() }))
+        local mousePos = m:apply(Vector(love.mouse.getX(), love.mouse.getY()):sub(Vector(G.drawinfo.origin.x,
+            G.drawinfo.origin.y):add(G.worldOffsetVector, true), true), true)
+        local closestPoint = Vector(Util.Math.round(mousePos.contents[1]-0.2)+0.2, Util.Math.round(mousePos.contents[2]-0.2)+0.2)
+        local r = Util.World.toIsoPos(closestPoint):sub(Vector(love.mouse.getX(), love.mouse.getY()), true)
+        return closestPoint, r:abs()
+    end
     local t2 = {
         extra = {
             w = w,
             h = h,
-            drawAlpha = 1,
+            drawAlpha = 0,
+            held = false,
+            path = {
+                { point = Vector(PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2), coords = { PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2 } }
+            }
         },
         nid = "isoGridWeb",
         drawOrder = 10,
         updateOrder = 1,
+        updateFunc = function (s, dt)
+            local function alreadyExists(coords, k)
+                for kk, v in ipairs(s.extra.path) do
+                    if v.coords[1] == coords[1] and v.coords[2] == coords[2] and kk ~= k then
+                        return true
+                    end
+                end
+                return false
+            end
+            local function isAdjacent(coords)
+                if Vector(unpack(s.extra.path[#s.extra.path].coords)):sub(Vector(unpack(coords)),true):abs() <= 1.1 then
+                    return true
+                end
+                return false
+            end
+            s.extra.path[1] = {point = Vector(PLAYER.TMod.x.base+0.2, PLAYER.TMod.y.base+0.2), coords = {PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2}}
+            if PLAYER then
+                local vector = Util.World.toIsoPos(Vector(PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2))
+                local mousePos = Vector(love.mouse.getX(), love.mouse.getY())
+                local r = vector:sub(mousePos, true):abs()
+                local max = 30
+                local min = 10
+                if s.extra.held then
+                    if G.mouseController[1].released then
+                        s.extra.held = false
+                        print(#s.extra.path)
+                    end
+                    s.extra.drawAlpha = 1
+                    local p, rr = getClosestPointAndDistance()
+                    if rr < min and p.contents[1] >= 0 and p.contents[1] <= G.flags.saveData.curRoom.size.w and p.contents[2] >= 0 and p.contents[2] <= G.flags.saveData.curRoom.size.h then
+                        if not alreadyExists({ p.contents[1], p.contents[2] }) and isAdjacent({ p.contents[1], p.contents[2] }) then
+                            table.insert(s.extra.path, { point = p, coords = { p.contents[1], p.contents[2] } })
+                        end
+                    end
+                elseif #s.extra.path > 1 then
+                    s.extra.drawAlpha = 1
+                    if G.mouseController[1].pressed then
+                        s.extra.held = true
+                    end
+                else
+                    if r > max then
+                        s.extra.drawAlpha = Util.Math.lerpDt(s.extra.drawAlpha, 0, 0.005)
+                    elseif r < min then
+                        s.extra.drawAlpha = Util.Math.lerpDt(s.extra.drawAlpha, 1, 0.005)
+                        if G.mouseController[1].pressed then
+                            s.extra.held = true
+                        end
+                    else
+                        s.extra.drawAlpha = Util.Math.lerpDt(s.extra.drawAlpha, 1 - (r - min) / (max - min), 0.005)
+                    end
+                end
+            else
+                s.extra.drawAlpha = 0
+            end
+            if G.controller.select.pressed then
+                PLAYER.TMod.x.base = Util.Math.round(s.extra.path[#s.extra.path].coords[1] - 0.2)
+                PLAYER.TMod.y.base = Util.Math.round(s.extra.path[#s.extra.path].coords[2] - 0.2)
+                s.extra.path = {
+                    { point = Vector(PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2), coords = { PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2 } }
+                }
+                PLAYER:juice()
+            end
+            if G.controller.cancel.pressed then
+                s.extra.path = {
+                    { point = Vector(PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2), coords = { PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2 } }
+                }
+            end
+        end,
         drawFunc = function (s)
             love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.night, 0.1 * s.extra.drawAlpha))
             for i = 1, s.extra.w - 1 do
@@ -236,6 +319,21 @@ function Macros.MDef.isometricGrid(w, h)
                         love.graphics.circle("fill", v.contents[1], v.contents[2], 3 * Util.UI.getScalingFactor())
                     end
                 end
+            end
+            love.graphics.setLineWidth(2.5 * Util.UI.getScalingFactor())
+            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.blue, s.extra.drawAlpha))
+            for i = 1, #s.extra.path - 1 do
+                local grp = { Util.World.toIsoPos(s.extra.path[i].point), Util.World.toIsoPos(s.extra.path[i + 1].point) }
+                love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
+                love.graphics.circle("fill", grp[1].contents[1], grp[1].contents[2], 4 * Util.UI.getScalingFactor())
+            end
+            love.graphics.circle("fill", Util.World.toIsoPos(s.extra.path[#s.extra.path].point).contents[1],
+                Util.World.toIsoPos(s.extra.path[#s.extra.path].point).contents[2], 4 * Util.UI.getScalingFactor())
+            if s.extra.held then
+                local grp = { Util.World.toIsoPos(s.extra.path[#s.extra.path].point), Vector(love.mouse.getX(),
+                love.mouse.getY()) }
+                love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
+                love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
             end
         end
     }

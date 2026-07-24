@@ -92,6 +92,13 @@ function love.load()
                 G.flags.saveData.rooms = Util.World.generateDungeon()
                 G.flags.saveData.curRoomIndex = 1
                 G.flags.saveData.curRoom = G.flags.saveData.rooms[1]
+                PLAYER = WorldMoveable({
+                    x = math.floor(G.flags.saveData.curRoom.size.w / 2),
+                    y = math.floor(G.flags.saveData.curRoom.size.h / 2),
+                    type = "player",
+                    updateOrder = 1,
+                    drawOrder = 11
+                })
                 Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h)
                 for k, v in ipairs(G.flags.saveData.curRoom.doors) do
                     WorldMoveable({
@@ -105,13 +112,6 @@ function love.load()
                         updateOrder = 2
                     })
                 end
-                PLAYER = WorldMoveable({
-                    x = math.floor(G.flags.saveData.curRoom.size.w / 2),
-                    y = math.floor(G.flags.saveData.curRoom.size.h / 2),
-                    type = "player",
-                    updateOrder = 1,
-                    drawOrder = 11
-                })
             end, "delay1")
         end
     })

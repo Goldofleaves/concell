@@ -3,23 +3,36 @@ function WorldMoveable:new(args)
     Moveable.new(self, args)
     self.objectType = "WORLDMOVEABLE"
     self.properties.type = args.type or "door"
+    self.properties.mult = 1
 end
-
+function WorldMoveable:juice(r)
+    r = r or 2
+    Util.Event.addEvent(
+        Event({
+            easeFunc = function (t, s)
+                self.properties.mult = Util.EaseSplines.createEase(r, 1, nil, {preset = "eoc"})(t)
+            end,
+            endFunc = function(s)
+                self.properties.mult = 1
+            end
+        }),"juice"
+    )
+end
 function WorldMoveable:draw()
     local lookup = {
         door = {
             color = Macros.colors.orange,
-            radius = 5
+            radius = 5 * self.properties.mult
         },
         player = {
             color = Macros.colors.blue,
-            radius = 5
+            radius = 5 * self.properties.mult
         },
     }
     local r, g, b, a = love.graphics.getColor()
     love.graphics.setColor(lookup[self.properties.type].color)
     local vector = Util.World.toIsoPos(Vector(self.TMod.x.base + 0.2, self.TMod.y.base + 0.2))
-    love.graphics.circle("fill", vector.contents[1], vector.contents[2], lookup[self.properties.type].radius)
+    love.graphics.circle("fill", vector.contents[1], vector.contents[2], lookup[self.properties.type].radius*Util.UI.getScalingFactor())
     if self.properties.type == "door" then
         AdvancedText("|c:orange|"..tostring(self.extra.index)):draw(vector.contents[1], vector.contents[2] + 6)
     end
@@ -27,21 +40,6 @@ function WorldMoveable:draw()
 end
 
 function WorldMoveable:update(dt)
-    if self.properties.type == "player" then
-        -- wip movement code
-        if G.controller.left.pressed then
-            self.TMod.x.base = math.max(self.TMod.x.base - 1, 0)
-        end
-        if G.controller.right.pressed then
-            self.TMod.x.base = math.min(self.TMod.x.base + 1, G.flags.saveData.curRoom.size.w - 1)
-        end
-        if G.controller.up.pressed then
-            self.TMod.y.base = math.max(self.TMod.y.base - 1, 0)
-        end
-        if G.controller.down.pressed then
-            self.TMod.y.base = math.min(self.TMod.y.base + 1, G.flags.saveData.curRoom.size.h - 1)
-        end
-    end
     if self.properties.type == "door" then
         local vector = Util.World.toIsoPos(Vector(self.TMod.x.base + 0.2, self.TMod.y.base + 0.2))
         local mousePos = Vector(love.mouse.getX(), love.mouse.getY())
@@ -52,6 +50,13 @@ function WorldMoveable:update(dt)
                     G.flags.saveData.curRoomIndex = self.extra.index
                     G.flags.saveData.curRoom = G.flags.saveData.rooms[self.extra.index]
                     PLAYER:remove()
+                    PLAYER = WorldMoveable({
+                        x = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).x,
+                        y = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).y,
+                        type = "player",
+                        drawOrder = 11,
+                        updateOrder = 1
+                    })
                     Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h)
                     getObjectByNid("isoGrid"):remove()
                     getObjectByNid("isoGridWeb"):remove()
@@ -76,13 +81,6 @@ function WorldMoveable:update(dt)
                             updateOrder = 2
                         })
                     end
-                    PLAYER = WorldMoveable({
-                        x = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).x,
-                        y = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).y,
-                        type = "player",
-                        drawOrder = 11,
-                        updateOrder = 1
-                    })
                 end, "delay2")
             end
             switchRoom()

@@ -334,7 +334,7 @@ function Game:draw()
 		t:draw(1,1, true)
 	end
 	if G.flags.saveData.curRoomIndex then
-		local t = AdvancedText("|s:3,3||c:red|" .. G.flags.saveData.curRoomIndex)
+		local t = AdvancedText("|s:3,3||c:red|" .. "Press Z to proceed and X to cancel")
 		t:draw(1, 1, true)
 	end
 end
