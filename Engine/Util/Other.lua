@@ -197,3 +197,12 @@ function getObjectByNid(nid)
 	end
 	return false
 end
+function table.exclude(a, val)
+	local t = {}
+	for k, v in pairs(a) do
+		if v ~= val then
+			t[k] = v
+		end
+	end
+	return t
+end

@@ -248,4 +248,8 @@ function Util.Math.dotProduct(a, b)
 	end
 end
 
+function Util.Math.getDeltaTheta(a, b)
+	return math.acos(Util.Math.dotProduct(a, b)/(a:abs()*b:abs()))
+end
+
 Macros.grandOffsetVector = Vector(-5, -2.5)

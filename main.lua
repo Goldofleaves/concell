@@ -23,6 +23,7 @@ require "Engine.Moveable Definitions"
 require "Engine.Util.Audio"
 require "Engine.Util.World"
 require "Engine.Moveable Subclasses.Button"
+require "Engine.Moveable Subclasses.WorldMoveables"
 local function wrapper(key, px, py)
     registerAtlasSimple(key, "Assets/Sprites/"..key..".png", px, py)
 end
@@ -34,10 +35,15 @@ wrapper("grassEdge3", 40, 21)
 wrapper("grassEdge4", 40, 21)
 wrapper("titlescreenBg", 600, 400)
 wrapper("titlescreenFg", 600, 400)
+Util.Audio.registerMusic("title", { "Assets", "Audio", "Music", "title" }, { volume = 0.8 })
+Util.Audio.registerMusic("overworld", { "Assets", "Audio", "Music", "overworld" })
+Util.Audio.registerMusic("battle", { "Assets", "Audio", "Music", "battle" })
+
 function love.load()
-    --Macros.MDef.isometricGrid(5, 8)
+    Util.Audio.musicPush("title", "titleID", "title", 1, 1, 1, { looping = true })
     Macros.UIDef.title()
     SimpleDrawableButton({
+        nid = "titlebutton1",
         x = 13.5,
         y = 9.5,
         w = 5,
@@ -67,9 +73,38 @@ function love.load()
             local dh = delta * h/40
             self.extra.text:recalculate({}, "|s:" .. (2 * (1 + 1.5*delta)) .. "," .. (2 * (1 + 1.5*delta)) .. "|New run")
             self.extra.text:draw(self.T.x + 0.25+2*dh, 9.5 + 0.29 - dh , true)
+        end,
+        onClick = function(s)
+            Util.Event.easeOutMusic(2, "titleID")
+            Util.Event.transition(4, function ()
+                Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
+                local list_of_nids = {
+                    "titlebutton1",
+                    "titlebutton2",
+                    "titlebutton3",
+                    "tbg",
+                    "tfg",
+                }
+                for k, v in pairs(list_of_nids) do
+                    local o = getObjectByNid(v)
+                    if o then o:remove() end
+                end
+                G.flags.saveData.rooms = Util.World.generateDungeon()
+                G.flags.saveData.curRoomIndex = 1
+                G.flags.saveData.curRoom = G.flags.saveData.rooms[1]
+                Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h)
+                for k, v in ipairs(G.flags.saveData.curRoom.doors) do
+                    WorldMoveable({
+                        x = v.x,
+                        y = v.y,
+                        type = v.type
+                    })
+                end
+            end, "delay1")
         end
     })
     SimpleDrawableButton({
+        nid = "titlebutton2",
         x = 13.5,
         y = 11,
         w = 5,
@@ -103,6 +138,7 @@ function love.load()
         end
     })
     SimpleDrawableButton({
+        nid = "titlebutton3",
         x = 13.5,
         y = 12.5,
         w = 5,

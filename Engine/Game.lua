@@ -7,11 +7,14 @@ function Game:new()
 	self.drawinfo = {
 		gridUnit = 40,
 		origin = {x = 0, y = 0},
-		gridSize = {x=800,y=600}
+		gridSize = {x=800,y=600},
+		supergridSize = {x = 1200, y = 800}
 	}
 	self.events = {}
 	self.currentID = 0
-	self.flags = {}
+	self.flags = {
+		saveData = {}
+	}
 	self.I = {
 		MOVEABLES = {},
 		SPRITES = {}
@@ -22,7 +25,7 @@ function Game:new()
 		musicHandler = {}
 	}
 	self.debug = {
-		drawWorldGrid = true,
+		drawWorldGrid = false,
 		drawIsoGrid = false,
 		console = false,
 		constext = ""
@@ -198,7 +201,10 @@ function Game:update(dt)
 	end
 	self.drawinfo.gridUnit = idealHeight / Macros.screenDimentions.y / Macros.gridSingleSubdivision
 	self.drawinfo.origin = { x = (actualWidth - idealWidth) / 2, y = (actualHeight - idealHeight) / 2 }
-	self.drawinfo.gridSize = {x = idealWidth, y = idealHeight}
+	self.drawinfo.gridSize = { x = idealWidth, y = idealHeight }
+	self.drawinfo.supergridSize = { x = 30 * self.drawinfo.gridUnit, y = 20 * self.drawinfo.gridUnit }
+	self.drawinfo.superorigin = { x = self.drawinfo.origin.x - self.drawinfo.gridUnit * 5, y = self.drawinfo.origin.y -
+	self.drawinfo.gridUnit * 2.5 }
 	local union = {}
 	for k, v in pairs(self.I.MOVEABLES) do
 		table.insert(union,v)

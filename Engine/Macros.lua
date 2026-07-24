@@ -17,6 +17,7 @@ Macros = {
 		transparent = { 0, 0, 0, 0 },
 		darkRed = hex("#6d1d51"),
 		yellow = hex("#ffd94d"),
+		orange = hex("#f26e26"),
 		green = hex("#3ea121"),
 		blue = hex("#4deae9"),
 		purple = hex("#cc28dc"),

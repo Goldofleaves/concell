@@ -40,7 +40,7 @@ function audioLib.registerSfx(name, path, extra)
     end
 
     Macros.sounds[name] = {
-        source = registerSource(name, table.merge({ "assets", "sounds", "sfx" }, path), extra),
+        source = registerSource(name, path, extra),
         type = 'sfx'
     }
     print(
@@ -75,7 +75,7 @@ function audioLib.registerMusic(name, path, extra)
     end
 
     Macros.sounds[name] = {
-        source = registerSource(name, table.merge({ "assets", "sounds", "music" }, path), extra),
+        source = registerSource(name, path, extra),
         type = 'bgm',
         group = '',
     }
@@ -120,7 +120,7 @@ end
 ---@param vol? number The volume of the track.
 ---@param pitch? number The pitch of the track.
 ---@param extra? {looping:boolean, endFunc?:function, force:boolean}
-function audioLib.musicPush(id, playId, group, vol, pitch, extra, priority)
+function audioLib.musicPush(id, playId, group, priority, vol, pitch, extra)
     if not id then
         print(string.format('[AUDIO ERROR/MUSIC PUSH] ID not provided'))
         return false
