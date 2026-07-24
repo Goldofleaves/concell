@@ -23,7 +23,7 @@ Util.Math.randomElement = function(tab)
 	for k, v in pairs(tab) do
 		table.insert(f, k)
 	end
-	local k = f[math.random(1, #f)]
+	local k = f[love.math.random(1, #f)]
 	return { v = tab[k], k = k }
 end
 
@@ -31,7 +31,7 @@ end
 --- @param chance number
 --- @return boolean result
 Util.Math.chance = function(chance)
-	return math.random() <= chance
+	return love.math.random() <= chance
 end
 
 --- Clamps a value between 2 numbers.
@@ -106,7 +106,7 @@ math.betterrandom = function (min, max)
 	min = min or -1
 	max = max or 1
 	local stretch = max - min
-	return math.random() * stretch + min
+	return love.math.random() * stretch + min
 end
 --- Returns the distance between a and b.
 --- @param a {x:number, y:number}

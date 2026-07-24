@@ -373,18 +373,18 @@ function TextChar:update()
 	local chancey = Util.Math.chance(self.effects.effects == "shake" and 2 / 6 or 1 / 24)
 	local offsetVal = self.effects.effects == "shake" and 2 or self.effects.stillness == "still" and 0 or 1
 	if chancex then
-		self.other.displacement.x = (math.random(1, 2) == 1 and 1 or -1) * offsetVal
+		self.other.displacement.x = (love.math.random(1, 2) == 1 and 1 or -1) * offsetVal
 	else
 		self.other.displacement.x = 0
 	end
 	if chancey then
-		self.other.displacement.y = (math.random(1, 2) == 1 and 1 or -1) * offsetVal
+		self.other.displacement.y = (love.math.random(1, 2) == 1 and 1 or -1) * offsetVal
 	else
 		self.other.displacement.y = 0
 	end
 	if self.effects.textEffects == "randomized" then
 		local allChars = "QWERTYUIOPASDFGHJKLZXCCVBNMqwertyuiopasdfghjklzxcvbnm1234567890`~!@#$%^&*()_=+[]\\;',./<>?:\"|"
-		local charPos = math.random(#allChars)
+		local charPos = love.math.random(#allChars)
 		local char = string.sub(allChars, charPos, charPos)
 		self.other.displayChar = char
 	else

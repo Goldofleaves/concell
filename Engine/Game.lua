@@ -4,7 +4,11 @@ Game = Object:extend()
 function Game:new()
 	self.timer = 0
 	self.glyphs = {}
-	self.drawinfo = {}
+	self.drawinfo = {
+		gridUnit = 40,
+		origin = {x = 0, y = 0},
+		gridSize = {x=800,y=600}
+	}
 	self.events = {}
 	self.currentID = 0
 	self.flags = {}
@@ -18,7 +22,7 @@ function Game:new()
 		musicHandler = {}
 	}
 	self.debug = {
-		drawWorldGrid = true,
+		drawWorldGrid = false,
 		drawIsoGrid = true,
 		console = false,
 		constext = ""
@@ -248,7 +252,7 @@ function Game:draw()
 	-- preportions
 	local actualHeight, actualWidth = love.graphics.getHeight(), love.graphics.getWidth()
 	local r, g, b, a = love.graphics.getColor()
-	love.graphics.setColor(Macros.colors.white)
+	love.graphics.setColor(Macros.colors.lightBlack)
 	love.graphics.rectangle("fill", 0, 0, actualWidth, actualHeight)
 	local Table = {}
 	for _, v in pairs(self.I.MOVEABLES) do

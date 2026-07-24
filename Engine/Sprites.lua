@@ -82,8 +82,10 @@ function Sprite:new(args)
 end
 
 function Sprite:draw()
+	local r, g, b, a = love.graphics.getColor()
+	love.graphics.setColor { 1, 1, 1, 1 }
 	local draw_func = function(kx, ky)
-		local x, y
+		local x, y = self.T.x + kx, self.T.y + ky
 		if self.worldCoords then
 			x, y = Util.UI.convertPosToUIPos(self.T.x + kx, self.T.y + ky)
 		end
@@ -167,6 +169,7 @@ function Sprite:draw()
 		draw_func(self.offset.x, self.offset.y)
 	end
 	self.drawFunc(self)
+	love.graphics.setColor { r, g, b, a }
 end
 
 function Sprite:setParent(obj)

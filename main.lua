@@ -21,8 +21,17 @@ require "Engine.UI Definitions"
 require "Engine.Moveable Definitions"
 require "Engine.Util.Audio"
 require "Engine.Util.World"
+local function wrapper(key, px, py)
+    registerAtlasSimple(key, "Assets/Sprites/"..key..".png", px, py)
+end
+wrapper("grassBase", 40, 21)
+wrapper("grassFoley", 40, 21)
+wrapper("grassEdge1", 40, 21)
+wrapper("grassEdge2", 40, 21)
+wrapper("grassEdge3", 40, 21)
+wrapper("grassEdge4", 40, 21)
 function love.load()
-    Macros.MDef.isometricGrid()
+    Macros.MDef.isometricGrid(5, 8)
 end
 function love.update(dt)
     DELTATIME = dt
