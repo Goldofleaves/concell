@@ -168,7 +168,6 @@ function Util.World.generateDungeon()
     end
     local last_side
     while main_counter <= main_len do
-        print(getIndex())
         local room = Util.World.generateRoom(getInfo().type, last_side, getInfo().indices, getPrevIndex)
         rooms[getIndex()] = room
         incrementCounters()

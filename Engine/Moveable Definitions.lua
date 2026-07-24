@@ -239,7 +239,6 @@ function Macros.MDef.isometricGrid(w, h)
                 if s.extra.held then
                     if G.mouseController[1].released then
                         s.extra.held = false
-                        print(#s.extra.path)
                     end
                     s.extra.drawAlpha = 1
                     local p, rr = getClosestPointAndDistance()
@@ -321,20 +320,24 @@ function Macros.MDef.isometricGrid(w, h)
                 end
             end
             love.graphics.setLineWidth(2.5 * Util.UI.getScalingFactor())
-            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.blue, s.extra.drawAlpha))
+            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.darkRed, s.extra.drawAlpha))
             for i = 1, #s.extra.path - 1 do
                 local grp = { Util.World.toIsoPos(s.extra.path[i].point), Util.World.toIsoPos(s.extra.path[i + 1].point) }
                 love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
-                love.graphics.circle("fill", grp[1].contents[1], grp[1].contents[2], 4 * Util.UI.getScalingFactor())
             end
-            love.graphics.circle("fill", Util.World.toIsoPos(s.extra.path[#s.extra.path].point).contents[1],
-                Util.World.toIsoPos(s.extra.path[#s.extra.path].point).contents[2], 4 * Util.UI.getScalingFactor())
             if s.extra.held then
                 local grp = { Util.World.toIsoPos(s.extra.path[#s.extra.path].point), Vector(love.mouse.getX(),
                 love.mouse.getY()) }
                 love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
                 love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
             end
+            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.red, s.extra.drawAlpha))
+            for i = 1, #s.extra.path - 1 do
+                local grp = { Util.World.toIsoPos(s.extra.path[i].point), Util.World.toIsoPos(s.extra.path[i + 1].point) }
+                love.graphics.circle("fill", grp[1].contents[1], grp[1].contents[2], 4 * Util.UI.getScalingFactor())
+            end
+            love.graphics.circle("fill", Util.World.toIsoPos(s.extra.path[#s.extra.path].point).contents[1],
+                Util.World.toIsoPos(s.extra.path[#s.extra.path].point).contents[2], 4 * Util.UI.getScalingFactor())
         end
     }
     local m1 = Moveable(t1)

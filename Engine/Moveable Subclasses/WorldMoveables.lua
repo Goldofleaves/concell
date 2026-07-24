@@ -25,7 +25,7 @@ function WorldMoveable:draw()
             radius = 5 * self.properties.mult
         },
         player = {
-            color = Macros.colors.blue,
+            color = Macros.colors.red,
             radius = 5 * self.properties.mult
         },
     }

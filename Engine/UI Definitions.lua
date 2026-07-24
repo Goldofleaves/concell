@@ -2,6 +2,8 @@ Macros.UIDef = {}
 function Macros.UIDef.title()
     local phi1, phi2, chi, a1, a2 = math.betterrandom(0.5, 1.1), math.betterrandom(0.5, 1.1),
         math.betterrandom(0, math.tau), math.betterrandom(1, 2), math.betterrandom(1, 2)
+    local phi3, phi4, chi2, a3, a4 = math.betterrandom(0.5, 1.1), math.betterrandom(0.5, 1.1),
+        math.betterrandom(0, math.tau), math.betterrandom(1, 2), math.betterrandom(1, 2)
     Sprite({
         nid = "tbg",
         drawOrder = 1,
@@ -22,6 +24,19 @@ function Macros.UIDef.title()
         updateFunc = function (s)
             s.T.x = Macros.grandOffsetVector.contents[1] + (a1 / 40 * math.sin(phi1 * G.timer))
             s.T.y = Macros.grandOffsetVector.contents[2] +a2/40 + (a2 / 40 * math.sin(phi2 * (G.timer + chi)))
+        end
+    })
+    Sprite({
+        nid = "td",
+        drawOrder = 2,
+        x = Macros.grandOffsetVector.contents[1],
+        y = Macros.grandOffsetVector.contents[2],
+        atlasKey = "titlescreenDawn",
+        scaleX = 2,
+        scaleY = 2,
+        updateFunc = function(s)
+            s.T.x = Macros.grandOffsetVector.contents[1] + (a3 / 40 * math.sin(phi3 * G.timer))
+            s.T.y = Macros.grandOffsetVector.contents[2] + a4 / 40 + (a4 / 40 * math.sin(phi4 * (G.timer + chi2)))
         end
     })
 end

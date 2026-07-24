@@ -35,6 +35,7 @@ wrapper("grassEdge3", 40, 21)
 wrapper("grassEdge4", 40, 21)
 wrapper("titlescreenBg", 600, 400)
 wrapper("titlescreenFg", 600, 400)
+wrapper("titlescreenDawn", 600, 400)
 Util.Audio.registerMusic("title", { "Assets", "Audio", "Music", "title" }, { volume = 0.8 })
 Util.Audio.registerMusic("overworld", { "Assets", "Audio", "Music", "overworld" })
 Util.Audio.registerMusic("battle", { "Assets", "Audio", "Music", "battle" })
@@ -84,6 +85,7 @@ function love.load()
                     "titlebutton3",
                     "tbg",
                     "tfg",
+                    "td",
                 }
                 for k, v in pairs(list_of_nids) do
                     local o = getObjectByNid(v)
