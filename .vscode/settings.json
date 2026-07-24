@@ -2,5 +2,9 @@
     "Lua.diagnostics.disable": [
         "lowercase-global",
         "deprecated"
+    ],
+    "Lua.runtime.version": "LuaJIT",
+    "Lua.workspace.library": [
+        "${3rd}/love2d/library"
     ]
 }
