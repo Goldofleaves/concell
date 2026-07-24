@@ -23,7 +23,7 @@ function Game:new()
 	}
 	self.debug = {
 		drawWorldGrid = false,
-		drawIsoGrid = true,
+		drawIsoGrid = false,
 		console = false,
 		constext = ""
 	}
@@ -63,6 +63,7 @@ function Game:new()
 	return self
 end
 function Game:update(dt)
+	love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
 	self.timer = self.timer + dt
 
 	-- Misc

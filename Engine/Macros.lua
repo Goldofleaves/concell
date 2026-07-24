@@ -25,7 +25,8 @@ Macros = {
 		red = hex("#d31212"),
 		lightRed = hex("#ff99c5"),
 		night = hex("#150c41"),
-		lightBlack = hex("#100f24")
+		lightBlack = hex("#100f24"),
+		grey = hex("#57697f")
 	},
 	posCenter = {x = 10, y = 7.5},
 	fonts = {

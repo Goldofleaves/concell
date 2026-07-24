@@ -1,5 +1,5 @@
 love.graphics.setDefaultFilter("nearest", "nearest", 1)
-
+love.graphics.setLineStyle("rough")
 Util = {}
 require "Engine.Util.Other"
 require "Engine.Util.Splines and Easing"
@@ -8,6 +8,7 @@ require "Engine.Util.Math"
 require "Engine.Util.Drawing"
 require "Engine.Macros"
 require "Engine.Util.File"
+require "Engine.Util.Color"
 require "Engine.Function Overrides and Misc"
 require "Engine.Object"
 require "Engine.Text"
