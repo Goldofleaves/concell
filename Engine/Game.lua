@@ -333,6 +333,10 @@ function Game:draw()
 		local t = AdvancedText("|s:3,3||c:red|"..G.debug.constext)
 		t:draw(1,1, true)
 	end
+	if G.flags.saveData.curRoomIndex then
+		local t = AdvancedText("|s:3,3||c:red|" .. G.flags.saveData.curRoomIndex)
+		t:draw(1, 1, true)
+	end
 end
 
 Game()

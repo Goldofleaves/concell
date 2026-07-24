@@ -241,5 +241,22 @@ function Macros.MDef.isometricGrid(w, h)
     }
     local m1 = Moveable(t1)
     local m2 = Moveable(t2)
+    local old = m1.remove
+    function m1:remove(...)
+        for k, venue in pairs(self.extra.sprites) do
+            if k ~= "edge" then
+                for kk, obj in ipairs(venue) do
+                    obj.sprite:remove()
+                end
+            else
+                for kk, subvenue in ipairs(venue) do
+                    for kkk, obj in ipairs(subvenue) do
+                        obj.sprite:remove()
+                    end
+                end
+            end
+        end
+        return old(self, ...)
+    end
     return m1, m2
 end

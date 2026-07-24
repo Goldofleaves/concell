@@ -97,9 +97,21 @@ function love.load()
                     WorldMoveable({
                         x = v.x,
                         y = v.y,
-                        type = v.type
+                        type = v.type,
+                        extra = {
+                            index = v.index,
+                            side = v.side
+                        },
+                        updateOrder = 2
                     })
                 end
+                PLAYER = WorldMoveable({
+                    x = math.floor(G.flags.saveData.curRoom.size.w / 2),
+                    y = math.floor(G.flags.saveData.curRoom.size.h / 2),
+                    type = "player",
+                    updateOrder = 1,
+                    drawOrder = 11
+                })
             end, "delay1")
         end
     })

@@ -16,6 +16,29 @@ function Util.World.toNormalPos(V)
     local offset = Vector(G.drawinfo.origin.x, G.drawinfo.origin.y):add(G.worldOffsetVector, true)
     return offset:add(isoMatrix:apply(V, true), true)
 end
+
+function Util.World.getDoorAdjacentPos(D)
+    if D.x == -1 then
+        return {x = 0, y = D.y}
+    elseif D.y == -1 then
+        return { x = D.x, y = 0 }
+    elseif D.x == G.flags.saveData.curRoom.size.w then
+        return { x = G.flags.saveData.curRoom.size.w - 1, y = D.y }
+    else
+        return { x = D.x, y = G.flags.saveData.curRoom.size.h - 1 }
+    end
+end
+
+function Util.World.getOppositeSideDoor(side)
+    local s = Util.World.getOppositeSide(side)
+    for k, v in ipairs(G.flags.saveData.curRoom.doors) do
+        if v.side == s then
+            return v
+        end
+    end
+    return G.flags.saveData.curRoom.doors[1]
+end
+
 local function generateAuxDoor(side, w, h, index)
     local aux = {}
     local r = love.math.random(1, h - 1)
@@ -31,7 +54,7 @@ local function generateAuxDoor(side, w, h, index)
     end
     return aux
 end
-function Util.World.generateRoom(type, last_side, indices)
+function Util.World.generateRoom(type, last_side, indices, getprev)
     local room = {}
     local a, b = love.math.random(4, 6), love.math.random(7, 9)
     local coin_flip = Util.Math.chance(1/2)
@@ -54,13 +77,12 @@ function Util.World.generateRoom(type, last_side, indices)
         r = 0
     end
     local side = Util.World.getOppositeSide(last_side.side)
-    local lastAux = generateAuxDoor(side, room.size.w, room.size.h, last_side.index)
-    table.insert(room.doors, lastAux)
     local all = table.exclude({ "tl", "tr", "dl", "dr" }, side)
+    local lastAux = generateAuxDoor(side, room.size.w, room.size.h, getprev(last_side.index))
+    table.insert(room.doors, lastAux)
     for i = 1, r do
         local ttype = Util.Math.randomElement(all).v
         all = table.exclude(all, ttype)
-        print(all)
         local indice = Util.Math.randomElement(indices).v
         indices = table.exclude(indices, indice)
         table.insert(room.doors, generateAuxDoor(ttype, room.size.w, room.size.h, indice))
@@ -118,28 +140,24 @@ function Util.World.generateDungeon()
     end
     local last_side
     while main_counter <= main_len do
-        local room = Util.World.generateRoom(getInfo().type, last_side, getInfo().indices)
+        print(getIndex())
+        local room = Util.World.generateRoom(getInfo().type, last_side, getInfo().indices, getPrevIndex)
         rooms[getIndex()] = room
-        if main_counter == 1 then
-            last_side = room.doors[1]
+        incrementCounters()
+        if main_counter == 2 then
+            last_side = rooms[1].doors[1]                                                  -- the 1st room only has 1 door, so this is the corresponding last door
         elseif main_counter < main_len then
-            local r = rooms[getPrevIndex(getIndex())]
+            local r = rooms[getPrevIndex(getIndex())] -- the previous room
             for k, v in pairs(r.doors) do
                 if v.index == getIndex() then
                     last_side = v
                 end
             end
         end
-        incrementCounters()
     end
-    for k, v in ipairs(rooms[2].doors) do
-        if v.index == 2 then
-            v.index = 1
-        end
-    end
-    for k, v in ipairs(rooms[redirect + 1].doors) do
-        if v.index == "b" or v.index == "c" then
-            v.index = redirect
+    for k, v in ipairs(rooms[6].doors) do
+        if v.index == 4 then
+            v.index = 5
         end
     end
     return rooms
