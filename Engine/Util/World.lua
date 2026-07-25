@@ -82,7 +82,6 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
     if type == "init_room" then
         a, b = 5, 5
         room.size = { w = a, h = b }
-        local side = Util.Math.randomElement({"tl", "tr", "dl", "dr"}).v
         local aux = { x = 5, y = 2, a = { x = 4, y = 2 }, index = 2, side = "dr" }
 
         table.insert(room.doors, aux)
