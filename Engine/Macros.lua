@@ -81,6 +81,7 @@ Macros = {
 		end,
 
 		-- Guardian: moves around on a set axis, if player moves while near it, takes damage
+		-- THIS IS UNFINISHED PLEASE FINISH
 		guardian = function(context, e)
 			if context.player_move and Util.Math.pythagorean(context.pos, {x=e.TMod.x.base, y=e.TMod.y.base}) <= 2 then
 				Util.Event.delayFunc(0.15, function()
