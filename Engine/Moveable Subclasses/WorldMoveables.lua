@@ -12,6 +12,14 @@ function WorldMoveable:modHP(m)
         local t = {m}
         CALCULATECONTEXT({ modHP = true, hp = t, hurting = self })
         self.extra.hp = self.extra.hp - t[1]
+        if self.extra.hp <= 0 then
+            Util.Event.screenShake(5 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
+            Util.Audio.playSfx("fatalhit", 2)
+            self:remove()
+        else
+            Util.Event.screenShake(2 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
+            Util.Audio.playSfx("hit", 2)
+        end
     end
 end
 function WorldMoveable:juice(r)

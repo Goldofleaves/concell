@@ -142,6 +142,8 @@ end
 function Util.World.modHP(m)
     local t = { m } -- stuff it in a table so it's mutable
     CALCULATECONTEXT({ modHP = true, hp = t, hurting = PLAYER })
+    Util.Audio.playSfx("hit", 2)
+    Util.Event.screenShake(2*Util.UI.getScalingFactor(), 0.5, "globalShake")
     G.flags.saveData.hp = G.flags.saveData.hp + t[1]
 end
 function Util.World.getArea(index)

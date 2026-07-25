@@ -30,7 +30,7 @@ function addItem(key)
     if #G.flags.saveData.items < Macros.itesmslots then
         local t = {
             key = key,
-            config = Util.Other.copyTable(Centers[key].config),
+            config = Util.Other.copyTable(Centers[key].defaultConfig),
             isBeingUsed = false
         }
         table.insert(G.flags.saveData.items, t)
@@ -106,6 +106,10 @@ registerItem({
 registerItem({
     key = "knife",
     sprite = "ItemKnife",
+    config = {
+        damage = 2,
+        timeCost = 2
+    },
     canUse = function(self)
         local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
 
@@ -125,11 +129,12 @@ registerItem({
         end
         return false
     end,
-    onUse = function(self)
+    onUse = function(self, enemy)
         if not self.isBeingUsed then
             TARGETED_ENEMIES = self.targets
         else
-
+            enemy:modHP(self.config.damage)
+            Util.World.modHP(self.config.timeCost)
         end
     end
 })

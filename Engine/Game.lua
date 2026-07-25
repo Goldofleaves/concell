@@ -10,6 +10,10 @@ function Game:new()
 		gridSize = {x=800,y=600},
 		supergridSize = {x = 1200, y = 800}
 	}
+	self.dispOffset = {
+		x = {},
+		y = {},
+	}
 	self.events = {}
 	self.currentID = 0
 	self.flags = {
@@ -277,6 +281,14 @@ function love.keypressed(key)
 end
 
 function Game:draw()
+	local shiftx, shifty = 0, 0
+	for k, v in pairs(self.dispOffset.x) do
+		shiftx = shiftx + v
+	end
+	for k, v in pairs(self.dispOffset.y) do
+		shifty = shifty + v
+	end
+	love.graphics.translate(shiftx, shifty)
 	-- preportions
 	local actualHeight, actualWidth = love.graphics.getHeight(), love.graphics.getWidth()
 	local r, g, b, a = love.graphics.getColor()
@@ -314,6 +326,7 @@ function Game:draw()
 		idealHeight = actualHeight
 		idealWidth = idealHeight / Macros.screenDimentions.y * Macros.screenDimentions.x
 	end
+	love.graphics.origin()
 	if self.debug.drawWorldGrid then
 		love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.red, 0.15))
 		for i = 1, Macros.screenDimentions.x * Macros.gridSingleSubdivision do
