@@ -31,7 +31,7 @@ function WorldMoveable:modHP(m)
     if self.properties.type == "enemy" then
         local t = {m}
         CALCULATECONTEXT({ modHP = true, hp = t, hurting = self })
-        self.extra.hp = self.extra.hp - t[1]
+        self.extra.hp = self.extra.hp + t[1]
         if self.extra.hp <= 0 then
             Util.Event.screenShake(5 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
             Util.Audio.playSfx("fatalhit", 2)
@@ -133,9 +133,10 @@ function WorldMoveable:draw()
         love.graphics.setColor(Macros.colors.white)
         local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
         if Atlases[self.extra.name] and Atlases[self.extra.name].image then
+            print(self.extra.name .. self.extra.facing)
             love.graphics.draw(
-                Atlases[self.extra.name].image,
-                Atlases[self.extra.name].splicedImages[0][0],
+                Atlases[self.extra.name..self.extra.facing].image,
+                Atlases[self.extra.name..self.extra.facing].splicedImages[0][0],
                 v.contents[1] - 40 * Util.UI.getScalingFactor(),
                 v.contents[2] - 80 * Util.UI.getScalingFactor(),
                 0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
@@ -176,7 +177,7 @@ function WorldMoveable:draw()
 end
 function WorldMoveable:update(dt)
     Moveable.update(self, dt)
-    self.drawOrder = self.TMod.x.base + self.TMod.y.base + 12
+    self.drawOrder = self.TMod.x.base + self.TMod.y.base + 12 + (self.properties.type == "door" and -.5 or 0)
 end
 function WorldMoveable:switchRoom()
     if self.properties.type == "door" then
@@ -199,8 +200,8 @@ function WorldMoveable:switchRoom()
             end
             local convert = function(s)
                 local array = {
-                    ul = '1',
-                    ur = '4',
+                    tl = '1',
+                    tr = '4',
                     dl = '2',
                     dr = '3'
                 }
@@ -253,7 +254,8 @@ function WorldMoveable:initRoomStuff()
                 index = v.index,
                 side = v.side,
                 name = v.name,
-                hp = Macros.maxHps[v.name]
+                hp = Macros.maxHps[v.name],
+                facing = v.facing
             },
             updateOrder = 2,
             drawOrder = 10

@@ -25,7 +25,7 @@ Macros.CDefs.Opening = function()
 			timer1 = 0,
 			text = {
 				[false] = {
-					"|f:times||o:white||c:night|This is it, miss Dawn.",
+					"|f:times||o:white||c:night|This is it, Count Dawn.",
 					"|f:times||o:white||c:night|You're not getting away this time.",
 				},
 				[true] = "|f:times||o:white||c:night|Have fun rotting in prison."

@@ -344,6 +344,7 @@ function Macros.UIDef.overlay()
             end
             local s = getObjectByNid("isoGridWeb")
             if s and # s.extra.path > 1 then
+                G.flags.isMoving = true
                 local function Eventify()
                     Util.Event.delayFunc(0.3, function()
                         if # s.extra.path > 1 then
@@ -359,11 +360,13 @@ function Macros.UIDef.overlay()
                             PLAYER:juice()
                             Eventify()
                         else
+                            G.flags.isMoving = nil
                             CALCULATECONTEXT({ moveEnd = true })
                             local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
                             for k, v in ipairs(allEnemies) do
                                 if v.extra.goalVertice then
                                     if v.extra.goalVertice[1] ~= PLAYER.TMod.x.base or v.extra.goalVertice[2] ~= PLAYER.TMod.y.base then
+                                        v.extra.facing = {{coords = {v.TMod.x.base, v.TMod.y.base}}, {coords = goalVertice}}
                                         v.TMod.x.base = v.extra.goalVertice[1]
                                         v.TMod.y.base = v.extra.goalVertice[2]
                                     else

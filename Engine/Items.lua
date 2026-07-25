@@ -107,7 +107,7 @@ registerItem({
     key = "knife",
     sprite = "ItemKnife",
     config = {
-        damage = 3,
+        damage = -2,
         timeCost = 2
     },
     canUse = function(self)

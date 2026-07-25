@@ -96,10 +96,11 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
             end
         end
         table.insert(room.enemies, {
-            name = "guard", -- temp so they dont move
+            name = "guard",
             pos = {
                 2, 2,
-            }
+            },
+            facing = "3"
         })
 
         return room
@@ -110,6 +111,7 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
                 pos = {
                     getUniqueRandom("a", 0, room.size.w - 1, function(r) return r ~= math.floor(room.size.w / 2) end),
                     getUniqueRandom("b", 0, room.size.h - 1, function(r) return r ~= math.floor(room.size.h / 2) end),
+                    facing = tostring(math.random(1, 4))
                 }
             })
         end
