@@ -137,6 +137,7 @@ function Macros.UIDef.title()
                         type = "player",
                         updateOrder = 1,
                         drawOrder = 31,
+						extra = {facing = G.flags.saveData.playerFacing}
                     })
                     Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, Util.World.getArea(G.flags.saveData.curRoomIndex))
                     for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
@@ -346,6 +347,10 @@ function Macros.UIDef.overlay()
                 local function Eventify()
                     Util.Event.delayFunc(0.3, function()
                         if # s.extra.path > 1 then
+                            local t = Util.World.getDir(s.extra.path)
+                            if t then
+                                PLAYER.extra.facing = t
+                            end
                             Util.World.modTime(1)
                             Util.Audio.playSfx("blip_hover", 2)
                             table.remove(s.extra.path, 1)
@@ -376,6 +381,10 @@ function Macros.UIDef.overlay()
                             end
                         end
                     end)
+                end
+                local t = Util.World.getDir(s.extra.path)
+                if t then
+                    PLAYER.extra.facing = t
                 end
                 Util.World.modTime(1)
                 table.remove(s.extra.path, 1)

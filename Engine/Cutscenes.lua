@@ -54,6 +54,7 @@ Macros.CDefs.Opening = function()
 						type = "player",
 						updateOrder = 1,
 						drawOrder = 31,
+						extra = {facing = "3"}
 					})
 					Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h,
 						Util.World.getArea(1))
