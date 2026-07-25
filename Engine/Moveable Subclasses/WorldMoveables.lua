@@ -183,7 +183,26 @@ end
 function WorldMoveable:update(dt)
     Moveable.update(self, dt)
     self.drawOrder = self.TMod.x.base + self.TMod.y.base + 12 + (self.properties.type == "door" and -.5 or 0)
-    self:decideMove()
+    -- self:decideMove()
+end
+function move_all_enemies()
+    local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
+    for k, v in ipairs(allEnemies) do
+        if v.extra.goalVertice then
+            if v.extra.goalVertice[1] ~= PLAYER.TMod.x.base or v.extra.goalVertice[2] ~= PLAYER.TMod.y.base then
+                v.extra.facing = Util.World.getDir({{coords = {v.TMod.x.base, v.TMod.y.base}}, {coords = v.extra.goalVertice}})
+                v.TMod.x.base = v.extra.goalVertice[1]
+                v.TMod.y.base = v.extra.goalVertice[2]
+            else
+                Util.World.modHP(-2)
+            end
+            v.extra.goalVertice = nil
+            v:juice()
+        end
+    end
+    for k, v in ipairs(allEnemies) do
+        v:decideMove()
+    end
 end
 function WorldMoveable:switchRoom()
     if self.properties.type == "door" then

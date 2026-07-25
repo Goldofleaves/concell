@@ -297,23 +297,7 @@ function Macros.UIDef.overlay()
                             G.flags.isMoving = nil
                             CALCULATECONTEXT({ player_move = true, pos = { PLAYER.TMod.x.base, PLAYER.TMod.y.base } })
                             CALCULATECONTEXT({ moveEnd = true })
-                            local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
-                            for k, v in ipairs(allEnemies) do
-                                if v.extra.goalVertice then
-                                    if v.extra.goalVertice[1] ~= PLAYER.TMod.x.base or v.extra.goalVertice[2] ~= PLAYER.TMod.y.base then
-                                        v.extra.facing = Util.World.getDir({{coords = {v.TMod.x.base, v.TMod.y.base}}, {coords = v.extra.goalVertice}})
-                                        v.TMod.x.base = v.extra.goalVertice[1]
-                                        v.TMod.y.base = v.extra.goalVertice[2]
-                                    else
-                                        Util.World.modHP(-2)
-                                    end
-                                    v.extra.goalVertice = nil
-                                    v:juice()
-                                end
-                            end
-                            for k, v in ipairs(allEnemies) do
-                                v:decideMove()
-                            end
+                            move_all_enemies()
                             if getDoor(s.extra.path[#s.extra.path].coords) then
                                 getDoor(s.extra.path[#s.extra.path].coords):switchRoom()
                             end
@@ -459,6 +443,7 @@ function Macros.UIDef.overlay()
 	                        for i, v in ipairs(G.flags.saveData.items) do
                                 if v.isBeingUsed then
                                     Centers[v.key].onUse(v, enemy)
+                                    move_all_enemies()
                                     v.isBeingUsed = false
                                     CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = v.key }, hasState = true })
                                 end
