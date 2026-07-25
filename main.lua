@@ -24,6 +24,7 @@ require "Engine.Util.Audio"
 require "Engine.Util.World"
 require "Engine.Moveable Subclasses.Button"
 require "Engine.Moveable Subclasses.WorldMoveables"
+require "Engine.Items"
 local function wrapper(key, px, py, folders)
     folders = folders or ""
     registerAtlasSimple(key, "Assets/Sprites/"..folders..key..".png", px, py)
@@ -50,6 +51,10 @@ wrapper("UIMove", 600, 400, "UI/")
 wrapper("UIMoveInactive", 600, 400, "UI/")
 wrapper("UITimer", 600, 400, "UI/")
 wrapper("UITimerIcon", 25, 47, "UI/")
+wrapper("ItemBlank", 50, 47, "Items/")
+wrapper("ItemKnife", 50, 47, "Items/")
+wrapper("ItemMusket", 50, 47, "Items/")
+wrapper("ItemWhip", 50, 47, "Items/")
 Util.Audio.registerMusic("title", { "Assets", "Audio", "Music", "title" }, { volume = 0.8 })
 Util.Audio.registerMusic("overworld", { "Assets", "Audio", "Music", "overworld" })
 Util.Audio.registerMusic("battle", { "Assets", "Audio", "Music", "battle" })

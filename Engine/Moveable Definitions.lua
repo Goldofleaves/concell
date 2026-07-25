@@ -201,6 +201,61 @@ function Macros.MDef.isometricGrid(w, h, area)
         local r = Util.World.toIsoPos(closestPoint):sub(Vector(love.mouse.getX(), love.mouse.getY()), true)
         return closestPoint, r:abs()
     end
+    local function getAllValidVertices(www, hhh)
+        local vertices = {}
+        for x = 0, www-1 do
+            vertices[x] = {}
+            for y = 0, hhh-1 do
+                local worldMoveables = Util.World.getAllWorldMoveablesWithCoord({x, y})
+                local haswall = false
+                for k, v in ipairs(worldMoveables) do
+                    if v.properties.type == "wall" then
+                        haswall = true
+                    end
+                end
+                if not haswall then
+                    vertices[x][y] = true
+                end
+            end
+        end
+        local doors = Util.World.getAllWorldMoveablesWithType("door")
+        for k, door in ipairs(doors) do
+            if not vertices[door.TMod.x.base] then
+                vertices[door.TMod.x.base] = {}
+            end
+            vertices[door.TMod.x.base][door.TMod.y.base] = true
+        end
+        return vertices
+    end
+    local function isValidVertice(v, c)
+        if v[Util.Math.round(c[1])] and v[Util.Math.round(c[1])][Util.Math.round(c[2])] then
+            return true
+        end
+        return false
+    end
+    local function getAllAdjacentVertices(v, c)
+        local vs = {}
+        local cCopy = { Util.Math.round(c[1]), Util.Math.round(c[2]) }
+        if v[cCopy[1]] then
+            if v[cCopy[1]][cCopy[2] - 1] then
+                table.insert(vs, { cCopy[1], cCopy[2] - 1 })
+            end
+            if v[cCopy[1]][cCopy[2] + 1] then
+                table.insert(vs, { cCopy[1], cCopy[2] + 1 })
+            end
+        end
+        if v[cCopy[1] + 1] then
+            if v[cCopy[1] + 1][cCopy[2]] then
+                table.insert(vs, { cCopy[1] + 1, cCopy[2]})
+            end
+        end
+        if v[cCopy[1] - 1] then
+            if v[cCopy[1] - 1][cCopy[2]] then
+                table.insert(vs, { cCopy[1] - 1, cCopy[2]})
+            end
+        end
+        return vs
+    end
     local t2 = {
         extra = {
             w = w,
@@ -251,14 +306,9 @@ function Macros.MDef.isometricGrid(w, h, area)
                         s.extra.held = false
                     end
                     s.extra.drawAlpha = 1
+                    local vertices = getAllValidVertices(w, h)
                     local p, rr = getClosestPointAndDistance()
-                    if rr < min and
-                    ((p.contents[1] >= 0 and
-                    p.contents[1] <= G.flags.saveData.curRoom.size.w and
-                    p.contents[2] >= 0 and
-                    p.contents[2] <= G.flags.saveData.curRoom.size.h)
-                    or existsDoor(p.contents)) and #s.extra.path < G.flags.saveData.gridsPerMove
-                    then
+                    if rr < min and isValidVertice(vertices, { p.contents[1] - 0.2, p.contents[2] - 0.2 }) and #s.extra.path < G.flags.saveData.gridsPerMove then
                         if not alreadyExists(p.contents) and isAdjacent(p.contents) then
                             table.insert(s.extra.path, { point = p, coords = p.contents })
                         end
@@ -292,40 +342,29 @@ function Macros.MDef.isometricGrid(w, h, area)
         end,
         drawFunc = function (s)
             love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.night, 0.1 * s.extra.drawAlpha))
-            for i = 1, s.extra.w - 1 do
-                for j = 1, s.extra.h - 1 do
-                    local x = i - 1 + 0.5
-                    local y = j - 1 + 0.5
-                    local vertices = {
-                        Util.World.toIsoPos(Vector(x, y)),
-                        Util.World.toIsoPos(Vector(x + 1, y)),
-                        Util.World.toIsoPos(Vector(x + 1, y + 1)),
-                        Util.World.toIsoPos(Vector(x, y + 1)),
-                    }
-                    Util.Draw.drawVectorPolygon("line", vertices)
+            local vertices = getAllValidVertices(w, h)
+            for x, v in pairs(vertices) do
+                for y, _ in pairs(v) do
+                    local c = {x, y}
+                    local adjacents = getAllAdjacentVertices(vertices, c)
+                    local vv = Util.World.toIsoPos(Vector(x+0.5, y+0.5))
+                    for k, vr in ipairs(adjacents) do
+                        local vrv = Util.World.toIsoPos(Vector(vr[1] + 0.5, vr[2] + 0.5))
+                        love.graphics.line(vv.contents[1], vv.contents[2], vrv.contents[1], vrv.contents[2])
+                    end
                 end
             end
-            Util.Draw.drawVectorPolygon("line", {
-                Util.World.toIsoPos(Vector(0.5, 0.5)),
-                Util.World.toIsoPos(Vector(0.5, h - 0.5)),
-                Util.World.toIsoPos(Vector(w - 0.5, h - 0.5)),
-                Util.World.toIsoPos(Vector(w - 0.5, 0.5)),
-            })
-            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white, 0.7*s.extra.drawAlpha))
-            for i = 1, s.extra.w - 1 do
-                for j = 1, s.extra.h - 1 do
-                    local x = i - 1 + 0.2
-                    local y = j - 1 + 0.2
-                    local vertices = {
-                        Util.World.toIsoPos(Vector(x, y)),
-                        Util.World.toIsoPos(Vector(x + 1, y)),
-                        Util.World.toIsoPos(Vector(x + 1, y + 1)),
-                        Util.World.toIsoPos(Vector(x, y + 1)),
-                    }
-                    Util.Draw.drawVectorPolygon("line", vertices)
-                    for k, v in ipairs(vertices) do
-                        love.graphics.circle("fill", v.contents[1], v.contents[2], 3 * Util.UI.getScalingFactor())
+            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white, s.extra.drawAlpha))
+            for x, v in pairs(vertices) do
+                for y, _ in pairs(v) do
+                    local c = { x, y }
+                    local adjacents = getAllAdjacentVertices(vertices, c)
+                    local vv = Util.World.toIsoPos(Vector(x + 0.2, y + 0.2))
+                    for k, vr in ipairs(adjacents) do
+                        local vrv = Util.World.toIsoPos(Vector(vr[1] + 0.2, vr[2] + 0.2))
+                        love.graphics.line(vv.contents[1], vv.contents[2], vrv.contents[1], vrv.contents[2])
                     end
+                    love.graphics.circle("fill", vv.contents[1], vv.contents[2], 3 * Util.UI.getScalingFactor())
                 end
             end
             love.graphics.setLineWidth(2.5 * Util.UI.getScalingFactor())

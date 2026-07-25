@@ -75,6 +75,9 @@ function Macros.UIDef.title()
         onClick = function(s)
             Util.Event.easeOutMusic(2, "titleID")
             Util.Event.transition(4, function()
+                addItem("knife")
+                addItem("whip")
+                addItem("musket")
                 Macros.UIDef.overlay()
                 Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
                 local list_of_nids = {
@@ -128,7 +131,7 @@ function Macros.UIDef.title()
         w = 5,
         h = 1,
         extra = {
-            text = AdvancedText("|s:2,2|Resume run")
+            text = AdvancedText(("|c:"..(love.filesystem.exists("runInfo.con") and "white|" or "grey|")) .."|s:2,2|Resume run")
         },
         outlineWidth = 3,
         drawOrder = 10,
@@ -150,7 +153,9 @@ function Macros.UIDef.title()
             local h = self.extra.text:getHeight()
             local delta = (1 - (self.TMod.y.base - 10.75) / 0.25) * 0.2
             local dh = delta * h / 40
-            self.extra.text:recalculate({}, "|s:" .. (2 * (1 + 1.5 * delta)) ..
+            self.extra.text:recalculate({},
+            ("|c:" .. (love.filesystem.exists("runInfo.con") and "white|" or "grey|")) ..
+                "|s:" .. (2 * (1 + 1.5 * delta)) ..
                 "," .. (2 * (1 + 1.5 * delta)) .. "|Resume run")
             self.extra.text:draw(self.T.x + 0.25 + 2 * dh, 11 + 0.29 - dh, true)
         end,
@@ -204,6 +209,41 @@ function Macros.UIDef.title()
 end
 
 function Macros.UIDef.overlay()
+    local function registerItemButton(i)
+        local offsets = {
+            { (243+10) / 20, (245+10) / 20},
+            { (277+10) / 20, (242+10) / 20},
+            { (312+10) / 20, (239+10) / 20},
+            { (347+10) / 20, (236+10) / 20},
+        }
+        SimpleDrawableButton({
+            nid = "itemButton"..i,
+            x = offsets[i][1],
+            y = offsets[i][2],
+            w = 29/20,
+            h = 27/20,
+            outlineWidth = 3,
+            drawOrder = 10,
+            outlineColor = Macros.colors.transparent,
+            inlineColor = Macros.colors.transparent,
+            onRightClick = function(self)
+                if G.flags.saveData.items[i] then
+                    CALCULATECONTEXT({ itemDiscarded = true, discardedItem = { slot = i, key = G.flags.saveData.items[i].key } })
+                    discardItem(i)
+                end
+            end,
+            onClick = function(self)
+                if G.flags.saveData.items[i] and Centers[G.flags.saveData.items[i].key].canUse() then
+                    Centers[G.flags.saveData.items[i].key].onUse(G.flags.saveData.items[i].config)
+                    CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = G.flags.saveData.items[i].key } })
+                end
+            end,
+        })
+    end
+    registerItemButton(1)
+    registerItemButton(2)
+    registerItemButton(3)
+    registerItemButton(4)
     Sprite({
         nid = "UIMove",
         drawOrder = 100,
@@ -260,6 +300,7 @@ function Macros.UIDef.overlay()
                     end)
                 end
                 table.remove(s.extra.path, 1)
+                Util.Audio.playSfx("blip_hover", 2)
                 PLAYER.TMod.x.base = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
                 PLAYER.TMod.y.base = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
                 PLAYER:juice()
@@ -350,7 +391,26 @@ function Macros.UIDef.overlay()
         y = Macros.grandOffsetVector.contents[2],
         atlasKey = "UIItemRibbon",
         scaleX = 2,
-        scaleY = 2
+        scaleY = 2,
+        drawFunc = function (s)
+            local offsets = {
+                { 243 * 2 * Util.UI.getScalingFactor(), 245 * 2 * Util.UI.getScalingFactor() },
+                { 277 * 2 * Util.UI.getScalingFactor(), 242 * 2 * Util.UI.getScalingFactor() },
+                { 312 * 2 * Util.UI.getScalingFactor(), 239 * 2 * Util.UI.getScalingFactor() },
+                { 347 * 2 * Util.UI.getScalingFactor(), 236 * 2 * Util.UI.getScalingFactor() },
+            }
+            love.graphics.setColor(1, 1, 1, 1)
+            for k, v in ipairs(G.flags.saveData.items) do
+                love.graphics.draw(
+                    Atlases[Centers[v.key].sprite].image,
+                    Atlases[Centers[v.key].sprite].splicedImages[0][0],
+                    G.drawinfo.origin.x + offsets[k][1],
+                    G.drawinfo.origin.y + offsets[k][2],
+                    0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+                )
+                
+            end
+        end
     })
     Sprite({
         nid = "UITimer",

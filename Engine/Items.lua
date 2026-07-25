@@ -14,7 +14,11 @@ function registerItem(args)
             
         end,
         pool = args.pool or "common",
-        inPool = args.inPool or function () end
+        inPool = args.inPool or function () return true end,
+        sprite = args.sprite or "ERROR",
+        update = args.update or function (config) end,
+        canUse = args.canUse or function() return true end,
+        onUse = args.onUse or function(config) end,
     }
     table.insert(Pools[args.pool or "common"].keys, args.key)
     Centers[args.key] = t
@@ -66,7 +70,13 @@ end
 ---@return string key
 function poolItem(pool)
     if pool then
-        return Util.Math.randomElement(Pools[pool].keys).v
+        local t = {}
+        for k, v in ipairs(Pools[pool].keys) do
+            if Centers[v].inPool() and not hasItem(v) then
+                table.insert(t, v)
+            end
+        end
+        return Util.Math.randomElement(t).v
     end
     local chances = {}
     for k, v in ipairs(Pools) do
@@ -80,3 +90,18 @@ function CALCULATECONTEXT(context)
         Centers[v.key].calculate(context, v.config)
     end
 end
+
+registerItem({
+    key = "musket",
+    sprite = "ItemMusket"
+})
+
+registerItem({
+    key = "whip",
+    sprite = "ItemWhip"
+})
+
+registerItem({
+    key = "knife",
+    sprite = "ItemKnife"
+})

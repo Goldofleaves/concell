@@ -235,6 +235,9 @@ function Game:update(dt)
 		end
 	end
 	updateAllObjects({})
+	for k, v in ipairs(G.flags.saveData.items) do
+		Centers[v.key].update(v.config)
+	end
 	self.mousepos.oldx, self.mousepos.oldy = Util.UI.convertUIPosToPos(love.mouse.getX(), love.mouse.getY())
 end
 love.keyboard.setTextInput(true)

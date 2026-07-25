@@ -204,3 +204,20 @@ function Util.World.getAllWorldMoveablesWithCoord(c)
     end
     return t
 end
+---@param type string
+---@return table WorldMoveables
+function Util.World.getAllWorldMoveablesWithType(type)
+    local t = {}
+    for k, v in pairs(G.I.MOVEABLES) do
+        if v.objectType == "WORLDMOVEABLE" and v.properties.type == type then
+            table.insert(t, v)
+        end
+    end
+    return t
+end
+function Util.World.saveGame()
+    Util.File.saveTableToFile(G.flags.saveData, "runInfo")
+end
+function Util.World.loadGame()
+    Util.File.setTableWithFile(G.flags.saveData, "runInfo")
+end

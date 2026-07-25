@@ -7,6 +7,7 @@ function Button:new(args)
     self.onHover = args.onHover or function(s) end
     self.onLeftHover = args.onLeftHover or function(s) end
     self.onClick = args.onClick or function(s) end
+    self.onRightClick = args.onRightClick or function(s) end
     self.hold = args.hold or function(s, dt) end
     self.onRelease = args.onRelease or function(s) end
 end
@@ -27,6 +28,9 @@ function Button:update(dt)
         self:hover(dt)
         if G.mouseController[1].pressed then
             self:onClick()
+        end
+        if G.mouseController[2].pressed then
+            self:onRightClick()
         end
         if G.mouseController[1].held then
             self:hold(dt)
