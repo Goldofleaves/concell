@@ -302,7 +302,7 @@ registerItem({
 
 registerItem({
     key = "rapier",
-    sprite = "ItemKnife",
+    sprite = "ItemRapier",
     config = {
         damage = -4,
         timeCost = 1
