@@ -381,10 +381,7 @@ function Util.World.gameOver()
         v.source:stop()
         v.source:release()
     end
-    G.audio = {
-        sfx = {},
-        music = {},
-        musicHandler = {}
-    }
+    G = nil
+    G = Game()
     Macros.CDefs.Death()
 end
