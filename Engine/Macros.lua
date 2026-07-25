@@ -44,10 +44,10 @@ Macros = {
 	calculates = {
 		turret = function(context, e)
 			if context.player_move and (Util.Math.precisionCheck(context.pos.x, e.TMod.x.base, 0.1) or Util.Math.precisionCheck(context.pos.y, e.TMod.y.base, 0.1)) then
-				Util.Event.delayFunc(0.1, function()
+				Util.Event.delayFunc(0.15, function()
 					Util.World.modHP(-2)
 				end, "moveDelay")
-				Util.Event.delayFunc(0.1, function()
+				Util.Event.delayFunc(0.15, function()
 				end, "moveDelay")
 			end
 		end,

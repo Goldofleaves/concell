@@ -75,7 +75,7 @@ function WorldMoveable:draw()
             radius = 5 * self.properties.mult
         },
         enemy = {
-            color = Macros.colors.green,
+            color = Macros.colors.transparent,
             radius = 5 * self.properties.mult
         },
         wall = {
