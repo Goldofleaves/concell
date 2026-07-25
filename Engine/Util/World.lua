@@ -133,7 +133,7 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
                 end
             end)
             table.insert(room.enemies, {
-                name = "turret", -- every enemy is of cellmate kind
+                name = "cellmate", -- every enemy is of cellmate kind
                 pos = u,
                 facing = tostring(math.random(1, 4)),
                 id = identifier
