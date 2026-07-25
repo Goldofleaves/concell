@@ -28,7 +28,7 @@ function WorldMoveable:draw()
             radius = 5 * self.properties.mult
         },
         player = {
-            color = Macros.colors.red,
+            color = Macros.colors.transparent,
             radius = 5 * self.properties.mult
         },
         enemy = {
@@ -64,6 +64,7 @@ function WorldMoveable:draw()
             0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
     end
+    -- Util.World.getDir
     if self.properties.type == "wall" or self.properties.type == "enemy" then
         love.graphics.setColor(Macros.colors.white)
         local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
@@ -75,11 +76,22 @@ function WorldMoveable:draw()
             0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
     end
+    if self.properties.type == "player" then
+        love.graphics.setColor(Macros.colors.white)
+        local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
+        love.graphics.draw(
+            Atlases["dawn"..self.extra.facing].image,
+            Atlases["dawn"..self.extra.facing].splicedImages[0][0],
+            v.contents[1] - 40 * Util.UI.getScalingFactor(),
+            v.contents[2] - 80 * Util.UI.getScalingFactor(),
+            0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+        )
+    end
     love.graphics.setColor(r,g,b,a)
 end
 function WorldMoveable:update(dt)
     Moveable.update(self, dt)
-    self.drawOrder = self.TMod.x.base + self.TMod.y.base + 10
+    self.drawOrder = self.TMod.x.base + self.TMod.y.base + 12
 end
 function WorldMoveable:switchRoom()
     if self.properties.type == "door" then
@@ -99,16 +111,27 @@ function WorldMoveable:switchRoom()
             for k, v in ipairs(list) do
                 v:remove()
             end
+            local convert = function(s)
+                local array = {
+                    ul = '1',
+                    ur = '4',
+                    dl = '2',
+                    dr = '3'
+                }
+                return array[s]
+            end
             PLAYER = WorldMoveable({
                 x = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).x,
                 y = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).y,
                 type = "player",
                 drawOrder = 31,
-                updateOrder = 1
+                updateOrder = 1,
+                extra = {facing = convert(Util.World.getOppositeSide(self.extra.side))}
             })
             WorldMoveable:initRoomStuff()
             G.flags.saveData.playerPos = { x = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra
             .side)).x, y = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).y }
+            G.flags.saveData.playerFacing = convert(Util.World.getOppositeSide(self.extra.side))
             Util.World.saveGame()
         end, "delay2")
     end

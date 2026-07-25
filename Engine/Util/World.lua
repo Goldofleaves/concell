@@ -163,6 +163,7 @@ function Util.World.getArea(index)
     end
     return "ruins"
 end
+
 function Util.World.generateDungeon()
     local rooms = {}
     local main_counter = 1
@@ -324,4 +325,19 @@ function getAllAdjacentVertices(v, c)
         end
     end
     return vs
+end
+Util.World.getDir = function (s)
+    if #s == 1 then
+        return false
+    end
+    local a, b = s[1].coords, s[2].coords
+    if a[1] > b[1] then
+        return "1"
+    elseif a[1] < b[1] then
+        return "3"
+    elseif a[2] > b[2] then
+        return "4"
+    else
+        return "2"
+    end
 end
