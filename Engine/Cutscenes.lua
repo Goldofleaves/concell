@@ -34,7 +34,7 @@ Macros.CDefs.Opening = function()
 		updateFunc = function(s, dt)
 			s.extra.timer1 = s.extra.timer1 + dt
 			s.T.y = Util.Math.lerpDt(s.T.y, Macros.grandOffsetVector.contents[2] - (s.extra.progressed and 5 or 0), 0.02)
-			if s.extra.timer1 > 4 and G.mouseController[1].pressed and not s.extra.progressed then
+			if s.extra.timer1 > 2 and G.mouseController[1].pressed and not s.extra.progressed then
 				s.extra.timer1 = 0
 				s.extra.progressed = true
 			end

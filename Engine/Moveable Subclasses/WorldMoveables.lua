@@ -32,7 +32,7 @@ function WorldMoveable:draw()
             radius = 5 * self.properties.mult
         },
         enemy = {
-            color = Macros.colors.green,
+            color = Macros.colors.transparent,
             radius = 5 * self.properties.mult
         },
         wall = {
@@ -65,7 +65,7 @@ function WorldMoveable:draw()
         )
         AdvancedText("|c:orange|"..tostring(self.extra.index)):draw(vector.contents[1], vector.contents[2] + 6)
     end
-    if self.properties.type == "wall" then
+    if self.properties.type == "wall" or self.properties.type == "enemy" then
         love.graphics.setColor(Macros.colors.white)
         local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
         love.graphics.draw(
