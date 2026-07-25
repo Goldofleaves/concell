@@ -93,14 +93,76 @@ function CALCULATECONTEXT(context)
     end
 end
 
+local get_orthogonal_dist = function(a, b)
+    return math.abs(a.TMod.x.base - b.TMod.x.base) + math.abs(a.TMod.y.base - b.TMod.y.base)
+end
+
 registerItem({
     key = "musket",
-    sprite = "ItemMusket"
+    sprite = "ItemMusket",
+    config = {
+        damage = -10,
+        timeCost = 6
+    },
+    canUse = function(self)
+        local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
+
+        local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall"})
+        local adjacents = getAllAdjacentVertices(vertices, { PLAYER.TMod.x.base, PLAYER.TMod.y.base })
+
+        if not self.isBeingUsed then
+            self.targets = {}
+            for _, e in ipairs(enemies) do
+                for _, v in ipairs(adjacents) do
+                    if e.TMod.x.base == v[1] or e.TMod.y.base == v[2] then
+                        self.targets[#self.targets + 1] = e
+                    end
+                end
+            end
+            if #self.targets > 0 then return "hasState" end
+        end
+        return false
+    end,
+    onUse = function(self, enemy)
+        if not self.isBeingUsed then
+            TARGETED_ENEMIES = self.targets
+        else
+            enemy:modHP(self.config.damage)
+            Util.World.modTime(self.config.timeCost)
+        end
+    end
 })
 
 registerItem({
     key = "whip",
-    sprite = "ItemWhip"
+    sprite = "ItemWhip",
+    config = {
+        damage = -4,
+        timeCost = 3
+    },
+    canUse = function(self)
+        local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
+
+        if not self.isBeingUsed then
+            self.targets = {}
+            for _, e in ipairs(enemies) do
+                local dist = get_orthogonal_dist(e, PLAYER)
+                if e.TMod.x.base ~= PLAYER.TMod.x.base and e.TMod.y.base ~= PLAYER.TMod.y.base and dist <= 3 then
+                    self.targets[#self.targets + 1] = e
+                end
+            end
+            if #self.targets > 0 then return "hasState" end
+        end
+        return false
+    end,
+    onUse = function(self, enemy)
+        if not self.isBeingUsed then
+            TARGETED_ENEMIES = self.targets
+        else
+            enemy:modHP(self.config.damage)
+            Util.World.modTime(self.config.timeCost)
+        end
+    end
 })
 
 registerItem({
@@ -134,6 +196,36 @@ registerItem({
             TARGETED_ENEMIES = self.targets
         else
             enemy:modHP(self.config.damage)
+            Util.World.modTime(self.config.timeCost)
+        end
+    end
+})
+
+registerItem({
+    key = "greatsword",
+    sprite = "ItemKnife",
+    config = {
+        damage = -5,
+        timeCost = 3
+    },
+    canUse = function(self)
+        local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
+
+        if not self.isBeingUsed then
+            self.targets = {}
+            for _, e in ipairs(enemies) do
+                if get_orthogonal_dist(e, PLAYER) <= 2 then
+                    self.targets[#self.targets + 1] = e
+                end
+            end
+            return #self.targets >= 1 and "noState" or nil
+        end
+    end,
+    onUse = function(self, enemy)
+        if #self.targets >= 1 then
+            for _, enemy in ipairs(self.targets) do
+                enemy:modHP(self.config.damage)
+            end
             Util.World.modTime(self.config.timeCost)
         end
     end
