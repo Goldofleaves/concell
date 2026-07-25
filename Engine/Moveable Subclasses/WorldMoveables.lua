@@ -207,6 +207,10 @@ function move_all_enemies()
     end
 end
 function WorldMoveable:switchRoom()
+    if self.extra.index == 18 then
+        Util.World.gameWin()
+        return
+    end
     if self.properties.type == "door" then
         Util.Event.transition(2, function()
             local old_facing = PLAYER.extra.facing

@@ -73,12 +73,15 @@ function Macros.UIDef.title()
             self.extra.text:draw(self.T.x + 0.25 + 2 * dh, 9.5 + 0.29 - dh, true)
         end,
         onClick = function(s)
-            Util.Event.easeOutMusic(2, "titleID")
-            Util.Event.transition(4, function()
-                Util.Event.easeInMusic(2, "interrogation", "interrogationID", "interrogationGRP", nil, 2)
-                Macros.CDefs.Opening()
-            end, "delay1")
-            Util.Audio.playSfx("start_jingle", 2)
+            if not s.clicked then
+                Util.Event.easeOutMusic(2, "titleID")
+                Util.Event.transition(4, function()
+                    Util.Event.easeInMusic(2, "interrogation", "interrogationID", "interrogationGRP", nil, 2)
+                    Macros.CDefs.Opening()
+                end, "delay1")
+                Util.Audio.playSfx("start_jingle", 2)
+                s.clicked = true
+            end
         end,
         onHover = function()
             Util.Audio.playSfx("blip_hover", 2)
@@ -113,7 +116,7 @@ function Macros.UIDef.title()
             self.TMod.w.base = 1.25 * 13.5 + 5 - 1.25 * self.TMod.x.base
         end,
         onClick = function(s)
-            if love.filesystem.exists("runInfo.con") then
+            if love.filesystem.exists("runInfo.con") and not s.clicked then
                 Util.Event.easeOutMusic(2, "titleID")
                 Util.World.loadGame()
                 Util.Event.transition(4, function()
@@ -168,6 +171,7 @@ function Macros.UIDef.title()
                         })
                     end
                 end, "delay1")
+                s.clicked = true
             end
         end,
         drawFunc = function(self)

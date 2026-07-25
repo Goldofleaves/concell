@@ -377,9 +377,36 @@ function Util.World.gameWin()
         v.source:stop()
         v.source:release()
     end
-    G = nil
-    G = Game()
+    G.audio = {
+        sfx = {},
+        music = {},
+        musicHandler = {}
+    }
     love.filesystem.remove("runInfo.con")
-    Util.Audio.musicPush("ambience", "ambienceID", "ambience", 1, 1, 1, { looping = true })
-    Macros.CDefs.Win()
+    Util.Event.addEvent(Event(
+        {
+            drawOrder = 1e33,
+            duration = 3,
+            drawFunc = function (t)
+                love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white, t))
+                love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+            end,
+            endFunc = function()
+                local s = Util.Audio.musicPush("ambience", "ambienceID", "ambience", 1, 1, 1, { looping = true })
+                Macros.CDefs.Win(s)
+                Util.Event.addEvent(Event(
+                    {
+                        nid = "end",
+                        drawOrder = 1e33,
+                        duration = 5,
+                        drawFunc = function(t)
+                            love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white, 1 - t))
+                            love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+                        end
+                    }
+                ), "endOfGame")
+            
+        end
+        }
+    ),"endOfGame")
 end

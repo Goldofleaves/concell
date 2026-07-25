@@ -95,7 +95,9 @@ Macros.CDefs.Death = function()
 		end
 	})
 end
-Macros.CDefs.Win = function()
+Macros.CDefs.Win = function(ss)
+	G = nil
+	G = Game()
 	Sprite({
 		nid = "gameWin",
 		drawOrder = 100,
@@ -105,12 +107,10 @@ Macros.CDefs.Win = function()
 		scaleX = 2,
 		scaleY = 2,
 		updateFunc = function(s, dt)
-			if G.mouseController[1].pressed then
+			if G.mouseController[1].pressed and not getEventByNid("end") then
 				Util.Event.transition(4, function()
-					for k, v in ipairs(G.audio.music) do
-						v.source:stop()
-						v.source:release()
-					end
+					ss:stop()
+					ss:release()
 					G.audio = {
 						sfx = {},
 						music = {},

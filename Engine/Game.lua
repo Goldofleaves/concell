@@ -201,6 +201,9 @@ function love.keypressed(key)
 	if key == "k" then
 		G.debug.console = not G.debug.console
 	end
+	if key == "g" then
+		Util.World.gameWin()
+	end
 	if key == "return" and G.debug.console then
 		if string.sub(G.debug.constext,1,1) == "=" then
 			G.debug.constext = "return ".. string.sub(G.debug.constext, 2, #G.debug.constext)
