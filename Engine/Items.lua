@@ -93,12 +93,16 @@ function CALCULATECONTEXT(context)
     end
 end
 
+local get_orthogonal_dist = function(a, b)
+    return math.abs(a.TMod.x.base - b.TMod.x.base) + math.abs(a.TMod.y.base - b.TMod.y.base)
+end
+
 registerItem({
     key = "musket",
     sprite = "ItemMusket",
     config = {
         damage = -10,
-        timeCost = 7
+        timeCost = 6
     },
     canUse = function(self)
         local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
@@ -165,6 +169,36 @@ registerItem({
             TARGETED_ENEMIES = self.targets
         else
             enemy:modHP(self.config.damage)
+            Util.World.modTime(self.config.timeCost)
+        end
+    end
+})
+
+registerItem({
+    key = "greatsword",
+    sprite = "ItemKnife",
+    config = {
+        damage = -5,
+        timeCost = 3
+    },
+    canUse = function(self)
+        local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
+
+        if not self.isBeingUsed then
+            self.targets = {}
+            for _, e in ipairs(enemies) do
+                if get_orthogonal_dist(e, PLAYER) <= 2 then
+                    self.targets[#self.targets + 1] = e
+                end
+            end
+            return #self.targets >= 1 and "noState" or nil
+        end
+    end,
+    onUse = function(self, enemy)
+        if #self.targets >= 1 then
+            for _, enemy in ipairs(self.targets) do
+                enemy:modHP(self.config.damage)
+            end
             Util.World.modTime(self.config.timeCost)
         end
     end
