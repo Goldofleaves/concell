@@ -57,6 +57,15 @@ function WorldMoveable:draw()
     end
     love.graphics.circle("fill", vector.contents[1], vector.contents[2], lookup[self.properties.type].radius*Util.UI.getScalingFactor())
     if self.properties.type == "door" then
+        love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white,0.67))
+        local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
+        love.graphics.draw(
+            Atlases.Door.image,
+            Atlases.Door.splicedImages[0][0],
+            v.contents[1] - 40 * Util.UI.getScalingFactor(),
+            v.contents[2] - 80 * Util.UI.getScalingFactor(),
+            0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+        )
         AdvancedText("|c:orange|"..tostring(self.extra.index)):draw(vector.contents[1], vector.contents[2] + 6)
     end
     love.graphics.setColor(r,g,b,a)
@@ -84,7 +93,7 @@ function WorldMoveable:switchRoom()
                 x = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).x,
                 y = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).y,
                 type = "player",
-                drawOrder = 14,
+                drawOrder = 31,
                 updateOrder = 1
             })
             WorldMoveable:initRoomStuff()
@@ -135,19 +144,20 @@ function WorldMoveable:initRoomStuff()
         WorldMoveable({
             x = v.x,
             y = v.y,
-            type = v.type,
+            type = "door",
             extra = {
                 index = v.index,
                 side = v.side
             },
-            updateOrder = 2
+            updateOrder = 2,
+            drawOrder = 30
         })
     end
     for k, v in ipairs(G.flags.saveData.curRoom.walls) do
         WorldMoveable({
             x = v.x,
             y = v.y,
-            type = v.type,
+            type = "wall",
             extra = {
                 index = v.index,
                 side = v.side

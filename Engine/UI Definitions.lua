@@ -100,7 +100,7 @@ function Macros.UIDef.title()
                     y = math.floor(G.flags.saveData.curRoom.size.h / 2),
                     type = "player",
                     updateOrder = 1,
-                    drawOrder = 11
+                    drawOrder = 31,
                 })
                 Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h,
                 Util.World.getArea(1))
@@ -163,7 +163,7 @@ function Macros.UIDef.title()
                         y = G.flags.saveData.playerPos.y,
                         type = "player",
                         updateOrder = 1,
-                        drawOrder = 11
+                        drawOrder = 31,
                     })
                     Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, Util.World.getArea(G.flags.saveData.curRoomIndex))
                     for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
@@ -189,7 +189,8 @@ function Macros.UIDef.title()
                                 index = v.index,
                                 side = v.side
                             },
-                            updateOrder = 2
+                            updateOrder = 2,
+                            drawOrder = 30
                         })
                     end
                 end, "delay1")
