@@ -41,6 +41,11 @@ Macros = {
 		cellmate = 5,
 		turret = 11,
 	},
+	names = {
+		guard = "Guard",
+		cellmate = "Cellmate",
+		turret = "Turret",
+	},
 	calculates = {
 		turret = function(context, e)
 			if context.player_move and (Util.Math.precisionCheck(context.pos.x, e.TMod.x.base, 0.1) or Util.Math.precisionCheck(context.pos.y, e.TMod.y.base, 0.1)) then
