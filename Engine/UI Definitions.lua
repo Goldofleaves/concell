@@ -75,36 +75,7 @@ function Macros.UIDef.title()
         onClick = function(s)
             Util.Event.easeOutMusic(2, "titleID")
             Util.Event.transition(4, function()
-                addItem("knife")
-                -- addItem("whip")
-                -- addItem("musket")
-                Macros.UIDef.overlay()
-                Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
-                local list_of_nids = {
-                    "titlebutton1",
-                    "titlebutton2",
-                    "titlebutton3",
-                    "tbg",
-                    "tfg",
-                    "td",
-                }
-                for k, v in pairs(list_of_nids) do
-                    local o = getObjectByNid(v)
-                    if o then o:remove() end
-                end
-                G.flags.saveData.rooms = Util.World.generateDungeon()
-                G.flags.saveData.curRoomIndex = 1
-                G.flags.saveData.curRoom = G.flags.saveData.rooms[1]
-                PLAYER = WorldMoveable({
-                    x = 0,
-                    y = math.floor(G.flags.saveData.curRoom.size.h / 2),
-                    type = "player",
-                    updateOrder = 1,
-                    drawOrder = 31,
-                })
-                Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h,
-                Util.World.getArea(1))
-                WorldMoveable:initRoomStuff()
+                Macros.CDefs.Opening()
             end, "delay1")
         end,
         onHover = function()

@@ -33,6 +33,7 @@ Macros = {
 	posCenter = {x = 10, y = 7.5},
 	fonts = {
 		base = love.graphics.newFont("Assets/Fonts/aseprite.ttf", 7),
+		times = love.graphics.newFont("Assets/Fonts/times.ttf", 50),
 		timer = love.graphics.newImageFont("Assets/Sprites/TimerFont.png", " 0123456789/")
 	},
 	baseTileSize = 40,
