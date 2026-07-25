@@ -1,9 +1,9 @@
 Directed by NakuAutumn
 
-Programming: ellestuff.dev, NakuAutumn, sylcoffeeflake
+Programming: ellestuff.dev, NakuAutumn, sylcoffeeflake, notmario
 Art: NakuAutumn, Tomato, Aikoyori
 Music: NakuAutumn, Tomato
 Sound Design: Aikoyori
-Conceptualization: Corobo, notmario, incogniton, sylcoffeeflake, ellestuff.dev
+Conceptualization: Corobo, incogniton, sylcoffeeflake, ellestuff.dev
 
 and YOU for playing Count Dawn!

@@ -107,7 +107,7 @@ registerItem({
     key = "knife",
     sprite = "ItemKnife",
     config = {
-        damage = 2,
+        damage = 3,
         timeCost = 2
     },
     canUse = function(self)
@@ -134,7 +134,7 @@ registerItem({
             TARGETED_ENEMIES = self.targets
         else
             enemy:modHP(self.config.damage)
-            Util.World.modHP(self.config.timeCost)
+            Util.World.modTime(self.config.timeCost)
         end
     end
 })

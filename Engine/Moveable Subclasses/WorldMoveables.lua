@@ -7,6 +7,26 @@ function WorldMoveable:new(args)
     return self
 end
 
+local IN_COMBAT = false
+
+function WorldMoveable:checkEaseMusic(self)
+    if self and self.properties.type == "guard" then return nil end
+    local should_be_in_combat = false
+    for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
+        if enemy.extra and enemy.extra.hp > 0 then
+            should_be_in_combat = true
+            break
+        end
+    end
+    if should_be_in_combat and not IN_COMBAT then
+        IN_COMBAT = true
+        Util.Audio.musicPush("battle", "battleID", "normal", 3, 1, 1)
+    elseif should_be_in_combat and IN_COMBAT then
+        IN_COMBAT = false
+        Util.Audio.musicPop("battleID")
+    end
+end
+
 function WorldMoveable:modHP(m)
     if self.properties.type == "enemy" then
         local t = {m}
@@ -15,6 +35,7 @@ function WorldMoveable:modHP(m)
         if self.extra.hp <= 0 then
             Util.Event.screenShake(5 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
             Util.Audio.playSfx("fatalhit", 2)
+            WorldMoveable:checkEaseMusic(self)
             self:remove()
         else
             Util.Event.screenShake(2 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
@@ -111,13 +132,15 @@ function WorldMoveable:draw()
     if self.properties.type == "enemy" then
         love.graphics.setColor(Macros.colors.white)
         local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
-        love.graphics.draw(
-            Atlases[self.extra.name].image,
-            Atlases[self.extra.name].splicedImages[0][0],
-            v.contents[1] - 40 * Util.UI.getScalingFactor(),
-            v.contents[2] - 80 * Util.UI.getScalingFactor(),
-            0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
-        )
+        if Atlases[self.extra.name] and Atlases[self.extra.name].image then
+            love.graphics.draw(
+                Atlases[self.extra.name].image,
+                Atlases[self.extra.name].splicedImages[0][0],
+                v.contents[1] - 40 * Util.UI.getScalingFactor(),
+                v.contents[2] - 80 * Util.UI.getScalingFactor(),
+                0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+            )
+        end
         love.graphics.draw(
             Atlases.hpSymbol.image,
             Atlases.hpSymbol.splicedImages[0][0],
@@ -158,6 +181,7 @@ end
 function WorldMoveable:switchRoom()
     if self.properties.type == "door" then
         Util.Event.transition(2, function()
+            local old_facing = PLAYER.extra.facing
             G.flags.saveData.curRoomIndex = self.extra.index
             G.flags.saveData.curRoom = G.flags.saveData.rooms[self.extra.index]
             getObjectByNid("isoGrid"):remove()
@@ -188,7 +212,7 @@ function WorldMoveable:switchRoom()
                 type = "player",
                 drawOrder = 31,
                 updateOrder = 1,
-                extra = {facing = convert(Util.World.getOppositeSide(self.extra.side))}
+                extra = {facing = old_facing}
             })
             WorldMoveable:initRoomStuff()
             G.flags.saveData.playerPos = { x = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra

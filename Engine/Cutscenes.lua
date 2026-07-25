@@ -44,10 +44,10 @@ Macros.CDefs.Opening = function()
 					s:remove()
 					addItem("knife")
 					Macros.UIDef.overlay()
-					Util.Audio.musicPush("combat", "combatID", "normal", 1, 1, 1)
-					if Util.Audio.getMusicByID("combatID") and Util.Audio.getMusicByID("combatID").source then
-						Util.Audio.getMusicByID("combatID").source:setVolume(0)
-					end
+					-- Util.Audio.musicPush("battle", "battleID", "normal", 1, 1, 1)
+					-- if Util.Audio.getMusicByID("battleID") and Util.Audio.getMusicByID("battleID").source then
+					-- 	Util.Audio.getMusicByID("battleID").source:setVolume(0)
+					-- end
 					Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
 					G.flags.saveData.rooms = Util.World.generateDungeon()
 					G.flags.saveData.curRoomIndex = 1

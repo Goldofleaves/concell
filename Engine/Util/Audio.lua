@@ -136,7 +136,7 @@ function audioLib.musicPush(id, playId, group, priority, vol, pitch, extra)
         print(string.format('[AUDIO WARNING/MUSIC PUSH] \'%s\' has no playing ID!', id))
     end
     for _, v in ipairs(G.audio.music) do
-        if v.id == playId then
+        if v.playId == playId then
             print(string.format('[AUDIO WARNING/MUSIC PUSH] \'%s\' already exists!', playId))
             if not extra or not extra.force then return false end
             print(string.format('[AUDIO WARNING/MUSIC PUSH] \'%s\' has been forcefully added!', id))
