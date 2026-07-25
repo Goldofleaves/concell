@@ -371,6 +371,7 @@ function Macros.UIDef.overlay()
                 local function Eventify()
                     Util.Event.delayFunc(0.3, function()
                         if # s.extra.path > 1 then
+                            Util.World.modTime(1)
                             Util.Audio.playSfx("blip_hover", 2)
                             table.remove(s.extra.path, 1)
                             PLAYER.TMod.x.base = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
@@ -395,13 +396,13 @@ function Macros.UIDef.overlay()
                             for k, v in ipairs(allEnemies) do
                                 v:decideMove()
                             end
-                            Util.World.modTime(1)
                             if getDoor(s.extra.path[#s.extra.path].coords) then
                                 getDoor(s.extra.path[#s.extra.path].coords):switchRoom()
                             end
                         end
                     end)
                 end
+                Util.World.modTime(1)
                 table.remove(s.extra.path, 1)
                 Util.Audio.playSfx("blip_hover", 2)
                 PLAYER.TMod.x.base = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
@@ -535,7 +536,7 @@ function Macros.UIDef.overlay()
         scaleX = 2,
         scaleY = 2,
         drawFunc = function (s)
-            local hours = Util.Math.div(G.flags.saveData.timer, 60) + 3
+            local hours = Util.Math.div(G.flags.saveData.timer, 60)
             local minutes = G.flags.saveData.timer % 60
             hours = tostring(hours)
             if #hours == 1 then
