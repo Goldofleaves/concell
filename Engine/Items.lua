@@ -7,19 +7,17 @@ Pools = {
 function registerItem(args)
     args.key = args.key or "ERROR"
     local t = {
-        onGet = args.onGet or function (config) end,
+        onGet = args.onGet or function (self) end,
         defaultConfig = args.config or {},
-        onDiscard = args.onDiscard or function(config) end,
-        calculate = args.calculate or function (context, config)
-            
-        end,
+        onDiscard = args.onDiscard or function(self) end,
+        calculate = args.calculate or function (context, self) end,
         pool = args.pool or "common",
         inPool = args.inPool or function () return true end,
         sprite = args.sprite or "ERROR",
-        update = args.update or function (config) end,
+        update = args.update or function (self) end,
         canUse = args.canUse or function() return "noState" end,
-        IBUupdate = args.IBUupdate or function (config) end,
-        onUse = args.onUse or function(config) end,
+        IBUupdate = args.IBUupdate or function(self) end,
+        onUse = args.onUse or function(self) end,
     }
     table.insert(Pools[args.pool or "common"].keys, args.key)
     Centers[args.key] = t
@@ -34,23 +32,79 @@ function addItem(key)
             isBeingUsed = false
         }
         table.insert(G.flags.saveData.items, t)
-        Centers[key].onGet(t.config)
+        Centers[key].onGet(t)
         return true
     end
     return false
 end
----@param slot number
+---@param slot? number
 ---@param key? string
 ---@return boolean success
 function discardItem(slot, key)
     if not key then
-        local t = table.remove(G.flags.saveData.items, slot)
-        Centers[t.key].onDiscard(t.config)
+        local i = slot
+        key = G.flags.saveData.items[i].key
+        local spr = Centers[key].sprite
+        Util.Event.addEvent(Event(
+            {
+                duration = 0.75,
+                drawOrder = 102,
+                drawFunc = function(time)
+                    local offsets = {
+                        { 243 * 2 * Util.UI.getScalingFactor(), 245 * 2 * Util.UI.getScalingFactor() },
+                        { 277 * 2 * Util.UI.getScalingFactor(), 242 * 2 * Util.UI.getScalingFactor() },
+                        { 312 * 2 * Util.UI.getScalingFactor(), 239 * 2 * Util.UI.getScalingFactor() },
+                        { 347 * 2 * Util.UI.getScalingFactor(), 236 * 2 * Util.UI.getScalingFactor() },
+                    }
+                    local col = { 1, 1, 1, 1 }
+                    local r, g, b, a = love.graphics.getColor()
+                    love.graphics.setColor(Util.Color.SetOpacity(col, 1 - time))
+                    love.graphics.draw(
+                        Atlases[spr].image,
+                        Atlases[spr].splicedImages[0][0],
+                        G.drawinfo.origin.x + offsets[i][1],
+                        G.drawinfo.origin.y + offsets[i][2] - (1 - (time - 1) ^ 2) * 40 * Util.UI.getScalingFactor(),
+                        0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+                    )
+                    love.graphics.setColor(r, g, b, a)
+                end
+            }
+        ), "itemDiscard" .. i)
+        Centers[key].onDiscard(G.flags.saveData.items[i])
+        table.remove(G.flags.saveData.items, slot)
         return true
     end
     for k, v in ipairs(G.flags.saveData.items) do
         if v.key == key then
-            Centers[v.key].onDiscard(v.config)
+            Centers[v.key].onDiscard(v)
+            local i = k
+            key = v.key
+            local spr = Centers[key].sprite
+            Util.Event.addEvent(Event(
+                {
+                    duration = 0.75,
+                    drawOrder = 102,
+                    drawFunc = function(time)
+                        local offsets = {
+                            { 243 * 2 * Util.UI.getScalingFactor(), 245 * 2 * Util.UI.getScalingFactor() },
+                            { 277 * 2 * Util.UI.getScalingFactor(), 242 * 2 * Util.UI.getScalingFactor() },
+                            { 312 * 2 * Util.UI.getScalingFactor(), 239 * 2 * Util.UI.getScalingFactor() },
+                            { 347 * 2 * Util.UI.getScalingFactor(), 236 * 2 * Util.UI.getScalingFactor() },
+                        }
+                        local col = { 1, 1, 1, 1 }
+                        local r, g, b, a = love.graphics.getColor()
+                        love.graphics.setColor(Util.Color.SetOpacity(col, 1 - time))
+                        love.graphics.draw(
+                            Atlases[spr].image,
+                            Atlases[spr].splicedImages[0][0],
+                            G.drawinfo.origin.x + offsets[i][1],
+                            G.drawinfo.origin.y + offsets[i][2] - (1 - (time - 1) ^ 2) * 40 * Util.UI.getScalingFactor(),
+                            0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+                        )
+                        love.graphics.setColor(r, g, b, a)
+                    end
+                }
+            ), "itemDiscard" .. i)
             table.remove(G.flags.saveData.items, k)
             return true
         end
@@ -89,7 +143,7 @@ function poolItem(pool)
 end
 function CALCULATECONTEXT(context)
     for k, v in ipairs(G.flags.saveData.items) do
-        Centers[v.key].calculate(context, v.config)
+        Centers[v.key].calculate(context, v)
     end
 end
 
@@ -203,7 +257,7 @@ registerItem({
 
 registerItem({
     key = "greatsword",
-    sprite = "ItemKnife",
+    sprite = "ItemGreatsword",
     config = {
         damage = -5,
         timeCost = 3
@@ -227,6 +281,19 @@ registerItem({
                 enemy:modHP(self.config.damage)
             end
             Util.World.modTime(self.config.timeCost)
+        end
+    end
+})
+registerItem({
+    key = "sunscreen",
+    sprite = "ItemSunscreen",
+    config = {
+        timeMod = 3
+    },
+    calculate = function (context, self)
+        if context.death and context.method == "timer" then
+            G.flags.saveData.timemod = G.flags.saveData.timemod + 30
+            discardItem(nil, self.key)
         end
     end
 })

@@ -117,9 +117,7 @@ function Util.Event.easeOutMusic(t, m)
 			easeFunc = function(time, s)
 				local targetBgm = Util.Audio.getHighestPriorityMusic()
 				if targetBgm and targetBgm.source then
-					targetBgm.source:setVolume((1 - time) * targetBgm.volume * G.settings.sound.music / 100 *
-						G.settings.sound.master /
-						100)
+					targetBgm.source:setVolume((1 - time) * targetBgm.volume)
 				end
 			end,
 			endFunc = function()
@@ -143,17 +141,13 @@ function Util.Event.easeInMusic(t, id, pid, grp, extra, prior)
 			easeFunc = function(time, s)
 				local targetBgm = Util.Audio.getHighestPriorityMusic()
 				if targetBgm and targetBgm.source then
-					targetBgm.source:setVolume(time * targetBgm.volume * G.settings.sound.music / 100 *
-						G.settings.sound.master /
-						100)
+					targetBgm.source:setVolume(time * targetBgm.volume)
 				end
 			end,
 			endFunc = function ()
 				local targetBgm = Util.Audio.getHighestPriorityMusic()
 				if targetBgm and targetBgm.source then
-					targetBgm.source:setVolume(targetBgm.volume * G.settings.sound.music / 100 *
-						G.settings.sound.master /
-						100)
+					targetBgm.source:setVolume(targetBgm.volume)
 				end
 			end
 		}

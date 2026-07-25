@@ -103,7 +103,7 @@ function audioLib.playSfx(sfx_name, volume, pitch, id, noDelete)
         return false
     end
     local sfx = Macros.sounds[sfx_name].source:clone()
-    sfx:setVolume(sfx:getVolume() * volume * G.settings.sound.sfx / 100 * G.settings.sound.master / 100)
+    sfx:setVolume(sfx:getVolume() * volume)
     sfx:setPitch(sfx:getPitch() * pitch)
     G.audio.sfx[#G.audio.sfx + 1] = {
         source = sfx,

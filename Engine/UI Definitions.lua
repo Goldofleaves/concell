@@ -187,46 +187,6 @@ function Macros.UIDef.title()
             Util.Audio.playSfx("blip_unhover", 2)
         end
     })
-    SimpleDrawableButton({
-        nid = "titlebutton3",
-        x = 13.5,
-        y = 12.5,
-        w = 5,
-        h = 1,
-        outlineWidth = 3,
-        drawOrder = 10,
-        outlineColor = Macros.colors.white,
-        inlineColor = Macros.colors.lightBlack,
-        extra = {
-            text = AdvancedText("|s:2,2|Settings")
-        },
-        updateFunc = function(self)
-            if not self:isHovered() then
-                self.TMod.x.base = Util.Math.lerpDt(self.TMod.x.base, 13.5, 0.05)
-                self.TMod.y.base = Util.Math.lerpDt(self.TMod.y.base, 12.5, 0.05)
-            else
-                self.TMod.x.base = Util.Math.lerpDt(self.TMod.x.base, 11.5, 0.05)
-                self.TMod.y.base = Util.Math.lerpDt(self.TMod.y.base, 12.25, 0.05)
-            end
-            local delta = 12.5 - self.TMod.y.base
-            self.TMod.h.base = 1 + 2 * delta
-            self.TMod.w.base = 1.25 * 13.5 + 5 - 1.25 * self.TMod.x.base
-        end,
-        drawFunc = function(self)
-            local h = self.extra.text:getHeight()
-            local delta = (1 - (self.TMod.y.base - 12.25) / 0.25) * 0.2
-            local dh = delta * h / 40
-            self.extra.text:recalculate({}, "|s:" .. (2 * (1 + 1.5 * delta)) ..
-                "," .. (2 * (1 + 1.5 * delta)) .. "|Settings")
-            self.extra.text:draw(self.T.x + 0.25 + 2 * dh, 12.5 + 0.29 - dh, true)
-        end,
-        onHover = function()
-            Util.Audio.playSfx("blip_hover", 2)
-        end,
-        onLeftHover = function()
-            Util.Audio.playSfx("blip_unhover", 2)
-        end
-    })
 end
 
 function Macros.UIDef.overlay()
@@ -250,33 +210,6 @@ function Macros.UIDef.overlay()
             onRightClick = function(self)
                 if G.flags.saveData.items[i] and not getEventByNid("itemDiscard" .. i) and not G.flags.saveData.items[i].isBeingUsed then
                     CALCULATECONTEXT({ itemDiscarded = true, discardedItem = { slot = i, key = G.flags.saveData.items[i].key } })
-                    local key = G.flags.saveData.items[i].key
-                    local spr = Centers[G.flags.saveData.items[i].key].sprite
-                    Util.Event.addEvent(Event(
-                        {
-                            duration = 0.75,
-                            drawOrder = 102,
-                            drawFunc = function(time)
-                                local offsets = {
-                                    { 243 * 2 * Util.UI.getScalingFactor(), 245 * 2 * Util.UI.getScalingFactor() },
-                                    { 277 * 2 * Util.UI.getScalingFactor(), 242 * 2 * Util.UI.getScalingFactor() },
-                                    { 312 * 2 * Util.UI.getScalingFactor(), 239 * 2 * Util.UI.getScalingFactor() },
-                                    { 347 * 2 * Util.UI.getScalingFactor(), 236 * 2 * Util.UI.getScalingFactor() },
-                                }
-                                local col = { 1, 1, 1, 1 }
-                                local r, g, b, a = love.graphics.getColor()
-                                love.graphics.setColor(Util.Color.SetOpacity(col, 1-time))
-                                love.graphics.draw(
-                                    Atlases[spr].image,
-                                    Atlases[spr].splicedImages[0][0],
-                                    G.drawinfo.origin.x + offsets[i][1],
-                                    G.drawinfo.origin.y + offsets[i][2]- (1-(time-1)^2) * 40 *Util.UI.getScalingFactor(),
-                                    0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
-                                )
-                                love.graphics.setColor(r, g, b, a)
-                            end
-                        }
-                    ), "itemDiscard"..i)
                     discardItem(i)
                 end
                 if G.flags.saveData.items[i] and not getEventByNid("itemDiscard" .. i) and G.flags.saveData.items[i].isBeingUsed then
@@ -565,7 +498,7 @@ function Macros.UIDef.overlay()
             AdvancedText("|s:2,2||c:night||f:timer|" .. minutes):draw(
             G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 358,
             G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 13)
-            AdvancedText("|s:2,2||o:night||c:red|" .. (Macros.maxtime - G.flags.saveData.timer) .. "|o:00000000||c:night| mins til dawn"):draw(
+            AdvancedText("|s:2,2||o:night||c:red|" .. (Macros.maxtime + G.flags.saveData.timemod - G.flags.saveData.timer) .. "|o:00000000||c:night| mins til dawn"):draw(
             G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 319,
             G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 40)
         end

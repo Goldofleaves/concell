@@ -143,9 +143,9 @@ function Util.World.modTime(m)
     local t = {m} -- stuff it in a table so it's mutable
     CALCULATECONTEXT({modTime = true, time = t})
     G.flags.saveData.timer = G.flags.saveData.timer + t[1]
-    if G.flags.saveData.timer >= Macros.maxtime then
+    if G.flags.saveData.timer >= Macros.maxtime + G.flags.saveData.timemod then
         CALCULATECONTEXT({ death = true, method = "timer" })
-        if G.flags.saveData.timer >= Macros.maxtime then
+        if G.flags.saveData.timer >= Macros.maxtime + G.flags.saveData.timemod then
             Util.World.gameOver()
         end
     end
