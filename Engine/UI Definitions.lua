@@ -76,8 +76,8 @@ function Macros.UIDef.title()
             Util.Event.easeOutMusic(2, "titleID")
             Util.Event.transition(4, function()
                 addItem("knife")
-                addItem("whip")
-                addItem("musket")
+                -- addItem("whip")
+                -- addItem("musket")
                 Macros.UIDef.overlay()
                 Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
                 local list_of_nids = {
@@ -96,7 +96,7 @@ function Macros.UIDef.title()
                 G.flags.saveData.curRoomIndex = 1
                 G.flags.saveData.curRoom = G.flags.saveData.rooms[1]
                 PLAYER = WorldMoveable({
-                    x = math.floor(G.flags.saveData.curRoom.size.w / 2),
+                    x = 0,
                     y = math.floor(G.flags.saveData.curRoom.size.h / 2),
                     type = "player",
                     updateOrder = 1,
@@ -104,32 +104,7 @@ function Macros.UIDef.title()
                 })
                 Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h,
                 Util.World.getArea(1))
-                for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
-                    local j = WorldMoveable({
-                        x = v.pos[1],
-                        y = v.pos[2],
-                        type = "enemy",
-                        extra = {
-                            index = v.index,
-                            side = v.side
-                        },
-                        updateOrder = 2,
-                        drawOrder = 10
-                    })
-                    j:decideMove()
-                end
-                for k, v in ipairs(G.flags.saveData.curRoom.doors) do
-                    WorldMoveable({
-                        x = v.x,
-                        y = v.y,
-                        type = "door",
-                        extra = {
-                            index = v.index,
-                            side = v.side
-                        },
-                        updateOrder = 2
-                    })
-                end
+                WorldMoveable:initRoomStuff()
             end, "delay1")
         end,
         onHover = function()
@@ -311,14 +286,16 @@ function Macros.UIDef.overlay()
                             CALCULATECONTEXT({ moveEnd = true })
                             local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
                             for k, v in ipairs(allEnemies) do
-                                if v.extra.goalVertice[1] ~= PLAYER.TMod.x.base or v.extra.goalVertice[2] ~= PLAYER.TMod.y.base then
-                                    v.TMod.x.base = v.extra.goalVertice[1]
-                                    v.TMod.y.base = v.extra.goalVertice[2]
-                                else
-                                    Util.World.modHP(-2)
+                                if v.extra.goalVertice then
+                                    if v.extra.goalVertice[1] ~= PLAYER.TMod.x.base or v.extra.goalVertice[2] ~= PLAYER.TMod.y.base then
+                                        v.TMod.x.base = v.extra.goalVertice[1]
+                                        v.TMod.y.base = v.extra.goalVertice[2]
+                                    else
+                                        Util.World.modHP(-2)
+                                    end
+                                    v.extra.goalVertice = nil
+                                    v:juice()
                                 end
-                                v.extra.goalVertice = nil
-                                v:juice()
                             end
                             for k, v in ipairs(allEnemies) do
                                 v:decideMove()
@@ -432,6 +409,12 @@ function Macros.UIDef.overlay()
             }
             love.graphics.setColor(1, 1, 1, 1)
             for k, v in ipairs(G.flags.saveData.items) do
+                local col = {1, 1, 1, 1}
+                if not Centers[v.key].canUse() then
+                    col = {0.3, 0.3, 0.3, 1}
+                end
+				local r, g, b, a = love.graphics.getColor()
+                love.graphics.setColor(col)
                 love.graphics.draw(
                     Atlases[Centers[v.key].sprite].image,
                     Atlases[Centers[v.key].sprite].splicedImages[0][0],
@@ -439,7 +422,7 @@ function Macros.UIDef.overlay()
                     G.drawinfo.origin.y + offsets[k][2],
                     0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
                 )
-                
+                love.graphics.setColor(r, g, b, a)
             end
         end
     })

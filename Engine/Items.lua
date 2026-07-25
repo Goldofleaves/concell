@@ -103,5 +103,22 @@ registerItem({
 
 registerItem({
     key = "knife",
-    sprite = "ItemKnife"
+    sprite = "ItemKnife",
+    canUse = function()
+        enemies = Util.World.getAllWorldMoveablesWithType("enemy")
+        me = Util.World.getAllWorldMoveablesWithType("player")[1]
+
+        local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall"})
+        local adjacents = getAllAdjacentVertices(vertices, {me.TMod.x.base,me.TMod.y.base})
+
+        for _, e in ipairs(enemies) do
+            for _, v in ipairs(adjacents) do
+                if e.TMod.x.base == v[1] and e.TMod.y.base == v[2] then
+                    return true
+                end
+            end
+        end
+
+        return false
+    end
 })

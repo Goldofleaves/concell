@@ -35,6 +35,10 @@ function WorldMoveable:draw()
             color = Macros.colors.green,
             radius = 5 * self.properties.mult
         },
+        wall = {
+            color = Macros.colors.night,
+            radius = 7 * self.properties.mult
+        },
     }
     local r, g, b, a = love.graphics.getColor()
     local vector = Util.World.toIsoPos(Vector(self.TMod.x.base + 0.2, self.TMod.y.base + 0.2))
@@ -83,37 +87,13 @@ function WorldMoveable:switchRoom()
                 drawOrder = 14,
                 updateOrder = 1
             })
-            for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
-                local j = WorldMoveable({
-                    x = v.pos[1],
-                    y = v.pos[2],
-                    type = "enemy",
-                    extra = {
-                        index = v.index,
-                        side = v.side
-                    },
-                    updateOrder = 2,
-                    drawOrder = 10
-                })
-                j:decideMove()
-            end
-            for k, v in ipairs(G.flags.saveData.curRoom.doors) do
-                WorldMoveable({
-                    x = v.x,
-                    y = v.y,
-                    type = v.type,
-                    extra = {
-                        index = v.index,
-                        side = v.side
-                    },
-                    updateOrder = 2
-                })
-            end
+            WorldMoveable:initRoomStuff()
         end, "delay2")
     end
 end
 function WorldMoveable:decideMove()
     if self.properties.type == "enemy" then
+        if self.extra.name == "guard" then return nil end
         local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall", "enemy"})
         local adjacents = getAllAdjacentVertices(vertices, {self.TMod.x.base,self.TMod.y.base})
         while next(adjacents) do
@@ -130,5 +110,47 @@ function WorldMoveable:decideMove()
                 self.extra.goalVertice = randomAdjacent
             end
         end
+    end
+end
+function WorldMoveable:initRoomStuff()
+    for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
+        local j = WorldMoveable({
+            x = v.pos[1],
+            y = v.pos[2],
+            type = "enemy",
+            extra = {
+                index = v.index,
+                side = v.side,
+                name = v.name,
+            },
+            updateOrder = 2,
+            drawOrder = 10
+        })
+        j:decideMove()
+    end
+    for k, v in ipairs(G.flags.saveData.curRoom.doors) do
+        WorldMoveable({
+            x = v.x,
+            y = v.y,
+            type = v.type,
+            extra = {
+                index = v.index,
+                side = v.side
+            },
+            updateOrder = 2
+        })
+    end
+    for k, v in ipairs(G.flags.saveData.curRoom.walls) do
+        WorldMoveable({
+            x = v.x,
+            y = v.y,
+            type = v.type,
+            extra = {
+                index = v.index,
+                side = v.side
+            },
+            updateOrder = 2,
+            drawOrder = 11
+        })
     end
 end

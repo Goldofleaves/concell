@@ -64,6 +64,8 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
         room.size = { w = b, h = a }
     end
     room.enemies = {}
+    room.doors = {}
+    room.walls = {}
     lookup = {
         a = {},
         b = {}
@@ -77,37 +79,57 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
             return getUniqueRandom(queue, min, max, cond)
         end
     end
-    for i = 1, 3 do -- temp 3 enemies per room
+    if type == "init_room" then
+        a, b = 5, 5
+        room.size = { w = a, h = b }
+        local side = Util.Math.randomElement({"tl", "tr", "dl", "dr"}).v
+        local aux = { x = 5, y = 2, a = { x = 4, y = 2 }, index = 2, side = "dr" }
+
+        table.insert(room.doors, aux)
+
+        for i = 0, 4 do
+            if i ~= 2 then
+                table.insert(room.walls, {
+                    type = "wall",
+                    x = 2, y = i
+                })
+            end
+        end
         table.insert(room.enemies, {
-            name = "cellmate", -- every enemy is of cellmate kind
+            name = "guard", -- temp so they dont move
             pos = {
-                getUniqueRandom("a", 0, room.size.w - 1, function(r) return r ~= math.floor(room.size.w / 2) end),
-                getUniqueRandom("b", 0, room.size.h - 1, function(r) return r ~= math.floor(room.size.h / 2) end),
+                2, 2,
             }
         })
-    end
-    room.doors = {}
-    local r = 1
-    if type == "branching" then
-        r = 2
-    elseif type == "init_room" then
-        local side = Util.Math.randomElement({"tl", "tr", "dl", "dr"}).v
-        local aux = generateAuxDoor(side, room.size.w, room.size.h, 2)
-        table.insert(room.doors, aux)
+
         return room
-    elseif type == "dead_end" then
-        r = 0
-    end
-    local side = Util.World.getOppositeSide(last_side.side)
-    local all = table.exclude({ "tl", "tr", "dl", "dr" }, side)
-    local lastAux = generateAuxDoor(side, room.size.w, room.size.h, getprev(last_side.index))
-    table.insert(room.doors, lastAux)
-    for i = 1, r do
-        local ttype = Util.Math.randomElement(all).v
-        all = table.exclude(all, ttype)
-        local indice = Util.Math.randomElement(indices).v
-        indices = table.exclude(indices, indice)
-        table.insert(room.doors, generateAuxDoor(ttype, room.size.w, room.size.h, indice))
+    else
+        for i = 1, 3 do -- temp 3 enemies per room
+            table.insert(room.enemies, {
+                name = "cellmate", -- every enemy is of cellmate kind
+                pos = {
+                    getUniqueRandom("a", 0, room.size.w - 1, function(r) return r ~= math.floor(room.size.w / 2) end),
+                    getUniqueRandom("b", 0, room.size.h - 1, function(r) return r ~= math.floor(room.size.h / 2) end),
+                }
+            })
+        end
+        local r = 1
+        if type == "branching" then
+            r = 2
+        elseif type == "dead_end" then
+            r = 0
+        end
+        local side = Util.World.getOppositeSide(last_side.side)
+        local all = table.exclude({ "tl", "tr", "dl", "dr" }, side)
+        local lastAux = generateAuxDoor(side, room.size.w, room.size.h, getprev(last_side.index))
+        table.insert(room.doors, lastAux)
+        for i = 1, r do
+            local ttype = Util.Math.randomElement(all).v
+            all = table.exclude(all, ttype)
+            local indice = Util.Math.randomElement(indices).v
+            indices = table.exclude(indices, indice)
+            table.insert(room.doors, generateAuxDoor(ttype, room.size.w, room.size.h, indice))
+        end
     end
     return room
 end
