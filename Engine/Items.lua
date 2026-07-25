@@ -167,16 +167,11 @@ registerItem({
     canUse = function(self)
         local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
 
-        local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall"})
-        local adjacents = getAllAdjacentVertices(vertices, { PLAYER.TMod.x.base, PLAYER.TMod.y.base })
-
         if not self.isBeingUsed then
             self.targets = {}
             for _, e in ipairs(enemies) do
-                for _, v in ipairs(adjacents) do
-                    if e.TMod.x.base == v[1] or e.TMod.y.base == v[2] then
-                        self.targets[#self.targets + 1] = e
-                    end
+                if e.TMod.x.base == PLAYER.TMod.x.base and e.TMod.y.base == PLAYER.TMod.y.base then
+                    self.targets[#self.targets + 1] = e
                 end
             end
             if #self.targets > 0 then return "hasState" end
@@ -300,6 +295,61 @@ registerItem({
         if context.death and context.method == "timer" then
             G.flags.saveData.timemod = G.flags.saveData.timemod + 30
             discardItem(nil, self.key)
+        end
+    end
+})
+
+
+registerItem({
+    key = "rapier",
+    sprite = "ItemKnife",
+    config = {
+        damage = -4,
+        timeCost = 1
+    },
+    canUse = function(self)
+        local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
+
+        local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall"})
+        local adjacents = getAllAdjacentVertices(vertices, { PLAYER.TMod.x.base, PLAYER.TMod.y.base })
+
+        if not self.isBeingUsed then
+            local temp_targets = {}
+            for _, e in ipairs(enemies) do
+                local dist = get_orthogonal_dist(e, PLAYER)
+                if (e.TMod.x.base == PLAYER.TMod.x.base or e.TMod.y.base == PLAYER.TMod.y.base) and dist == 2 then
+                    temp_targets[#temp_targets + 1] = e
+                end
+            end
+            self.targets = {}
+            for _, e in ipairs(temp_targets) do
+                local okay = true
+                for _, v in ipairs(adjacents) do
+                    if e.TMod.x.base == v[1] and e.TMod.y.base == v[2] then
+                        okay = false
+                        break
+                    end
+                end
+                if okay then
+                    self.targets[#self.targets + 1] = e
+                end
+            end
+            
+            if #self.targets > 0 then return "hasState" end
+        end
+        return false
+    end,
+    onUse = function(self, enemy)
+        if not self.isBeingUsed then
+            TARGETED_ENEMIES = self.targets
+        else
+            enemy:modHP(self.config.damage)
+            Util.World.modTime(self.config.timeCost)
+            -- move to the midpoint
+            local mx = (enemy.TMod.x.base + PLAYER.TMod.x.base)/2
+            local my = (enemy.TMod.y.base + PLAYER.TMod.y.base)/2
+            PLAYER.TMod.x.base = mx
+            PLAYER.TMod.y.base = my
         end
     end
 })
