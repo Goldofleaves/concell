@@ -67,16 +67,35 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
     room.doors = {}
     room.walls = {}
     lookup = {
-        a = {},
-        b = {}
     }
-    local function getUniqueRandom(queue, min, max, cond)
-        local result = love.math.random(min, max)
-        if not lookup[queue][result] and cond(result) then
-            lookup[queue][result] = true
+    local function isEqual(aa, bb)
+        for k, v in pairs(aa) do
+            if bb[k] ~= aa[k] then
+                return false
+            end
+        end
+        for k, v in pairs(aa) do
+            if bb[k] ~= aa[k] then
+                return false
+            end
+        end
+        return true
+    end
+    local function hasEqual(t, bb)
+        for k, v in pairs(t) do
+            if isEqual(v, bb) then
+                return true
+            end
+        end
+        return false
+    end
+    local function getUniqueRandom(xmin, xmax, ymin, ymax, cond)
+        local result = { love.math.random(xmin, xmax), love.math.random(ymin, ymax), }
+        if not hasEqual(lookup, result) and cond(result) then
+            table.insert(lookup, result)
             return result
         else
-            return getUniqueRandom(queue, min, max, cond)
+            return getUniqueRandom(xmin, xmax, ymin, ymax, cond)
         end
     end
     local identifier = 1
@@ -108,12 +127,14 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
         return room
     else
         for _ = 1, 3 do -- temp 3 enemies per room
+            local u = getUniqueRandom(1, room.size.w - 2, 1, room.size.h - 2, function (r)
+                if r[1] ~= math.floor(room.size.w/2) and r[2] ~= math.floor(room.size.h/2) then
+                    return true
+                end
+            end)
             table.insert(room.enemies, {
                 name = "cellmate", -- every enemy is of cellmate kind
-                pos = {
-                    getUniqueRandom("a", 0, room.size.w - 1, function(r) return r ~= math.floor(room.size.w / 2) end),
-                    getUniqueRandom("b", 0, room.size.h - 1, function(r) return r ~= math.floor(room.size.h / 2) end),
-                },
+                pos = u,
                 facing = tostring(math.random(1, 4)),
                 id = identifier
             })

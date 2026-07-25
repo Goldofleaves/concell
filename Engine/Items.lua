@@ -356,7 +356,7 @@ registerItem({
 
 registerItem({
     key = "aura",
-    sprite = "ItemKnife",
+    sprite = "ItemEminence",
     config = {
         damage = -1,
     },
