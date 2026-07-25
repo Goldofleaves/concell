@@ -54,7 +54,7 @@ local function generateAuxDoor(side, w, h, index)
     end
     return aux
 end
-function Util.World.generateRoom(type, last_side, indices, getprev)
+function Util.World.generateRoom(type, last_side, indices, getprev, index)
     local room = {}
     local a, b = love.math.random(4, 6), love.math.random(7, 9)
     local coin_flip = Util.Math.chance(1/2)
@@ -126,20 +126,6 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
 
         return room
     else
-        for _ = 1, 3 do -- temp 3 enemies per room
-            local u = getUniqueRandom(1, room.size.w - 2, 1, room.size.h - 2, function (r)
-                if r[1] ~= math.floor(room.size.w/2) and r[2] ~= math.floor(room.size.h/2) then
-                    return true
-                end
-            end)
-            table.insert(room.enemies, {
-                name = "cellmate", -- every enemy is of cellmate kind
-                pos = u,
-                facing = tostring(math.random(1, 4)),
-                id = identifier
-            })
-            identifier = identifier + 1
-        end
         local r = 1
         if type == "branching" then
             r = 2
@@ -156,6 +142,40 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
             local indice = Util.Math.randomElement(indices).v
             indices = table.exclude(indices, indice)
             table.insert(room.doors, generateAuxDoor(ttype, room.size.w, room.size.h, indice))
+        end
+
+        -- Add wall
+        local wallx = Util.Math.chance(1/2)
+        local wallpos = getUniqueRandom(2,room.size.w-2,2,room.size.h-2,function(r)
+            local no = false
+            for i, v in ipairs(room.doors) do
+                no = no or r[1] ~= v.x or r[2] ~= v.y
+            end
+            return no
+        end)
+        for i = 0, (wallx and room.size.h or room.size.w)-1 do
+            if i ~= (wallx and wallpos[1] or wallpos[2]) then
+                table.insert(room.walls, {
+                    name = "prisonBar",
+                    type = "wall",
+                    x = wallx and wallpos[1] or i, y = wallx and i or wallpos[2]
+                })
+            end
+        end
+
+        for _ = 1, 3 do -- temp 3 enemies per room
+            local u = getUniqueRandom(1, room.size.w - 2, 1, room.size.h - 2, function (r)
+                if r[1] ~= math.floor(room.size.w/2) and r[2] ~= math.floor(room.size.h/2) then
+                    return true
+                end
+            end)
+            table.insert(room.enemies, {
+                name = Util.World.getEnemy(index), -- every enemy is of cellmate kind
+                pos = u,
+                facing = tostring(math.random(1, 4)),
+                id = identifier
+            })
+            identifier = identifier + 1
         end
     end
     return room
@@ -203,6 +223,25 @@ function Util.World.getArea(index)
         return "f2r"
     end
     return "ruins"
+end
+
+function Util.World.getEnemy(index)
+    if type(index) == "string" then
+        return "cellmate"
+    end
+    if index <= 5 then
+        return "cellmate"
+    end
+    if index == 6 then
+        return Util.Math.chance(1/2) and "cellmate" or "turret"
+    end
+    if index >= 6 and index <= 11 then
+        return "turret"
+    end
+    if index == 12 then
+        return "turret"
+    end
+    return "cellmate"
 end
 
 function Util.World.generateDungeon()
@@ -258,7 +297,7 @@ function Util.World.generateDungeon()
     end
     local last_side
     while main_counter <= main_len do
-        local room = Util.World.generateRoom(getInfo().type, last_side, getInfo().indices, getPrevIndex)
+        local room = Util.World.generateRoom(getInfo().type, last_side, getInfo().indices, getPrevIndex, getIndex())
         rooms[getIndex()] = room
         incrementCounters()
         if main_counter == 2 then

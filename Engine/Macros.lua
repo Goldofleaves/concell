@@ -48,22 +48,6 @@ Macros = {
 		turret = "Turret",
 	},
 	calculates = {
-		cellmate = function(context, e)
-			if context.player_move and math.random(2) == 1 then
-				local dir = nil
-				if (math.abs(context.pos.x - e.TMod.x.base)>1 and math.abs(context.pos.y - e.TMod.y.base)>1) then -- both
-					dir = math.random(2)
-				elseif math.abs(context.pos.x - e.TMod.x.base)>1 then -- both
-					dir = 1
-				elseif math.abs(context.pos.x - e.TMod.x.base)>1 then -- both
-					dir = 2
-				end
-
-				dir = dir == 1 and "x" or "y"
-
-				context.pos[dir] = context.pos[dir] + math.sign(context.pos[dir] - e.TMod[dir].base)
-			end
-		end,
 		turret = function(context, e)
 			if context.player_move and (Util.Math.precisionCheck(context.pos.x, e.TMod.x.base, 0.1) or Util.Math.precisionCheck(context.pos.y, e.TMod.y.base, 0.1)) then
 				Util.Event.delayFunc(0.15, function()
