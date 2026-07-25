@@ -44,9 +44,8 @@ Macros = {
 	calculates = {
 		turret = function(context, e)
 			if context.player_move and (context.pos.x == e.TMod.x.base or context.pos.y == e.TMod.y.base) then
-				print("FUck u")
 				Util.Event.delayFunc(0.3, function()
-					Util.World.modHP(-1)
+					Util.World.modHP(-2)
 				end)
 			end
 		end,
