@@ -44,10 +44,6 @@ Macros.CDefs.Opening = function()
 					s:remove()
 					addItem("knife")
 					Macros.UIDef.overlay()
-					-- Util.Audio.musicPush("battle", "battleID", "normal", 1, 1, 1)
-					-- if Util.Audio.getMusicByID("battleID") and Util.Audio.getMusicByID("battleID").source then
-					-- 	Util.Audio.getMusicByID("battleID").source:setVolume(0)
-					-- end
 					Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
 					G.flags.saveData.rooms = Util.World.generateDungeon()
 					G.flags.saveData.curRoomIndex = 1
@@ -74,6 +70,27 @@ Macros.CDefs.Opening = function()
 				AdvancedText(s.extra.text[s.extra.progressed][1]):draw(1, 1, true)
 				AdvancedText(s.extra.text[s.extra.progressed][2]):draw(1, 2.5, true)
 			end
+		end
+	})
+end
+Macros.CDefs.Death = function()
+	Sprite({
+		nid = "gameOver",
+		drawOrder = 100,
+		x = Macros.grandOffsetVector.contents[1],
+		y = Macros.grandOffsetVector.contents[2],
+		atlasKey = "gameOver",
+		scaleX = 2,
+		scaleY = 2,
+		updateFunc = function(s, dt)
+			if G.mouseController[1].pressed then
+				Util.Event.transition(4, function()
+					s:remove()
+					love.load()
+				end, "delay1")
+			end
+		end,
+		drawFunc = function(s)
 		end
 	})
 end

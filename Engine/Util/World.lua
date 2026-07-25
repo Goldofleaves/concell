@@ -143,6 +143,12 @@ function Util.World.modTime(m)
     local t = {m} -- stuff it in a table so it's mutable
     CALCULATECONTEXT({modTime = true, time = t})
     G.flags.saveData.timer = G.flags.saveData.timer + t[1]
+    if G.flags.saveData.timer >= Macros.maxtime then
+        CALCULATECONTEXT({ death = true, method = "timer" })
+        if G.flags.saveData.timer >= Macros.maxtime then
+            Util.World.gameOver()
+        end
+    end
 end
 
 function Util.World.modHP(m)
@@ -151,6 +157,12 @@ function Util.World.modHP(m)
     Util.Audio.playSfx("hit", 2)
     Util.Event.screenShake(2*Util.UI.getScalingFactor(), 0.5, "globalShake")
     G.flags.saveData.hp = G.flags.saveData.hp + t[1]
+    if G.flags.saveData.hp <= 0 then
+        CALCULATECONTEXT({ death = true, method = "hp" })
+        if G.flags.saveData.hp <= 0 then
+            Util.World.gameOver()
+        end
+    end
 end
 function Util.World.getArea(index)
     if type(index) == "string" then
@@ -348,4 +360,31 @@ Util.World.getDir = function (s)
     else
         return "2"
     end
+end
+
+function Util.World.gameOver()
+    local function remove()
+        local t = false
+        for k, v in pairs(G.I) do
+            for kk, vv in ipairs(v) do
+                if vv.remove then vv:remove(true) end
+                t = true
+            end
+        end
+        if t then
+            remove()
+        end
+    end
+    remove()
+    love.filesystem.remove("runInfo.con")
+    for k, v in ipairs(G.audio.music) do
+        v.source:stop()
+        v.source:release()
+    end
+    G.audio = {
+        sfx = {},
+        music = {},
+        musicHandler = {}
+    }
+    Macros.CDefs.Death()
 end
