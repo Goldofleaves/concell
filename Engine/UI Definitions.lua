@@ -75,6 +75,7 @@ function Macros.UIDef.title()
         onClick = function(s)
             Util.Event.easeOutMusic(2, "titleID")
             Util.Event.transition(4, function()
+                Util.Event.easeInMusic(2, "interrogation", "interrogationID", "interrogationGRP", nil, 2)
                 Macros.CDefs.Opening()
             end, "delay1")
         end,

@@ -38,12 +38,11 @@ Macros.CDefs.Opening = function()
 				s.extra.timer1 = 0
 				s.extra.progressed = true
 			end
-			if s.extra.timer1 > 2 and G.mouseController[1].pressed and s.extra.progressed then
+			if s.extra.timer1 > 2 and G.mouseController[1].pressed and s.extra.progressed == true then
+				Util.Event.easeOutMusic(2, "interrogationID")
 				Util.Event.transition(4, function()
 					s:remove()
 					addItem("knife")
-					-- addItem("whip")
-					-- addItem("musket")
 					Macros.UIDef.overlay()
 					Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
 					G.flags.saveData.rooms = Util.World.generateDungeon()
@@ -60,11 +59,12 @@ Macros.CDefs.Opening = function()
 						Util.World.getArea(1))
 					WorldMoveable:initRoomStuff()
 				end, "delay1")
+				s.extra.progressed = 1
 			end
 		end,
 		drawFunc = function (s)
 			if s.extra.progressed then
-			AdvancedText(s.extra.text[s.extra.progressed]):draw(1,1,true)
+				AdvancedText(s.extra.text[true]):draw(1, 1, true)
 			else
 				AdvancedText(s.extra.text[s.extra.progressed][1]):draw(1, 1, true)
 				AdvancedText(s.extra.text[s.extra.progressed][2]):draw(1, 2.5, true)
