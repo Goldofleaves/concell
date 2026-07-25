@@ -242,9 +242,6 @@ function Game:update(dt)
 	for k, v in ipairs(G.flags.saveData.items) do
 		Centers[v.key].update(v.config)
 	end
-	if PLAYER then
-		G.flags.saveData.playerPos = { x = PLAYER.TMod.x.base, y = PLAYER.TMod.y.base }
-	end
 	self.mousepos.oldx, self.mousepos.oldy = Util.UI.convertUIPosToPos(love.mouse.getX(), love.mouse.getY())
 end
 love.keyboard.setTextInput(true)

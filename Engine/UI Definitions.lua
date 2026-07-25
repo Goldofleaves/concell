@@ -184,8 +184,8 @@ function Macros.UIDef.title()
                         if o then o:remove() end
                     end
                     PLAYER = WorldMoveable({
-                        x = math.floor(G.flags.saveData.playerPos.x / 2),
-                        y = math.floor(G.flags.saveData.playerPos.y / 2),
+                        x = G.flags.saveData.playerPos.x,
+                        y = G.flags.saveData.playerPos.y,
                         type = "player",
                         updateOrder = 1,
                         drawOrder = 11
