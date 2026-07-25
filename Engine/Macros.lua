@@ -19,6 +19,7 @@ Macros = {
 		yellow = hex("#ffd94d"),
 		orange = hex("#f26e26"),
 		green = hex("#3ea121"),
+		darkGreen = hex("#1d772f"),
 		blue = hex("#4deae9"),
 		purple = hex("#cc28dc"),
 		white = {1,1,1,1},

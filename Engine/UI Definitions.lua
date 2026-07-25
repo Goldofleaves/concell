@@ -102,12 +102,27 @@ function Macros.UIDef.title()
                     updateOrder = 1,
                     drawOrder = 11
                 })
-                Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, Util.World.getArea(1))
+                Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h,
+                Util.World.getArea(1))
+                for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
+                    local j = WorldMoveable({
+                        x = v.pos[1],
+                        y = v.pos[2],
+                        type = "enemy",
+                        extra = {
+                            index = v.index,
+                            side = v.side
+                        },
+                        updateOrder = 2,
+                        drawOrder = 10
+                    })
+                    j:decideMove()
+                end
                 for k, v in ipairs(G.flags.saveData.curRoom.doors) do
                     WorldMoveable({
                         x = v.x,
                         y = v.y,
-                        type = v.type,
+                        type = "door",
                         extra = {
                             index = v.index,
                             side = v.side
@@ -286,12 +301,28 @@ function Macros.UIDef.overlay()
                 local function Eventify()
                     Util.Event.delayFunc(0.3, function()
                         if # s.extra.path > 1 then
+                            Util.Audio.playSfx("blip_hover", 2)
                             table.remove(s.extra.path, 1)
                             PLAYER.TMod.x.base = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
                             PLAYER.TMod.y.base = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
                             PLAYER:juice()
                             Eventify()
                         else
+                            CALCULATECONTEXT({ moveEnd = true })
+                            local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
+                            for k, v in ipairs(allEnemies) do
+                                if v.extra.goalVertice[1] ~= PLAYER.TMod.x.base or v.extra.goalVertice[2] ~= PLAYER.TMod.y.base then
+                                    v.TMod.x.base = v.extra.goalVertice[1]
+                                    v.TMod.y.base = v.extra.goalVertice[2]
+                                else
+                                    Util.World.modHP(-2)
+                                end
+                                v.extra.goalVertice = nil
+                                v:juice()
+                            end
+                            for k, v in ipairs(allEnemies) do
+                                v:decideMove()
+                            end
                             Util.World.modTime(1)
                             if getDoor(s.extra.path[#s.extra.path].coords) then
                                 getDoor(s.extra.path[#s.extra.path].coords):switchRoom()

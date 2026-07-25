@@ -64,6 +64,28 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
         room.size = { w = b, h = a }
     end
     room.enemies = {}
+    lookup = {
+        a = {},
+        b = {}
+    }
+    local function getUniqueRandom(queue, min, max, cond)
+        local result = love.math.random(min, max)
+        if not lookup[queue][result] and cond(result) then
+            lookup[queue][result] = true
+            return result
+        else
+            return getUniqueRandom(queue, min, max, cond)
+        end
+    end
+    for i = 1, 3 do -- temp 3 enemies per room
+        table.insert(room.enemies, {
+            name = "cellmate", -- every enemy is of cellmate kind
+            pos = {
+                getUniqueRandom("a", 0, room.size.w - 1, function(r) return r ~= math.floor(room.size.w / 2) end),
+                getUniqueRandom("b", 0, room.size.h - 1, function(r) return r ~= math.floor(room.size.h / 2) end),
+            }
+        })
+    end
     room.doors = {}
     local r = 1
     if type == "branching" then
@@ -220,4 +242,64 @@ function Util.World.saveGame()
 end
 function Util.World.loadGame()
     Util.File.setTableWithFile(G.flags.saveData, "runInfo")
+end
+function getAllValidVertices(www, hhh, blockades)
+    blockades = blockades or { "wall" }
+    local vertices = {}
+    for x = 0, www - 1 do
+        vertices[x] = {}
+        for y = 0, hhh - 1 do
+            local worldMoveables = Util.World.getAllWorldMoveablesWithCoord({ x, y })
+            local hasblockade = false
+            for k, v in ipairs(worldMoveables) do
+                for kk, vv in ipairs(blockades) do
+                    if v.properties.type == vv then
+                        hasblockade = true
+                    end
+                end
+            end
+            if not hasblockade then
+                vertices[x][y] = true
+            end
+        end
+    end
+    local doors = Util.World.getAllWorldMoveablesWithType("door")
+    for k, door in ipairs(doors) do
+        if not vertices[door.TMod.x.base] then
+            vertices[door.TMod.x.base] = {}
+        end
+        vertices[door.TMod.x.base][door.TMod.y.base] = true
+    end
+    return vertices
+end
+
+function isValidVertice(v, c)
+    if v[Util.Math.round(c[1])] and v[Util.Math.round(c[1])][Util.Math.round(c[2])] then
+        return true
+    end
+    return false
+end
+
+function getAllAdjacentVertices(v, c)
+    local vs = {}
+    local cCopy = { Util.Math.round(c[1]), Util.Math.round(c[2]) }
+    if v[cCopy[1]] then
+        if v[cCopy[1]][cCopy[2] - 1] then
+            table.insert(vs, { cCopy[1], cCopy[2] - 1 })
+        end
+        if v[cCopy[1]][cCopy[2] + 1] then
+            table.insert(vs, { cCopy[1], cCopy[2] + 1 })
+        end
+    end
+    if v[cCopy[1] + 1] then
+        if v[cCopy[1] + 1][cCopy[2]] then
+            table.insert(vs, { cCopy[1] + 1, cCopy[2] })
+        end
+    end
+    if v[cCopy[1] - 1] then
+        if v[cCopy[1] - 1][cCopy[2]] then
+            table.insert(vs, { cCopy[1] - 1, cCopy[2] })
+        end
+    end
+    return vs
 end

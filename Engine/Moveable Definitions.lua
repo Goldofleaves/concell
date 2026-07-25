@@ -201,61 +201,6 @@ function Macros.MDef.isometricGrid(w, h, area)
         local r = Util.World.toIsoPos(closestPoint):sub(Vector(love.mouse.getX(), love.mouse.getY()), true)
         return closestPoint, r:abs()
     end
-    local function getAllValidVertices(www, hhh)
-        local vertices = {}
-        for x = 0, www-1 do
-            vertices[x] = {}
-            for y = 0, hhh-1 do
-                local worldMoveables = Util.World.getAllWorldMoveablesWithCoord({x, y})
-                local haswall = false
-                for k, v in ipairs(worldMoveables) do
-                    if v.properties.type == "wall" then
-                        haswall = true
-                    end
-                end
-                if not haswall then
-                    vertices[x][y] = true
-                end
-            end
-        end
-        local doors = Util.World.getAllWorldMoveablesWithType("door")
-        for k, door in ipairs(doors) do
-            if not vertices[door.TMod.x.base] then
-                vertices[door.TMod.x.base] = {}
-            end
-            vertices[door.TMod.x.base][door.TMod.y.base] = true
-        end
-        return vertices
-    end
-    local function isValidVertice(v, c)
-        if v[Util.Math.round(c[1])] and v[Util.Math.round(c[1])][Util.Math.round(c[2])] then
-            return true
-        end
-        return false
-    end
-    local function getAllAdjacentVertices(v, c)
-        local vs = {}
-        local cCopy = { Util.Math.round(c[1]), Util.Math.round(c[2]) }
-        if v[cCopy[1]] then
-            if v[cCopy[1]][cCopy[2] - 1] then
-                table.insert(vs, { cCopy[1], cCopy[2] - 1 })
-            end
-            if v[cCopy[1]][cCopy[2] + 1] then
-                table.insert(vs, { cCopy[1], cCopy[2] + 1 })
-            end
-        end
-        if v[cCopy[1] + 1] then
-            if v[cCopy[1] + 1][cCopy[2]] then
-                table.insert(vs, { cCopy[1] + 1, cCopy[2]})
-            end
-        end
-        if v[cCopy[1] - 1] then
-            if v[cCopy[1] - 1][cCopy[2]] then
-                table.insert(vs, { cCopy[1] - 1, cCopy[2]})
-            end
-        end
-        return vs
-    end
     local t2 = {
         extra = {
             w = w,
@@ -306,7 +251,7 @@ function Macros.MDef.isometricGrid(w, h, area)
                         s.extra.held = false
                     end
                     s.extra.drawAlpha = 1
-                    local vertices = getAllValidVertices(w, h)
+                    local vertices = getAllValidVertices(w, h, {"wall", "enemy"})
                     local p, rr = getClosestPointAndDistance()
                     if rr < min and isValidVertice(vertices, { p.contents[1] - 0.2, p.contents[2] - 0.2 }) and #s.extra.path < G.flags.saveData.gridsPerMove then
                         if not alreadyExists(p.contents) and isAdjacent(p.contents) then
@@ -379,8 +324,8 @@ function Macros.MDef.isometricGrid(w, h, area)
                 if grp[1]:sub(grp[2], true):abs() < 100 * Util.UI.getScalingFactor() then
                     love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
                 end
-                love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
             end
+            love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
             love.graphics.setColor(Macros.colors.red)
             for i = 1, #s.extra.path - 1 do
                 local grp = { Util.World.toIsoPos(s.extra.path[i].point), Util.World.toIsoPos(s.extra.path[i + 1].point) }
