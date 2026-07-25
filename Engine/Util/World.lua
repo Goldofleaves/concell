@@ -319,6 +319,7 @@ function getAllValidVertices(www, hhh, blockades)
                 for kk, vv in ipairs(blockades) do
                     if v.properties.type == vv then
                         hasblockade = true
+                        break
                     end
                 end
             end

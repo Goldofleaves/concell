@@ -232,6 +232,19 @@ function Macros.UIDef.overlay()
                     CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = G.flags.saveData.items[i].key }, hasState = false })
                 end
             end,
+            onHover = function (self)
+                self.infoQueue = InfoQueue(Centers[G.flags.saveData.items[i].key].text, G.flags.saveData.items[i].config.vars)
+            end,
+            onLeftHover = function (self)
+                self.infoQueue = nil
+            end,
+            drawFunc = function (self)
+                local padding = 10
+                local vec = Util.World.toNormalPos(Vector(self.TMod.x.base, self.TMod.y.base))
+                if self.infoQueue then
+                    self.infoQueue:draw(vec.contents[1] + 29/2 * Util.UI.getScalingFactor() - self.infoQueue:getWidth()/2, vec.contents[2] - padding * Util.UI.getScalingFactor() - self.infoQueue:getHeight())
+                end
+            end
         })
     end
     registerItemButton(1)
@@ -295,7 +308,6 @@ function Macros.UIDef.overlay()
                             PLAYER.TMod.x.base = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
                             PLAYER.TMod.y.base = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
                             PLAYER:juice()
-                            print("calccounted")
                             CALCULATECONTEXT({ player_move = true, pos = { x = Util.Math.round(s.extra.path[1].coords[1] - 0.2), y = Util.Math.round(s.extra.path[1].coords[2] - 0.2) } })
                             if #s.extra.path == 1 then
                                 CALCULATECONTEXT({ moveEnd = true })
@@ -323,7 +335,9 @@ function Macros.UIDef.overlay()
                 print("calccounted")
                 CALCULATECONTEXT({ player_move = true, pos = { x = Util.Math.round(s.extra.path[1].coords[1] - 0.2), y = Util.Math.round(s.extra.path[1].coords[2] - 0.2) } })
                 Eventify()
-            else
+            elseif s and #s.extra.path == 1 then
+                Util.World.modTime(1)
+                move_all_enemies()
                 Util.Audio.playSfx("blip_stopped", 2)
             end
         end,
