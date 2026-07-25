@@ -17,7 +17,11 @@ function Game:new()
 			timer = 0,
 			hp = 60,
 			gridsPerMove = 5,
-			items = {}
+			items = {},
+			playerPos = {
+				x = 0,
+				y = 0
+			}
 		}
 	}
 	self.I = {
@@ -237,6 +241,9 @@ function Game:update(dt)
 	updateAllObjects({})
 	for k, v in ipairs(G.flags.saveData.items) do
 		Centers[v.key].update(v.config)
+	end
+	if PLAYER then
+		G.flags.saveData.playerPos = { x = PLAYER.TMod.x.base, y = PLAYER.TMod.y.base }
 	end
 	self.mousepos.oldx, self.mousepos.oldy = Util.UI.convertUIPosToPos(love.mouse.getX(), love.mouse.getY())
 end
