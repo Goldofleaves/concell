@@ -149,18 +149,26 @@ function Util.World.generateRoom(type, last_side, indices, getprev, index)
         local wallpos = getUniqueRandom(2,room.size.w-2,2,room.size.h-2,function(r)
             local no = false
             for i, v in ipairs(room.doors) do
-                no = no or r[1] ~= v.x or r[2] ~= v.y
+                no = no or r[2] ~= v.x or r[1] ~= v.y
             end
             return no
         end)
         for i = 0, (wallx and room.size.h or room.size.w)-1 do
-            if i ~= (wallx and wallpos[1] or wallpos[2]) then
+            if i ~= (wallx and wallpos[2] or wallpos[1]) then
                 table.insert(room.walls, {
                     name = "prisonBar",
                     type = "wall",
                     x = wallx and wallpos[1] or i, y = wallx and i or wallpos[2],
                     dir = -1
                 })
+            else
+                table.insert(room.enemies, {
+                    name = "guard",
+                    pos = wallpos,
+                    facing = "3",
+                    id = identifier
+                })
+                identifier = identifier + 1
             end
         end
 
