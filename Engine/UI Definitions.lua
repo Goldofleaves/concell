@@ -291,9 +291,11 @@ function Macros.UIDef.overlay()
                             PLAYER.TMod.x.base = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
                             PLAYER.TMod.y.base = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
                             PLAYER:juice()
+                            CALCULATECONTEXT({ player_move = true, pos = { PLAYER.TMod.x.base, PLAYER.TMod.y.base } })
                             Eventify()
                         else
                             G.flags.isMoving = nil
+                            CALCULATECONTEXT({ player_move = true, pos = { PLAYER.TMod.x.base, PLAYER.TMod.y.base } })
                             CALCULATECONTEXT({ moveEnd = true })
                             local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
                             for k, v in ipairs(allEnemies) do

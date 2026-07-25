@@ -233,6 +233,7 @@ end
 function WorldMoveable:decideMove()
     if self.properties.type == "enemy" then
         if self.extra.name == "guard" then return nil end
+        if self.extra.name == "turret" then return nil end
         local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall", "enemy", "door"})
         local adjacents = getAllAdjacentVertices(vertices, {self.TMod.x.base,self.TMod.y.base})
         table.sort(adjacents, function (a, b)

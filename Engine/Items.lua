@@ -145,6 +145,12 @@ function CALCULATECONTEXT(context)
     for k, v in ipairs(G.flags.saveData.items) do
         Centers[v.key].calculate(context, v)
     end
+    -- do this for enemies too? might be a mistake :p
+    for k, v in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
+        if Macros.calculates[v.extra.name] then
+            Macros.calculates[v.extra.name](context, v)
+        end
+    end
 end
 
 local get_orthogonal_dist = function(a, b)
