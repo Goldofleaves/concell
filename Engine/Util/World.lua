@@ -385,3 +385,27 @@ function Util.World.gameOver()
     G = Game()
     Macros.CDefs.Death()
 end
+function Util.World.gameWin()
+    local function remove()
+        local t = false
+        for k, v in pairs(G.I) do
+            for kk, vv in ipairs(v) do
+                if vv.remove then vv:remove(true) end
+                t = true
+            end
+        end
+        if t then
+            remove()
+        end
+    end
+    remove()
+    love.filesystem.remove("runInfo.con")
+    for k, v in ipairs(G.audio.music) do
+        v.source:stop()
+        v.source:release()
+    end
+    G = nil
+    G = Game()
+    Util.Audio.musicPush("ambience", "ambienceID", "ambience", 1, 1, 1, { looping = true })
+    Macros.CDefs.Win()
+end

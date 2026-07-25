@@ -94,3 +94,33 @@ Macros.CDefs.Death = function()
 		end
 	})
 end
+Macros.CDefs.Win = function()
+	Sprite({
+		nid = "gameWin",
+		drawOrder = 100,
+		x = Macros.grandOffsetVector.contents[1],
+		y = Macros.grandOffsetVector.contents[2],
+		atlasKey = "gameWin",
+		scaleX = 2,
+		scaleY = 2,
+		updateFunc = function(s, dt)
+			if G.mouseController[1].pressed then
+				Util.Event.transition(4, function()
+					for k, v in ipairs(G.audio.music) do
+						v.source:stop()
+						v.source:release()
+					end
+					G.audio = {
+						sfx = {},
+						music = {},
+						musicHandler = {}
+					}
+					s:remove()
+					love.load()
+				end, "gameWin")
+			end
+		end,
+		drawFunc = function(s)
+		end
+	})
+end
