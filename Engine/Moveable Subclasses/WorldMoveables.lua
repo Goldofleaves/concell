@@ -24,7 +24,7 @@ function WorldMoveable:draw()
     Moveable.draw(self)
     local lookup = {
         door = {
-            color = Macros.colors.orange,
+            color = Macros.colors.transparent,
             radius = 5 * self.properties.mult
         },
         player = {
@@ -63,7 +63,6 @@ function WorldMoveable:draw()
             v.contents[2] - 80 * Util.UI.getScalingFactor(),
             0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
-        AdvancedText("|c:orange|"..tostring(self.extra.index)):draw(vector.contents[1], vector.contents[2] + 6)
     end
     if self.properties.type == "wall" or self.properties.type == "enemy" then
         love.graphics.setColor(Macros.colors.white)
