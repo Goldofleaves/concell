@@ -38,9 +38,15 @@ Macros = {
 		timer = love.graphics.newImageFont("Assets/Sprites/TimerFont.png", " 0123456789/")
 	},
 	maxHps = {
+		-- prison
 		guard = 1,
 		cellmate = 5,
 		turret = 11,
+
+		-- field
+
+		-- ruins
+		
 	},
 	names = {
 		guard = "Guard",
@@ -50,6 +56,18 @@ Macros = {
 	calculates = {
 		turret = function(context, e)
 			if context.player_move and (Util.Math.precisionCheck(context.pos.x, e.TMod.x.base, 0.1) or Util.Math.precisionCheck(context.pos.y, e.TMod.y.base, 0.1)) then
+				Util.Event.delayFunc(0.15, function()
+					Util.World.modHP(-2)
+				end, "moveDelay")
+				Util.Event.delayFunc(0.15, function()
+				end, "moveDelay")
+			end
+		end,
+
+		-- Guardian: moves around on a set axis, if player moves while near it, takes damage
+		-- THIS IS UNFINISHED PLEASE FINISH
+		guardian = function(context, e)
+			if context.player_move and Util.Math.pythagorean(context.pos, {x=e.TMod.x.base, y=e.TMod.y.base}) <= 2 then
 				Util.Event.delayFunc(0.15, function()
 					Util.World.modHP(-2)
 				end, "moveDelay")
