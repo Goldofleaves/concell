@@ -243,7 +243,7 @@ function Macros.MDef.isometricGrid(w, h, area)
                     s.extra.drawAlpha = 1
                     local vertices = getAllValidVertices(w, h, {"wall", "enemy"})
                     local p, rr = getClosestPointAndDistance()
-                    if rr < min and isValidVertice(vertices, { p.contents[1] - 0.2, p.contents[2] - 0.2 }) and #s.extra.path < G.flags.saveData.gridsPerMove then
+                    if rr < min and isValidVertice(vertices, { p.contents[1] - 0.2, p.contents[2] - 0.2 }) and #s.extra.path < G.flags.saveData.gridsPerMove + 1 then
                         if not alreadyExists(p.contents) and isAdjacent(p.contents) then
                             table.insert(s.extra.path, { point = p, coords = p.contents })
                         end
