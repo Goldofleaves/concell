@@ -17,7 +17,7 @@ function WorldMoveable:juice(r)
             endFunc = function(s)
                 self.properties.mult = 1
             end
-        }),"juice"
+        }),"juice"..self.id
     )
 end
 function WorldMoveable:draw()
