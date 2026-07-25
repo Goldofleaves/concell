@@ -106,20 +106,30 @@ registerItem({
 registerItem({
     key = "knife",
     sprite = "ItemKnife",
-    canUse = function()
+    canUse = function(self)
         local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
 
         local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall"})
         local adjacents = getAllAdjacentVertices(vertices, { PLAYER.TMod.x.base, PLAYER.TMod.y.base })
 
-        for _, e in ipairs(enemies) do
-            for _, v in ipairs(adjacents) do
-                if e.TMod.x.base == v[1] and e.TMod.y.base == v[2] then
-                    return "hasState"
+        if not self.isBeingUsed then
+            self.targets = {}
+            for _, e in ipairs(enemies) do
+                for _, v in ipairs(adjacents) do
+                    if e.TMod.x.base == v[1] and e.TMod.y.base == v[2] then
+                        self.targets[#self.targets + 1] = e
+                    end
                 end
             end
+            if #self.targets > 0 then return "hasState" end
         end
-
         return false
+    end,
+    onUse = function(self)
+        if not self.isBeingUsed then
+            TARGETED_ENEMIES = self.targets
+        else
+
+        end
     end
 })

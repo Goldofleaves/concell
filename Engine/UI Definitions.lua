@@ -78,6 +78,7 @@ function Macros.UIDef.title()
                 Util.Event.easeInMusic(2, "interrogation", "interrogationID", "interrogationGRP", nil, 2)
                 Macros.CDefs.Opening()
             end, "delay1")
+            Util.Audio.playSfx("start_jingle", 2)
         end,
         onHover = function()
             Util.Audio.playSfx("blip_hover", 2)
@@ -262,9 +263,6 @@ function Macros.UIDef.overlay()
                                     { 347 * 2 * Util.UI.getScalingFactor(), 236 * 2 * Util.UI.getScalingFactor() },
                                 }
                                 local col = { 1, 1, 1, 1 }
-                                if not Centers[key].canUse() then
-                                    col = { 0.3, 0.3, 0.3, 1 }
-                                end
                                 local r, g, b, a = love.graphics.getColor()
                                 love.graphics.setColor(Util.Color.SetOpacity(col, 1-time))
                                 love.graphics.draw(
@@ -282,16 +280,17 @@ function Macros.UIDef.overlay()
                 end
                 if G.flags.saveData.items[i] and not getEventByNid("itemDiscard" .. i) and G.flags.saveData.items[i].isBeingUsed then
                     G.flags.saveData.items[i].isBeingUsed = false
+                    TARGETED_ENEMIES = nil
                 end
             end,
             onClick = function(self)
-                if G.flags.saveData.items[i] and Centers[G.flags.saveData.items[i].key].canUse() == "noState" then
-                    Centers[G.flags.saveData.items[i].key].onUse(G.flags.saveData.items[i].config)
+                if G.flags.saveData.items[i] and Centers[G.flags.saveData.items[i].key].canUse(G.flags.saveData.items[i]) == "noState" then
+                    Centers[G.flags.saveData.items[i].key].onUse(G.flags.saveData.items[i])
                     CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = G.flags.saveData.items[i].key }, hasState = false })
                 end
-                if G.flags.saveData.items[i] and Centers[G.flags.saveData.items[i].key].canUse() == "hasState" then
+                if G.flags.saveData.items[i] and Centers[G.flags.saveData.items[i].key].canUse(G.flags.saveData.items[i]) == "hasState" then
+                    Centers[G.flags.saveData.items[i].key].onUse(G.flags.saveData.items[i])
                     G.flags.saveData.items[i].isBeingUsed = true
-                    Centers[G.flags.saveData.items[i].key].onUse(G.flags.saveData.items[i].config)
                     CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = G.flags.saveData.items[i].key }, hasState = false })
                 end
             end,
@@ -329,6 +328,10 @@ function Macros.UIDef.overlay()
         outlineColor = Macros.colors.transparent,
         inlineColor = Macros.colors.transparent,
         onClick = function(self)
+            TARGETED_ENEMIES = nil
+            for _, item in ipairs(G.flags.saveData.items) do
+                if item then item.isBeingUsed = false end
+            end
             local function getDoor(coords)
                 for k, v in pairs(G.I.MOVEABLES) do
                     if v.objectType == "WORLDMOVEABLE" then
@@ -483,7 +486,7 @@ function Macros.UIDef.overlay()
             for k, v in ipairs(G.flags.saveData.items) do
                 deltas[k] = Util.Math.lerpDt(deltas[k], v.isBeingUsed and - 40 * Util.UI.getScalingFactor() or 0, 0.005)
                 local col = {1, 1, 1, 1}
-                if not Centers[v.key].canUse() then
+                if not Centers[v.key].canUse(v) and not v.isBeingUsed then
                     col = {0.3, 0.3, 0.3, 1}
                 end
 				local r, g, b, a = love.graphics.getColor()
@@ -496,6 +499,28 @@ function Macros.UIDef.overlay()
                     0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
                 )
                 love.graphics.setColor(r, g, b, a)
+            end
+        end,
+        -- icl theres definitely a better spot for this but whatever :p
+        updateFunc = function(s, dt)
+            if TARGETED_ENEMIES then
+                local pt = getClosestPointAndDistance()
+                for _, enemy in ipairs(TARGETED_ENEMIES) do
+                    if enemy.TMod.x.base == pt.contents[1] - 0.2 and enemy.TMod.y.base == pt.contents[2] - 0.2 then
+                        -- use our item
+                        if G.mouseController[1].pressed then
+	                        for i, v in ipairs(G.flags.saveData.items) do
+                                if v.isBeingUsed then
+                                    Centers[v.key].onUse(v, enemy)
+                                    v.isBeingUsed = false
+                                    CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = v.key }, hasState = true })
+                                end
+                            end
+                            TARGETED_ENEMIES = nil
+                            break
+                        end
+                    end
+                end
             end
         end
     })

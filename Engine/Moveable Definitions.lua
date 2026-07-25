@@ -1,4 +1,15 @@
 Macros.MDef = {}
+function getClosestPointAndDistance()
+    local m = Util.Math.get2dMatrixInverse(Matrix(
+    { Macros.baseTileSize * Util.UI.getScalingFactor(), 0.5 * Macros.baseTileSize * Util.UI.getScalingFactor() },
+        { -1 * Macros.baseTileSize * Util.UI.getScalingFactor(), 0.5 * Macros.baseTileSize *
+        Util.UI.getScalingFactor() }))
+    local mousePos = m:apply(Vector(love.mouse.getX(), love.mouse.getY()):sub(Vector(G.drawinfo.origin.x,
+        G.drawinfo.origin.y):add(G.worldOffsetVector, true), true), true)
+    local closestPoint = Vector(Util.Math.round(mousePos.contents[1]-0.2)+0.2, Util.Math.round(mousePos.contents[2]-0.2)+0.2)
+    local r = Util.World.toIsoPos(closestPoint):sub(Vector(love.mouse.getX(), love.mouse.getY()), true)
+    return closestPoint, r:abs()
+end
 function Macros.MDef.isometricGrid(w, h, area)
     local phi1, phi2, chi, a1, a2 = math.betterrandom(0.5, 1.1), math.betterrandom(0.5, 1.1),
     math.betterrandom(0, math.tau), math.betterrandom(1, 2), math.betterrandom(1, 2)
@@ -190,17 +201,6 @@ function Macros.MDef.isometricGrid(w, h, area)
             end
         end
     }
-    local function getClosestPointAndDistance()
-        local m = Util.Math.get2dMatrixInverse(Matrix(
-        { Macros.baseTileSize * Util.UI.getScalingFactor(), 0.5 * Macros.baseTileSize * Util.UI.getScalingFactor() },
-            { -1 * Macros.baseTileSize * Util.UI.getScalingFactor(), 0.5 * Macros.baseTileSize *
-            Util.UI.getScalingFactor() }))
-        local mousePos = m:apply(Vector(love.mouse.getX(), love.mouse.getY()):sub(Vector(G.drawinfo.origin.x,
-            G.drawinfo.origin.y):add(G.worldOffsetVector, true), true), true)
-        local closestPoint = Vector(Util.Math.round(mousePos.contents[1]-0.2)+0.2, Util.Math.round(mousePos.contents[2]-0.2)+0.2)
-        local r = Util.World.toIsoPos(closestPoint):sub(Vector(love.mouse.getX(), love.mouse.getY()), true)
-        return closestPoint, r:abs()
-    end
     local t2 = {
         extra = {
             w = w,

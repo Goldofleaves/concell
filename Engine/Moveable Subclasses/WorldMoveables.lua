@@ -43,6 +43,22 @@ function WorldMoveable:draw()
     local r, g, b, a = love.graphics.getColor()
     local vector = Util.World.toIsoPos(Vector(self.TMod.x.base + 0.2, self.TMod.y.base + 0.2))
     love.graphics.setColor(lookup[self.properties.type].color)
+    if self.properties.type == "enemy" and TARGETED_ENEMIES then
+        for _, t in ipairs(TARGETED_ENEMIES) do
+            if t == self then
+                love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white,0.67))
+                local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
+                love.graphics.draw(
+                    Atlases.Target.image,
+                    Atlases.Target.splicedImages[0][0],
+                    v.contents[1] - 40 * Util.UI.getScalingFactor(),
+                    v.contents[2] - 80 * Util.UI.getScalingFactor(),
+                    0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+                )
+                break
+            end
+        end
+    end
     if self.properties.type == "enemy" and self.extra.goalVertice then
         local goalVector = Util.World.toIsoPos(Vector(self.extra.goalVertice[1] + 0.2, self.extra.goalVertice[2] + 0.2))
         love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.darkGreen, 0.7))
