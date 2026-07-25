@@ -223,16 +223,6 @@ function Macros.MDef.isometricGrid(w, h, area)
                 end
                 return false
             end
-            local function existsDoor(coords)
-                for k, v in pairs(G.I.MOVEABLES) do
-                    if v.objectType == "WORLDMOVEABLE" then
-                        if v.properties.type == "door" and Util.Math.precisionCheck(coords[1] - 0.2, v.TMod.x.base, 0.1) and Util.Math.precisionCheck(coords[2] - 0.2, v.TMod.y.base, 0.1) then
-                            return true
-                        end
-                    end
-                end
-                return false
-            end
             local function isAdjacent(coords)
                 if Vector(unpack(s.extra.path[#s.extra.path].coords)):sub(Vector(unpack(coords)),true):abs() <= 1.1 then
                     return true
