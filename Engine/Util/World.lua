@@ -158,7 +158,8 @@ function Util.World.generateRoom(type, last_side, indices, getprev, index)
                 table.insert(room.walls, {
                     name = "prisonBar",
                     type = "wall",
-                    x = wallx and wallpos[1] or i, y = wallx and i or wallpos[2]
+                    x = wallx and wallpos[1] or i, y = wallx and i or wallpos[2],
+                    dir = -1
                 })
             end
         end
