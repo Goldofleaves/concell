@@ -17,7 +17,8 @@ function registerItem(args)
         inPool = args.inPool or function () return true end,
         sprite = args.sprite or "ERROR",
         update = args.update or function (config) end,
-        canUse = args.canUse or function() return true end,
+        canUse = args.canUse or function() return "noState" end,
+        IBUupdate = args.IBUupdate or function (config) end,
         onUse = args.onUse or function(config) end,
     }
     table.insert(Pools[args.pool or "common"].keys, args.key)
@@ -29,7 +30,8 @@ function addItem(key)
     if #G.flags.saveData.items < Macros.itesmslots then
         local t = {
             key = key,
-            config = Util.Other.copyTable(Centers[key].config)
+            config = Util.Other.copyTable(Centers[key].config),
+            isBeingUsed = false
         }
         table.insert(G.flags.saveData.items, t)
         Centers[key].onGet(t.config)
@@ -105,16 +107,15 @@ registerItem({
     key = "knife",
     sprite = "ItemKnife",
     canUse = function()
-        enemies = Util.World.getAllWorldMoveablesWithType("enemy")
-        me = Util.World.getAllWorldMoveablesWithType("player")[1]
+        local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
 
         local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall"})
-        local adjacents = getAllAdjacentVertices(vertices, {me.TMod.x.base,me.TMod.y.base})
+        local adjacents = getAllAdjacentVertices(vertices, { PLAYER.TMod.x.base, PLAYER.TMod.y.base })
 
         for _, e in ipairs(enemies) do
             for _, v in ipairs(adjacents) do
                 if e.TMod.x.base == v[1] and e.TMod.y.base == v[2] then
-                    return true
+                    return "hasState"
                 end
             end
         end

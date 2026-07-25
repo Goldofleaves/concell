@@ -241,6 +241,9 @@ function Game:update(dt)
 	updateAllObjects({})
 	for k, v in ipairs(G.flags.saveData.items) do
 		Centers[v.key].update(v.config)
+		if v.isBeingUsed then
+			Centers[v.key].IBUupdate(v.config)
+		end
 	end
 	self.mousepos.oldx, self.mousepos.oldy = Util.UI.convertUIPosToPos(love.mouse.getX(), love.mouse.getY())
 end

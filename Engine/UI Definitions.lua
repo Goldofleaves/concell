@@ -274,15 +274,53 @@ function Macros.UIDef.overlay()
             outlineColor = Macros.colors.transparent,
             inlineColor = Macros.colors.transparent,
             onRightClick = function(self)
-                if G.flags.saveData.items[i] then
+                if G.flags.saveData.items[i] and not getEventByNid("itemDiscard" .. i) and not G.flags.saveData.items[i].isBeingUsed then
                     CALCULATECONTEXT({ itemDiscarded = true, discardedItem = { slot = i, key = G.flags.saveData.items[i].key } })
+                    local key = G.flags.saveData.items[i].key
+                    local spr = Centers[G.flags.saveData.items[i].key].sprite
+                    Util.Event.addEvent(Event(
+                        {
+                            duration = 0.75,
+                            drawOrder = 102,
+                            drawFunc = function(time)
+                                local offsets = {
+                                    { 243 * 2 * Util.UI.getScalingFactor(), 245 * 2 * Util.UI.getScalingFactor() },
+                                    { 277 * 2 * Util.UI.getScalingFactor(), 242 * 2 * Util.UI.getScalingFactor() },
+                                    { 312 * 2 * Util.UI.getScalingFactor(), 239 * 2 * Util.UI.getScalingFactor() },
+                                    { 347 * 2 * Util.UI.getScalingFactor(), 236 * 2 * Util.UI.getScalingFactor() },
+                                }
+                                local col = { 1, 1, 1, 1 }
+                                if not Centers[key].canUse() then
+                                    col = { 0.3, 0.3, 0.3, 1 }
+                                end
+                                local r, g, b, a = love.graphics.getColor()
+                                love.graphics.setColor(Util.Color.SetOpacity(col, 1-time))
+                                love.graphics.draw(
+                                    Atlases[spr].image,
+                                    Atlases[spr].splicedImages[0][0],
+                                    G.drawinfo.origin.x + offsets[i][1],
+                                    G.drawinfo.origin.y + offsets[i][2]- (1-(time-1)^2) * 40 *Util.UI.getScalingFactor(),
+                                    0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+                                )
+                                love.graphics.setColor(r, g, b, a)
+                            end
+                        }
+                    ), "itemDiscard"..i)
                     discardItem(i)
+                end
+                if G.flags.saveData.items[i] and not getEventByNid("itemDiscard" .. i) and G.flags.saveData.items[i].isBeingUsed then
+                    G.flags.saveData.items[i].isBeingUsed = false
                 end
             end,
             onClick = function(self)
-                if G.flags.saveData.items[i] and Centers[G.flags.saveData.items[i].key].canUse() then
+                if G.flags.saveData.items[i] and Centers[G.flags.saveData.items[i].key].canUse() == "noState" then
                     Centers[G.flags.saveData.items[i].key].onUse(G.flags.saveData.items[i].config)
-                    CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = G.flags.saveData.items[i].key } })
+                    CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = G.flags.saveData.items[i].key }, hasState = false })
+                end
+                if G.flags.saveData.items[i] and Centers[G.flags.saveData.items[i].key].canUse() == "hasState" then
+                    G.flags.saveData.items[i].isBeingUsed = true
+                    Centers[G.flags.saveData.items[i].key].onUse(G.flags.saveData.items[i].config)
+                    CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = G.flags.saveData.items[i].key }, hasState = false })
                 end
             end,
         })
@@ -457,6 +495,9 @@ function Macros.UIDef.overlay()
         atlasKey = "UIItemRibbon",
         scaleX = 2,
         scaleY = 2,
+        extra = {
+             deltas = {0,0,0,0}
+        },
         drawFunc = function (s)
             local offsets = {
                 { 243 * 2 * Util.UI.getScalingFactor(), 245 * 2 * Util.UI.getScalingFactor() },
@@ -465,7 +506,9 @@ function Macros.UIDef.overlay()
                 { 347 * 2 * Util.UI.getScalingFactor(), 236 * 2 * Util.UI.getScalingFactor() },
             }
             love.graphics.setColor(1, 1, 1, 1)
+            local deltas = s.extra.deltas
             for k, v in ipairs(G.flags.saveData.items) do
+                deltas[k] = Util.Math.lerpDt(deltas[k], v.isBeingUsed and - 40 * Util.UI.getScalingFactor() or 0, 0.005)
                 local col = {1, 1, 1, 1}
                 if not Centers[v.key].canUse() then
                     col = {0.3, 0.3, 0.3, 1}
@@ -476,7 +519,7 @@ function Macros.UIDef.overlay()
                     Atlases[Centers[v.key].sprite].image,
                     Atlases[Centers[v.key].sprite].splicedImages[0][0],
                     G.drawinfo.origin.x + offsets[k][1],
-                    G.drawinfo.origin.y + offsets[k][2],
+                    G.drawinfo.origin.y + offsets[k][2]+deltas[k],
                     0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
                 )
                 love.graphics.setColor(r, g, b, a)
