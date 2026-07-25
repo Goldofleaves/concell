@@ -401,17 +401,18 @@ function TextChar:draw(x, y)
 	local sx = self.effects.textScale.x * Util.UI.getScalingFactor()
 	local sy = self.effects.textScale.y * Util.UI.getScalingFactor()
 	local ddx, ddy = x + dispx, y + dispy
+	local dd = 2 * Util.UI.getScalingFactor()
 	if self.effects.outlineColor then
 		local color = Macros.colors[self.effects.outlineColor] or Util.Other.hex(self.effects.outlineColor)
 		love.graphics.setColor { color[1], color[2], color[3], self.transparency * color[4] }
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx + 1, ddy, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx - 1, ddy, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx, ddy + 1, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx, ddy - 1, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx + 1, ddy + 1, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx - 1, ddy - 1, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx - 1, ddy + 1, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx + 1, ddy - 1, 999, 'left', 0, sx, sy)
+		love.graphics.printf(self.other.displayChar, self.effects.font,ddx + dd, ddy, 999, 'left', 0, sx, sy)
+		love.graphics.printf(self.other.displayChar, self.effects.font,ddx - dd, ddy, 999, 'left', 0, sx, sy)
+		love.graphics.printf(self.other.displayChar, self.effects.font,ddx, ddy + dd, 999, 'left', 0, sx, sy)
+		love.graphics.printf(self.other.displayChar, self.effects.font,ddx, ddy - dd, 999, 'left', 0, sx, sy)
+		love.graphics.printf(self.other.displayChar, self.effects.font,ddx + dd, ddy + dd, 999, 'left', 0, sx, sy)
+		love.graphics.printf(self.other.displayChar, self.effects.font,ddx - dd, ddy - dd, 999, 'left', 0, sx, sy)
+		love.graphics.printf(self.other.displayChar, self.effects.font,ddx - dd, ddy + dd, 999, 'left', 0, sx, sy)
+		love.graphics.printf(self.other.displayChar, self.effects.font,ddx + dd, ddy - dd, 999, 'left', 0, sx, sy)
 	end
 	local color = Macros.colors[self.effects.color] or Util.Other.hex(self.effects.color)
 	love.graphics.setColor{color[1], color[2], color[3], self.transparency * color[4]}

@@ -38,12 +38,16 @@ Macros.CDefs.Opening = function()
 				s.extra.timer1 = 0
 				s.extra.progressed = true
 			end
-			if s.extra.timer1 > 2 and G.mouseController[1].pressed and s.extra.progressed == true then
+			if s.extra.timer1 > 1 and G.mouseController[1].pressed and s.extra.progressed == true then
 				Util.Event.easeOutMusic(2, "interrogationID")
 				Util.Event.transition(4, function()
 					s:remove()
 					addItem("knife")
 					Macros.UIDef.overlay()
+					Util.Audio.musicPush("combat", "combatID", "normal", 1, 1, 1)
+					if Util.Audio.getMusicByID("combatID") and Util.Audio.getMusicByID("combatID").source then
+						Util.Audio.getMusicByID("combatID").source:setVolume(0)
+					end
 					Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
 					G.flags.saveData.rooms = Util.World.generateDungeon()
 					G.flags.saveData.curRoomIndex = 1

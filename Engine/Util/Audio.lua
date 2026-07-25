@@ -174,7 +174,13 @@ function audioLib.getHighestPriorityMusic()
         end
     end
 end
-
+function audioLib.getMusicByID(playId)
+    for k, v in pairs(G.audio.music) do
+        if v.playId == playId then
+            return v
+        end
+    end
+end
 ---Removes a track from the music stack.
 ---@param playId string The playId of the track.
 ---@return boolean success Wether a track was removed.

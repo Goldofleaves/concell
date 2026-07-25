@@ -141,7 +141,7 @@ end
 
 function Util.World.modHP(m)
     local t = { m } -- stuff it in a table so it's mutable
-    CALCULATECONTEXT({ modHP = true, time = t })
+    CALCULATECONTEXT({ modHP = true, hp = t, hurting = PLAYER })
     G.flags.saveData.hp = G.flags.saveData.hp + t[1]
 end
 function Util.World.getArea(index)

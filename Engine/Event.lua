@@ -133,6 +133,10 @@ function Util.Event.easeInMusic(t, id, pid, grp, extra, prior)
 	extra = extra or { looping = true }
 	prior = prior or 6
 	Util.Audio.musicPush(id, pid, grp, prior, 1, 1, extra)
+	local targetBgm = Util.Audio.getHighestPriorityMusic()
+	if targetBgm and targetBgm.source then
+		targetBgm.source:setVolume(0)
+	end
 	Util.Event.addEvent(Event(
 		{
 			duration = t,
@@ -140,6 +144,14 @@ function Util.Event.easeInMusic(t, id, pid, grp, extra, prior)
 				local targetBgm = Util.Audio.getHighestPriorityMusic()
 				if targetBgm and targetBgm.source then
 					targetBgm.source:setVolume(time * targetBgm.volume * G.settings.sound.music / 100 *
+						G.settings.sound.master /
+						100)
+				end
+			end,
+			endFunc = function ()
+				local targetBgm = Util.Audio.getHighestPriorityMusic()
+				if targetBgm and targetBgm.source then
+					targetBgm.source:setVolume(targetBgm.volume * G.settings.sound.music / 100 *
 						G.settings.sound.master /
 						100)
 				end

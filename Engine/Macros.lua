@@ -36,6 +36,10 @@ Macros = {
 		times = love.graphics.newFont("Assets/Fonts/times.ttf", 50),
 		timer = love.graphics.newImageFont("Assets/Sprites/TimerFont.png", " 0123456789/")
 	},
+	maxHps = {
+		guard = 1,
+		cellmate = 5,
+	},
 	baseTileSize = 40,
 	maxtime = 360,
 	maxhp = 60,
