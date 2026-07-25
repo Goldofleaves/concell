@@ -208,7 +208,8 @@ function move_all_enemies()
                 v.TMod.x.base = v.extra.goalVertice[1]
                 v.TMod.y.base = v.extra.goalVertice[2]
             else
-                Util.World.modHP(-2)
+                local ret = Util.World.modHP(-2)
+                if ret then return end
             end
             v.extra.goalVertice = nil
             v:juice()
