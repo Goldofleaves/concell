@@ -79,6 +79,7 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
             return getUniqueRandom(queue, min, max, cond)
         end
     end
+    local identifier = 1
     if type == "init_room" then
         a, b = 5, 5
         room.size = { w = a, h = b }
@@ -100,20 +101,23 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
             pos = {
                 2, 2,
             },
-            facing = "3"
+            facing = "3",
+            id = identifier
         })
 
         return room
     else
-        for i = 1, 3 do -- temp 3 enemies per room
+        for _ = 1, 3 do -- temp 3 enemies per room
             table.insert(room.enemies, {
                 name = "cellmate", -- every enemy is of cellmate kind
                 pos = {
                     getUniqueRandom("a", 0, room.size.w - 1, function(r) return r ~= math.floor(room.size.w / 2) end),
                     getUniqueRandom("b", 0, room.size.h - 1, function(r) return r ~= math.floor(room.size.h / 2) end),
-                    facing = tostring(math.random(1, 4))
-                }
+                },
+                facing = tostring(math.random(1, 4)),
+                id = identifier
             })
+            identifier = identifier + 1
         end
         local r = 1
         if type == "branching" then

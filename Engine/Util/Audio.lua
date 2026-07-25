@@ -187,8 +187,8 @@ end
 function audioLib.musicPop(playId)
     for i, v in ipairs(G.audio.music) do
         if v.playId == playId then
-            v.source:stop()
-            v.source:release()
+            v.delete = true
+            v.priority = -math.huge
             table.remove(G.audio.music, i)
             return true
         end

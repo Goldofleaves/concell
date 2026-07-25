@@ -9,19 +9,20 @@ end
 
 local IN_COMBAT = false
 
-function WorldMoveable:checkEaseMusic(self)
-    if self and self.properties.type == "guard" then return nil end
+function WorldMoveable:checkEaseMusic()
     local should_be_in_combat = false
     for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
         if enemy.extra and enemy.extra.hp > 0 then
+            if enemy.properties.name == "guard" then
+                return nil
+            end
             should_be_in_combat = true
-            break
         end
     end
     if should_be_in_combat and not IN_COMBAT then
         IN_COMBAT = true
         Util.Audio.musicPush("battle", "battleID", "normal", 3, 1, 1)
-    elseif should_be_in_combat and IN_COMBAT then
+    elseif not should_be_in_combat and IN_COMBAT then
         IN_COMBAT = false
         Util.Audio.musicPop("battleID")
     end
@@ -35,7 +36,12 @@ function WorldMoveable:modHP(m)
         if self.extra.hp <= 0 then
             Util.Event.screenShake(5 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
             Util.Audio.playSfx("fatalhit", 2)
-            WorldMoveable:checkEaseMusic(self)
+            for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
+                if v.id == self.extra.identifier then
+                    table.remove(G.flags.saveData.curRoom.enemies, k)
+                end
+            end
+            WorldMoveable:checkEaseMusic()
             self:remove()
         else
             Util.Event.screenShake(2 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
@@ -132,8 +138,7 @@ function WorldMoveable:draw()
     if self.properties.type == "enemy" then
         love.graphics.setColor(Macros.colors.white)
         local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
-        if Atlases[self.extra.name] and Atlases[self.extra.name].image then
-            print(self.extra.name .. self.extra.facing)
+        if Atlases[self.extra.name .. self.extra.facing] and Atlases[self.extra.name .. self.extra.facing].image then
             love.graphics.draw(
                 Atlases[self.extra.name..self.extra.facing].image,
                 Atlases[self.extra.name..self.extra.facing].splicedImages[0][0],
@@ -178,6 +183,7 @@ end
 function WorldMoveable:update(dt)
     Moveable.update(self, dt)
     self.drawOrder = self.TMod.x.base + self.TMod.y.base + 12 + (self.properties.type == "door" and -.5 or 0)
+    self:decideMove()
 end
 function WorldMoveable:switchRoom()
     if self.properties.type == "door" then
@@ -219,6 +225,7 @@ function WorldMoveable:switchRoom()
             G.flags.saveData.playerPos = { x = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra
             .side)).x, y = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).y }
             G.flags.saveData.playerFacing = convert(Util.World.getOppositeSide(self.extra.side))
+            self:checkEaseMusic()
             Util.World.saveGame()
         end, "delay2")
     end
@@ -228,18 +235,25 @@ function WorldMoveable:decideMove()
         if self.extra.name == "guard" then return nil end
         local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall", "enemy", "door"})
         local adjacents = getAllAdjacentVertices(vertices, {self.TMod.x.base,self.TMod.y.base})
-        while next(adjacents) do
-            local randomAdjacent = Util.Math.randomElement(adjacents).v
-            adjacents = table.exclude(adjacents, randomAdjacent)
+        table.sort(adjacents, function (a, b)
+            local v = Vector(PLAYER.TMod.x.base, PLAYER.TMod.y.base)
+            local va, vb = Vector(a[1], a[2]):sub(v, true), Vector(b[1], b[2]):sub(v, true)
+            return va:abs() < vb:abs()
+        end)
+        while #adjacents > 1 do
+            adjacent = adjacents[1]
+            table.remove(adjacents, 1)
             local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
             local hassamevertice = false
             for k,v in ipairs(allEnemies) do
-                if v.extra.goalVertice and v.extra.goalVertice[1] == randomAdjacent[1] and v.extra.goalVertice[2] == randomAdjacent[2] then
+                if  v ~= self and v.extra.goalVertice and v.extra.goalVertice[1] == adjacent[1] and v.extra.goalVertice[2] == adjacent[2] then
                     hassamevertice = true
+                    break
                 end
             end
             if not hassamevertice then
-                self.extra.goalVertice = randomAdjacent
+                self.extra.goalVertice = {adjacent[1], adjacent[2]}
+                return
             end
         end
     end
@@ -255,7 +269,8 @@ function WorldMoveable:initRoomStuff()
                 side = v.side,
                 name = v.name,
                 hp = Macros.maxHps[v.name],
-                facing = v.facing
+                facing = v.facing,
+                identifier = v.id
             },
             updateOrder = 2,
             drawOrder = 10

@@ -366,7 +366,7 @@ function Macros.UIDef.overlay()
                             for k, v in ipairs(allEnemies) do
                                 if v.extra.goalVertice then
                                     if v.extra.goalVertice[1] ~= PLAYER.TMod.x.base or v.extra.goalVertice[2] ~= PLAYER.TMod.y.base then
-                                        v.extra.facing = {{coords = {v.TMod.x.base, v.TMod.y.base}}, {coords = goalVertice}}
+                                        v.extra.facing = Util.World.getDir({{coords = {v.TMod.x.base, v.TMod.y.base}}, {coords = v.extra.goalVertice}})
                                         v.TMod.x.base = v.extra.goalVertice[1]
                                         v.TMod.y.base = v.extra.goalVertice[2]
                                     else
@@ -518,7 +518,7 @@ function Macros.UIDef.overlay()
             if TARGETED_ENEMIES then
                 local pt = getClosestPointAndDistance()
                 for _, enemy in ipairs(TARGETED_ENEMIES) do
-                    if enemy.TMod.x.base == pt.contents[1] - 0.2 and enemy.TMod.y.base == pt.contents[2] - 0.2 then
+                    if Util.Math.precisionCheck(enemy.TMod.x.base, pt.contents[1] - 0.2, 0.1) and Util.Math.precisionCheck(enemy.TMod.y.base, pt.contents[2] - 0.2, 0.1) then
                         -- use our item
                         if G.mouseController[1].pressed then
 	                        for i, v in ipairs(G.flags.saveData.items) do

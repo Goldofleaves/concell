@@ -173,12 +173,13 @@ function Game:update(dt)
 		end
 		local source = targetBgm.source
 		if not source:isPlaying() then
-			if type(targetBgm.endFunc) == "function" then
-				targetBgm.endFunc()
-				Util.Audio.musicPop(targetBgm.id)
-			end
+			source:play()
 		end
 		source:setVolume(targetBgm.volume * G.settings.sound.music / 100 * G.settings.sound.master / 100)
+	end
+	if self.audio.musicHandler.previousBgm and self.audio.musicHandler.previousBgm.delete then
+		self.audio.musicHandler.previousBgm.source:stop()
+		self.audio.musicHandler.previousBgm.source:release()
 	end
 	self.audio.musicHandler.previousBgm = targetBgm
 	-- Handling Events
