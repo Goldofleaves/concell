@@ -20,7 +20,6 @@ function registerItem(args)
         onUse = args.onUse or function(self) end,
         text = args.text or {"|s:2,2|ERROR"}
     }
-    t.defaultConfig.vars = t.defaultConfig.vars or {}
     table.insert(Pools[args.pool or "common"].keys, args.key)
     Centers[args.key] = t
 end
@@ -164,7 +163,20 @@ registerItem({
     sprite = "ItemMusket",
     config = {
         damage = -10,
-        timeCost = 6
+        timeCost = 6,
+        vars = {
+            10,
+            6
+        }
+    },
+    text = {
+        "|s:2,2|Musket",
+        "|s:2,2|Type: Weapon",
+        "|s:2,2|Cost: {2} Mins",
+        "|s:2,2|Damage: {1}",
+        "|s:2,2|This weapon can attack",
+        "|s:2,2|all units orthogonal",
+        "|s:2,2|to it, like a rook.",
     },
     canUse = function(self)
         local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
@@ -195,7 +207,20 @@ registerItem({
     sprite = "ItemWhip",
     config = {
         damage = -4,
-        timeCost = 3
+        timeCost = 3,
+        vars = {
+            4,
+            3
+        },
+    },
+    text = {
+        "|s:2,2|Whip",
+        "|s:2,2|Type: Weapon",
+        "|s:2,2|Cost: {2} Mins",
+        "|s:2,2|Damage: {1}",
+        "|s:2,2|This weapon can attack",
+        "|s:2,2|all units a knight's distance",
+        "|s:2,2|or a single bishop move to it.",
     },
     canUse = function(self)
         local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
@@ -227,7 +252,19 @@ registerItem({
     sprite = "ItemKnife",
     config = {
         damage = -2,
-        timeCost = 2
+        timeCost = 2,
+        vars = {
+            2,
+            2
+        },
+    },
+    text = {
+        "|s:2,2|Knife",
+        "|s:2,2|Type: Weapon",
+        "|s:2,2|Cost: {2} Mins",
+        "|s:2,2|Damage: {1}",
+        "|s:2,2|This weapon can attack",
+        "|s:2,2|all units adjacent to it.",
     },
     canUse = function(self)
         local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
@@ -263,7 +300,20 @@ registerItem({
     sprite = "ItemGreatsword",
     config = {
         damage = -5,
-        timeCost = 3
+        timeCost = 3,
+        vars = {
+            5,
+            3
+        }
+    },
+    text = {
+        "|s:2,2|Greatsword",
+        "|s:2,2|Type: Weapon",
+        "|s:2,2|Cost: {2} Mins",
+        "|s:2,2|Damage: {1}",
+        "|s:2,2|This weapon can attack",
+        "|s:2,2|all units within an",
+        "|s:2,2|taxi-cab distance of 2."
     },
     canUse = function(self)
         local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
@@ -291,11 +341,24 @@ registerItem({
     key = "sunscreen",
     sprite = "ItemSunscreen",
     config = {
-        timeMod = 3
+        timeMod = 30,
+        vars = {
+            30,
+        }
     },
+    text = {
+        "|s:2,2|Sunscreen",
+        "|s:2,2|Type: Static",
+        "|s:2,2|This item gives you",
+        "|s:2,2|{1} more minutes",
+        "|s:2,2|to live when you die."
+    },
+    canUse = function ()
+        return false
+    end,
     calculate = function (context, self)
         if context.death and context.method == "timer" then
-            G.flags.saveData.timemod = G.flags.saveData.timemod + 30
+            G.flags.saveData.timemod = G.flags.saveData.timemod + self.config.timeMod
             discardItem(nil, self.key)
         end
     end
@@ -307,7 +370,21 @@ registerItem({
     sprite = "ItemRapier",
     config = {
         damage = -4,
-        timeCost = 1
+        timeCost = 1,
+        vars = {
+            4,
+            1
+        }
+    },
+    text = {
+        "|s:2,2|Rapier",
+        "|s:2,2|Type: Weapon",
+        "|s:2,2|Cost: {2} Mins",
+        "|s:2,2|Damage: {1}",
+        "|s:2,2|This weapon can attack",
+        "|s:2,2|all units 2 spaces away,",
+        "|s:2,2|and lunges toward it",
+        "|s:2,2|by 1 unit."
     },
     canUse = function(self)
         local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
@@ -361,6 +438,16 @@ registerItem({
     sprite = "ItemEminence",
     config = {
         damage = -1,
+        vars = {
+            1,
+        }
+    },
+    text = {
+        "|s:2,2|Eminence",
+        "|s:2,2|Type: Static",
+        "|s:2,2|This item deals {1}",
+        "|s:2,2|damage to all units",
+        "|s:2,2|when an item is used.",
     },
     calculate = function (context, self)
         if context.itemUsed and context.hasState then
