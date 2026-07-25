@@ -89,6 +89,7 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
         for i = 0, 4 do
             if i ~= 2 then
                 table.insert(room.walls, {
+                    name = "prisonBar",
                     type = "wall",
                     x = 2, y = i
                 })

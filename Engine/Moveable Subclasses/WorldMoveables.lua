@@ -36,15 +36,12 @@ function WorldMoveable:draw()
             radius = 5 * self.properties.mult
         },
         wall = {
-            color = Macros.colors.night,
+            color = Macros.colors.transparent,
             radius = 7 * self.properties.mult
         },
     }
     local r, g, b, a = love.graphics.getColor()
     local vector = Util.World.toIsoPos(Vector(self.TMod.x.base + 0.2, self.TMod.y.base + 0.2))
-    love.graphics.setColor(Macros.colors.night)
-    love.graphics.circle("fill", vector.contents[1], vector.contents[2],
-        (lookup[self.properties.type].radius + 2) * Util.UI.getScalingFactor())
     love.graphics.setColor(lookup[self.properties.type].color)
     if self.properties.type == "enemy" and self.extra.goalVertice then
         local goalVector = Util.World.toIsoPos(Vector(self.extra.goalVertice[1] + 0.2, self.extra.goalVertice[2] + 0.2))
@@ -67,6 +64,17 @@ function WorldMoveable:draw()
             0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
         AdvancedText("|c:orange|"..tostring(self.extra.index)):draw(vector.contents[1], vector.contents[2] + 6)
+    end
+    if self.properties.type == "wall" then
+        love.graphics.setColor(Macros.colors.white)
+        local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
+        love.graphics.draw(
+            Atlases[self.extra.name].image,
+            Atlases[self.extra.name].splicedImages[0][0],
+            v.contents[1] - 40 * Util.UI.getScalingFactor(),
+            v.contents[2] - 80 * Util.UI.getScalingFactor(),
+            0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+        )
     end
     love.graphics.setColor(r,g,b,a)
 end
@@ -147,7 +155,8 @@ function WorldMoveable:initRoomStuff()
             type = "door",
             extra = {
                 index = v.index,
-                side = v.side
+                side = v.side,
+                name = v.name,
             },
             updateOrder = 2,
             drawOrder = 30
@@ -160,7 +169,8 @@ function WorldMoveable:initRoomStuff()
             type = "wall",
             extra = {
                 index = v.index,
-                side = v.side
+                side = v.side,
+                name = v.name,
             },
             updateOrder = 2,
             drawOrder = 11
