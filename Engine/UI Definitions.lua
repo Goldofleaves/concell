@@ -139,6 +139,62 @@ function Macros.UIDef.title()
             self.TMod.h.base = 1 + 2 * delta
             self.TMod.w.base = 1.25 * 13.5 + 5 - 1.25 * self.TMod.x.base
         end,
+        onClick = function(s)
+            if love.filesystem.exists("runInfo.con") then
+                Util.Event.easeOutMusic(2, "titleID")
+                Util.World.loadGame()
+                Util.Event.transition(4, function()
+                    Macros.UIDef.overlay()
+                    Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
+                    local list_of_nids = {
+                        "titlebutton1",
+                        "titlebutton2",
+                        "titlebutton3",
+                        "tbg",
+                        "tfg",
+                        "td",
+                    }
+                    for k, v in pairs(list_of_nids) do
+                        local o = getObjectByNid(v)
+                        if o then o:remove() end
+                    end
+                    PLAYER = WorldMoveable({
+                        x = G.flags.saveData.playerPos.x,
+                        y = G.flags.saveData.playerPos.y,
+                        type = "player",
+                        updateOrder = 1,
+                        drawOrder = 11
+                    })
+                    Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, Util.World.getArea(G.flags.saveData.curRoomIndex))
+                    for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
+                        local j = WorldMoveable({
+                            x = v.pos[1],
+                            y = v.pos[2],
+                            type = "enemy",
+                            extra = {
+                                index = v.index,
+                                side = v.side
+                            },
+                            updateOrder = 2,
+                            drawOrder = 10
+                        })
+                        j:decideMove()
+                    end
+                    for k, v in ipairs(G.flags.saveData.curRoom.doors) do
+                        WorldMoveable({
+                            x = v.x,
+                            y = v.y,
+                            type = "door",
+                            extra = {
+                                index = v.index,
+                                side = v.side
+                            },
+                            updateOrder = 2
+                        })
+                    end
+                end, "delay1")
+            end
+        end,
         drawFunc = function(self)
             local h = self.extra.text:getHeight()
             local delta = (1 - (self.TMod.y.base - 10.75) / 0.25) * 0.2

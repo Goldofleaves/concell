@@ -17,7 +17,11 @@ function Game:new()
 			timer = 0,
 			hp = 60,
 			gridsPerMove = 5,
-			items = {}
+			items = {},
+			playerPos = {
+				x = 0,
+				y = 0
+			}
 		}
 	}
 	self.I = {

@@ -17,7 +17,7 @@ function WorldMoveable:juice(r)
             endFunc = function(s)
                 self.properties.mult = 1
             end
-        }),"juice"
+        }),"juice"..self.id
     )
 end
 function WorldMoveable:draw()
@@ -88,13 +88,16 @@ function WorldMoveable:switchRoom()
                 updateOrder = 1
             })
             WorldMoveable:initRoomStuff()
+            G.flags.saveData.playerPos = { x = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra
+            .side)).x, y = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).y }
+            Util.World.saveGame()
         end, "delay2")
     end
 end
 function WorldMoveable:decideMove()
     if self.properties.type == "enemy" then
         if self.extra.name == "guard" then return nil end
-        local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall", "enemy"})
+        local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall", "enemy", "door"})
         local adjacents = getAllAdjacentVertices(vertices, {self.TMod.x.base,self.TMod.y.base})
         while next(adjacents) do
             local randomAdjacent = Util.Math.randomElement(adjacents).v
