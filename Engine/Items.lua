@@ -353,3 +353,18 @@ registerItem({
         end
     end
 })
+
+registerItem({
+    key = "aura",
+    sprite = "ItemKnife",
+    config = {
+        damage = -1,
+    },
+    calculate = function (context, self)
+        if context.itemUsed and context.hasState then
+            for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
+                enemy:modHP(self.config.damage, true)
+            end
+        end
+    end,
+})

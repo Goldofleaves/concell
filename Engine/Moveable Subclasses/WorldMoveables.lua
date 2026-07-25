@@ -28,7 +28,7 @@ function WorldMoveable:checkEaseMusic()
     end
 end
 
-function WorldMoveable:modHP(m)
+function WorldMoveable:modHP(m, silent)
     if self.properties.type == "enemy" then
         local t = {m}
         CALCULATECONTEXT({ modHP = true, hp = t, hurting = self })
@@ -45,7 +45,9 @@ function WorldMoveable:modHP(m)
             self:remove()
         else
             Util.Event.screenShake(2 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
-            Util.Audio.playSfx("hit", 2)
+            if not silent then
+                Util.Audio.playSfx("hit", 2)
+            end
         end
     end
 end
