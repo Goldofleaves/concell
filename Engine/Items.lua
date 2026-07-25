@@ -135,7 +135,34 @@ registerItem({
 
 registerItem({
     key = "whip",
-    sprite = "ItemWhip"
+    sprite = "ItemWhip",
+    config = {
+        damage = -4,
+        timeCost = 3
+    },
+    canUse = function(self)
+        local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
+
+        if not self.isBeingUsed then
+            self.targets = {}
+            for _, e in ipairs(enemies) do
+                local dist = get_orthogonal_dist(e, PLAYER)
+                if e.TMod.x.base ~= PLAYER.TMod.x.base and e.TMod.y.base ~= PLAYER.TMod.y.base and dist <= 3 then
+                    self.targets[#self.targets + 1] = e
+                end
+            end
+            if #self.targets > 0 then return "hasState" end
+        end
+        return false
+    end,
+    onUse = function(self, enemy)
+        if not self.isBeingUsed then
+            TARGETED_ENEMIES = self.targets
+        else
+            enemy:modHP(self.config.damage)
+            Util.World.modTime(self.config.timeCost)
+        end
+    end
 })
 
 registerItem({

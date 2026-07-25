@@ -43,7 +43,7 @@ Macros.CDefs.Opening = function()
 				Util.Event.transition(4, function()
 					s:remove()
 					addItem("knife")
-					addItem("greatsword")
+					addItem("whip")
 					Macros.UIDef.overlay()
 					-- Util.Audio.musicPush("battle", "battleID", "normal", 1, 1, 1)
 					-- if Util.Audio.getMusicByID("battleID") and Util.Audio.getMusicByID("battleID").source then
