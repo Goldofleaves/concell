@@ -90,7 +90,15 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
     return room
 end
 function Util.World.modTime(m)
-    G.flags.saveData.timer = G.flags.saveData.timer + m
+    local t = {m} -- stuff it in a table so it's mutable
+    CALCULATECONTEXT({modTime = true, time = t})
+    G.flags.saveData.timer = G.flags.saveData.timer + t[1]
+end
+
+function Util.World.modHP(m)
+    local t = { m } -- stuff it in a table so it's mutable
+    CALCULATECONTEXT({ modHP = true, time = t })
+    G.flags.saveData.hp = G.flags.saveData.hp + t[1]
 end
 function Util.World.getArea(index)
     if type(index) == "string" then
@@ -184,4 +192,15 @@ function Util.World.generateDungeon()
         end
     end
     return rooms
+end
+---@param c {[1]:number,[2]:number}
+---@return table WorldMoveables
+function Util.World.getAllWorldMoveablesWithCoord(c)
+    local t = {}
+    for k, v in pairs(G.I.MOVEABLES) do
+        if v.objectType == "WORLDMOVEABLE" and Util.Math.precisionCheck(v.TMod.x.base, c[1], 0.1) and Util.Math.precisionCheck(v.TMod.y.base, c[2], 0.1) then
+            table.insert(t, v)
+        end
+    end
+    return t
 end

@@ -16,7 +16,8 @@ function Game:new()
 		saveData = {
 			timer = 0,
 			hp = 60,
-			gridsPerMove = 5
+			gridsPerMove = 5,
+			items = {}
 		}
 	}
 	self.I = {

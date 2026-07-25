@@ -37,4 +37,5 @@ Macros = {
 	baseTileSize = 40,
 	maxtime = 180,
 	maxhp = 60,
+	itesmslots = 4
 }
