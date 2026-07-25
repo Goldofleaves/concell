@@ -555,7 +555,7 @@ function Macros.UIDef.overlay()
             AdvancedText("|s:2,2||c:night||f:timer|" .. minutes):draw(
             G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 358,
             G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 13)
-            AdvancedText("|s:2,2||o:night||c:red|" .. (Macros.maxtime - G.flags.saveData.timer) .. "|o:00000000||c:night| mins til sunrise"):draw(
+            AdvancedText("|s:2,2||o:night||c:red|" .. (Macros.maxtime - G.flags.saveData.timer) .. "|o:00000000||c:night| mins til dawn"):draw(
             G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 319,
             G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 40)
         end
