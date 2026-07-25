@@ -165,24 +165,23 @@ function Game:update(dt)
 	for k, v in pairs(self.I.SPRITES) do
 		table.insert(union, v)
 	end
-	local function updateAllObjects(filter)
-		local max_update_order = -math.huge
-		local updated_object
-		local updated_k
-		for k, v in pairs(union) do
-			if v.updateOrder > max_update_order and not filter[k] then
-				max_update_order = v.updateOrder
-				updated_object = v
-				updated_k = k
-			end
-		end
-		if updated_k then
-			filter[updated_k] = true
-			updated_object:update(dt)
-			updateAllObjects(filter)
+	local filter = {}
+	::start::
+	local max_update_order = -math.huge
+	local updated_object
+	local updated_k
+	for k, v in pairs(union) do
+		if v.updateOrder > max_update_order and not filter[k] then
+			max_update_order = v.updateOrder
+			updated_object = v
+			updated_k = k
 		end
 	end
-	updateAllObjects({})
+	if updated_k then
+		filter[updated_k] = true
+		updated_object:update(dt)
+		goto start
+	end
 	for k, v in ipairs(G.flags.saveData.items) do
 		Centers[v.key].update(v)
 		if v.isBeingUsed then

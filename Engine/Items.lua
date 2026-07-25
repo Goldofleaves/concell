@@ -20,6 +20,7 @@ function registerItem(args)
         onUse = args.onUse or function(self) end,
         text = args.text or {"|s:2,2|ERROR"}
     }
+    t.defaultConfig.vars = t.defaultConfig.vars or {}
     table.insert(Pools[args.pool or "common"].keys, args.key)
     Centers[args.key] = t
 end

@@ -233,7 +233,9 @@ function Macros.UIDef.overlay()
                 end
             end,
             onHover = function (self)
-                self.infoQueue = InfoQueue(Centers[G.flags.saveData.items[i].key].text, G.flags.saveData.items[i].config.vars)
+                if G.flags.saveData.items[i] then
+                    self.infoQueue = InfoQueue(Centers[G.flags.saveData.items[i].key].text, G.flags.saveData.items[i].config.vars)
+                end
             end,
             onLeftHover = function (self)
                 self.infoQueue = nil
@@ -242,7 +244,7 @@ function Macros.UIDef.overlay()
                 local padding = 10
                 local vec = Util.World.toNormalPos(Vector(self.TMod.x.base, self.TMod.y.base))
                 if self.infoQueue then
-                    self.infoQueue:draw(vec.contents[1] + 29/2 * Util.UI.getScalingFactor() - self.infoQueue:getWidth()/2, vec.contents[2] - padding * Util.UI.getScalingFactor() - self.infoQueue:getHeight())
+                    self.infoQueue:draw(vec.contents[1] + 29 * Util.UI.getScalingFactor() - self.infoQueue:getWidth()/2, vec.contents[2] - padding * Util.UI.getScalingFactor() - self.infoQueue:getHeight())
                 end
             end
         })
@@ -332,7 +334,6 @@ function Macros.UIDef.overlay()
                 PLAYER.TMod.x.base = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
                 PLAYER.TMod.y.base = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
                 PLAYER:juice()
-                print("calccounted")
                 CALCULATECONTEXT({ player_move = true, pos = { x = Util.Math.round(s.extra.path[1].coords[1] - 0.2), y = Util.Math.round(s.extra.path[1].coords[2] - 0.2) } })
                 Eventify()
             elseif s and #s.extra.path == 1 then

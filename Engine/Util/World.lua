@@ -13,7 +13,7 @@ end
 
 function Util.World.toNormalPos(V)
     local isoMatrix = Matrix({ Macros.baseTileSize * Util.UI.getScalingFactor(), 0 }, { 0, Macros.baseTileSize * Util.UI.getScalingFactor() })
-    local offset = Vector(G.drawinfo.origin.x, G.drawinfo.origin.y):add(G.worldOffsetVector, true)
+    local offset = Vector(G.drawinfo.origin.x, G.drawinfo.origin.y)
     return offset:add(isoMatrix:apply(V, true), true)
 end
 
