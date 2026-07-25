@@ -41,6 +41,7 @@ Macros.CDefs.Opening = function()
 			if s.extra.timer1 > 1 and G.mouseController[1].pressed and s.extra.progressed == true then
 				Util.Event.easeOutMusic(2, "interrogationID")
 				Util.Event.transition(4, function()
+					G.flags.saveData.igt = 0
 					s:remove()
 					addItem("knife")
 					addItem("aura")
@@ -95,7 +96,7 @@ Macros.CDefs.Death = function()
 		end
 	})
 end
-Macros.CDefs.Win = function(ss)
+Macros.CDefs.Win = function(ss, data)
 	G = nil
 	G = Game()
 	Sprite({
@@ -106,6 +107,14 @@ Macros.CDefs.Win = function(ss)
 		atlasKey = "gameWin",
 		scaleX = 2,
 		scaleY = 2,
+		extra = {
+			text = createTableOfAdvancedText({
+				"|c:dawn||s:2.5,2.5|Your time was " .. math.floor(data.igt).." seconds.",
+				"|c:dawn||s:2.5,2.5|You dealt " .. data.totalDamage .. " damage in total.",
+				"|c:dawn||s:2.5,2.5|You slain " .. data.enemiesSlain .. " enemies in total.",
+				"|c:dawn||s:2.5,2.5|You did well.",
+			})
+		},
 		updateFunc = function(s, dt)
 			if G.mouseController[1].pressed and not getEventByNid("end") then
 				Util.Event.transition(4, function()
@@ -122,6 +131,12 @@ Macros.CDefs.Win = function(ss)
 			end
 		end,
 		drawFunc = function(s)
+			local x = G.drawinfo.origin.x + G.drawinfo.gridSize.x / 400 * 243
+			local y = G.drawinfo.origin.y + G.drawinfo.gridSize.y / 300 * 15
+			for k, v in ipairs(s.extra.text) do
+				v:draw(x, y)
+				y = y + v:getHeight()
+			end
 		end
 	})
 end

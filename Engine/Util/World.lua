@@ -383,6 +383,7 @@ function Util.World.gameWin()
         musicHandler = {}
     }
     love.filesystem.remove("runInfo.con")
+    local data = Util.Other.copyTable(G.flags.saveData)
     Util.Event.addEvent(Event(
         {
             drawOrder = 1e33,
@@ -393,7 +394,7 @@ function Util.World.gameWin()
             end,
             endFunc = function()
                 local s = Util.Audio.musicPush("ambience", "ambienceID", "ambience", 1, 1, 1, { looping = true })
-                Macros.CDefs.Win(s)
+                Macros.CDefs.Win(s, data)
                 Util.Event.addEvent(Event(
                     {
                         nid = "end",
