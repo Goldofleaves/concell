@@ -25,6 +25,7 @@ require "Engine.Util.World"
 require "Engine.Moveable Subclasses.Button"
 require "Engine.Moveable Subclasses.WorldMoveables"
 require "Engine.Items"
+require "Engine.Util.InfoQueue"
 local function wrapper(key, px, py, folders)
     folders = folders or ""
     registerAtlasSimple(key, "Assets/Sprites/"..folders..key..".png", px, py)

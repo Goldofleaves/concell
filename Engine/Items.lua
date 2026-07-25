@@ -18,6 +18,7 @@ function registerItem(args)
         canUse = args.canUse or function() return "noState" end,
         IBUupdate = args.IBUupdate or function(self) end,
         onUse = args.onUse or function(self) end,
+        text = args.text or {"|s:2,2|ERROR"}
     }
     table.insert(Pools[args.pool or "common"].keys, args.key)
     Centers[args.key] = t

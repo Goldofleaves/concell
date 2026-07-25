@@ -149,33 +149,36 @@ function WorldMoveable:draw()
                 Atlases[self.extra.name..self.extra.facing].image,
                 Atlases[self.extra.name..self.extra.facing].splicedImages[0][0],
                 v.contents[1] - 40 * Util.UI.getScalingFactor(),
-                v.contents[2] - 96 * Util.UI.getScalingFactor(),
+                v.contents[2] - 80 * Util.UI.getScalingFactor(),
                 0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
             )
         end
+        love.graphics.push()
+        love.graphics.translate(0, -14 * Util.UI.getScalingFactor())
         love.graphics.draw(
             Atlases.hpSymbol.image,
             Atlases.hpSymbol.splicedImages[0][0],
             v.contents[1] - 30 * Util.UI.getScalingFactor(),
-            v.contents[2] - 96 * Util.UI.getScalingFactor(),
+            v.contents[2] - 80 * Util.UI.getScalingFactor(),
             0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
         love.graphics.setColor(Macros.colors.night)
         love.graphics.rectangle("fill", v.contents[1] - 14 * Util.UI.getScalingFactor(),
-            v.contents[2] - 92 * Util.UI.getScalingFactor(),
+            v.contents[2] - 76 * Util.UI.getScalingFactor(),
             44 * Util.UI.getScalingFactor(), 14 * Util.UI.getScalingFactor())
         local delta = 40 * Util.UI.getScalingFactor() * self.extra.hp / Macros.maxHps[self.extra.name]
         love.graphics.setColor(Macros.colors.red)
         love.graphics.rectangle("fill", v.contents[1] - 12 * Util.UI.getScalingFactor(),
-            v.contents[2] - 90 * Util.UI.getScalingFactor(),
+            v.contents[2] - 74 * Util.UI.getScalingFactor(),
             delta, 10 * Util.UI.getScalingFactor())
         local txt = AdvancedText("|o:night||c:red||s:2,2|" .. self.extra.hp .. "/" .. Macros.maxHps[self.extra.name])
         txt:draw(v.contents[1] - txt:getTotalWidth() / 2,
-        v.contents[2] - 76 * Util.UI.getScalingFactor())
+        v.contents[2] - 60 * Util.UI.getScalingFactor())
         
         local name = AdvancedText("|o:night||s:2,2|" .. Macros.names[self.extra.name])
         name:draw(v.contents[1] - name:getTotalWidth() / 2,
-        v.contents[2] - 108 * Util.UI.getScalingFactor())
+        v.contents[2] - 92 * Util.UI.getScalingFactor())
+        love.graphics.pop()
         -- Enemy names (SERIOUSLY GUYS, PLS COMMENT YOUR CODE WHY AM I THE ONLY ONE DOING IT)
     end
     if self.properties.type == "player" then
