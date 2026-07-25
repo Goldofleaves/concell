@@ -33,6 +33,9 @@ function WorldMoveable:modHP(m, silent)
         local t = {m}
         CALCULATECONTEXT({ modHP = true, hp = t, hurting = self })
         self.extra.hp = self.extra.hp + t[1]
+        if t[1] < 0 then
+            G.flags.saveData.totalDamage = G.flags.saveData.totalDamage - t[1]
+        end
         if self.extra.hp <= 0 then
             Util.Event.screenShake(5 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
             Util.Audio.playSfx("fatalhit", 2)
@@ -41,6 +44,7 @@ function WorldMoveable:modHP(m, silent)
                     table.remove(G.flags.saveData.curRoom.enemies, k)
                 end
             end
+            G.flags.saveData.enemiesSlain = G.flags.saveData.enemiesSlain + 1
             WorldMoveable:checkEaseMusic()
             self:remove()
         else

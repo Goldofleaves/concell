@@ -26,7 +26,10 @@ function Game:new()
 				x = 0,
 				y = 0
 			},
-			timemod = 0
+			timemod = 0,
+			igt = 0,
+			enemiesSlain = 0,
+			totalDamage = 0
 		}
 	}
 	self.I = {
@@ -61,6 +64,7 @@ function Game:update(dt)
 	self.mousepos.x, self.mousepos.y = Util.UI.convertUIPosToPos(love.mouse.getX(), love.mouse.getY())
 	love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
 	self.timer = self.timer + dt
+	self.flags.saveData.igt = self.flags.saveData.igt + dt
 
 	-- Misc
 	-- Mouse Controller
