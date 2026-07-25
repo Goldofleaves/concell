@@ -78,7 +78,10 @@ function WorldMoveable:draw()
     end
     love.graphics.setColor(r,g,b,a)
 end
-
+function WorldMoveable:update(dt)
+    Moveable.update(self, dt)
+    self.drawOrder = self.TMod.x.base + self.TMod.y.base + 10
+end
 function WorldMoveable:switchRoom()
     if self.properties.type == "door" then
         Util.Event.transition(2, function()
