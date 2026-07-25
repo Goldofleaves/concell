@@ -109,7 +109,7 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
     else
         for _ = 1, 3 do -- temp 3 enemies per room
             table.insert(room.enemies, {
-                name = "cellmate", -- every enemy is of cellmate kind
+                name = "turret", -- every enemy is of cellmate kind
                 pos = {
                     getUniqueRandom("a", 0, room.size.w - 1, function(r) return r ~= math.floor(room.size.w / 2) end),
                     getUniqueRandom("b", 0, room.size.h - 1, function(r) return r ~= math.floor(room.size.h / 2) end),
@@ -155,7 +155,7 @@ function Util.World.modHP(m)
     local t = { m } -- stuff it in a table so it's mutable
     CALCULATECONTEXT({ modHP = true, hp = t, hurting = PLAYER })
     Util.Audio.playSfx("hit", 2)
-    Util.Event.screenShake(2*Util.UI.getScalingFactor(), 0.5, "globalShake")
+    Util.Event.screenShake(2*Util.UI.getScalingFactor(), 0.3, "globalShake")
     G.flags.saveData.hp = G.flags.saveData.hp + t[1]
     if G.flags.saveData.hp <= 0 then
         CALCULATECONTEXT({ death = true, method = "hp" })

@@ -291,18 +291,20 @@ function Macros.UIDef.overlay()
                             PLAYER.TMod.x.base = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
                             PLAYER.TMod.y.base = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
                             PLAYER:juice()
-                            CALCULATECONTEXT({ player_move = true, pos = { PLAYER.TMod.x.base, PLAYER.TMod.y.base } })
+                            print("calccounted")
+                            CALCULATECONTEXT({ player_move = true, pos = { x = Util.Math.round(s.extra.path[1].coords[1] - 0.2), y = Util.Math.round(s.extra.path[1].coords[2] - 0.2) } })
+                            if #s.extra.path == 1 then
+                                CALCULATECONTEXT({ moveEnd = true })
+                            end
                             Eventify()
                         else
                             G.flags.isMoving = nil
-                            CALCULATECONTEXT({ player_move = true, pos = { PLAYER.TMod.x.base, PLAYER.TMod.y.base } })
-                            CALCULATECONTEXT({ moveEnd = true })
                             move_all_enemies()
                             if getDoor(s.extra.path[#s.extra.path].coords) then
                                 getDoor(s.extra.path[#s.extra.path].coords):switchRoom()
                             end
                         end
-                    end)
+                    end, "moveDelay")
                 end
                 local t = Util.World.getDir(s.extra.path)
                 if t then
@@ -314,6 +316,8 @@ function Macros.UIDef.overlay()
                 PLAYER.TMod.x.base = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
                 PLAYER.TMod.y.base = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
                 PLAYER:juice()
+                print("calccounted")
+                CALCULATECONTEXT({ player_move = true, pos = { x = Util.Math.round(s.extra.path[1].coords[1] - 0.2), y = Util.Math.round(s.extra.path[1].coords[2] - 0.2) } })
                 Eventify()
             else
                 Util.Audio.playSfx("blip_stopped", 2)
