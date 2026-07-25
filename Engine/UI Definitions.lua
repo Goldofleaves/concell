@@ -305,7 +305,7 @@ function Macros.UIDef.overlay()
                                         v.TMod.x.base = v.extra.goalVertice[1]
                                         v.TMod.y.base = v.extra.goalVertice[2]
                                     else
-                                        Util.World.modHP(-2)
+                                        Util.World.modHP(-3)
                                     end
                                     v.extra.goalVertice = nil
                                     v:juice()
