@@ -109,7 +109,7 @@ function Util.World.generateRoom(type, last_side, indices, getprev)
     else
         for _ = 1, 3 do -- temp 3 enemies per room
             table.insert(room.enemies, {
-                name = "cellmate", -- every enemy is of cellmate kind
+                name = "turret", -- every enemy is of cellmate kind
                 pos = {
                     getUniqueRandom("a", 0, room.size.w - 1, function(r) return r ~= math.floor(room.size.w / 2) end),
                     getUniqueRandom("b", 0, room.size.h - 1, function(r) return r ~= math.floor(room.size.h / 2) end),
