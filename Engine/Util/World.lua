@@ -171,10 +171,11 @@ function Util.World.hasHunterSightlineFrom(
     hunterY,
     targetX,
     targetY,
-    turrets
+    turrets,
+    range
 )
     if math.abs(targetX - hunterX) + math.abs(targetY - hunterY)
-        > Macros.hunter.range
+        > (range or Macros.hunter.range)
     then
         return false
     end
@@ -210,13 +211,15 @@ function Util.World.hasHunterSightline(hunter, targetX, targetY)
             }
         end
     end
+    local config = Macros[hunter.extra.name] or Macros.hunter
     return Util.World.hasHunterSightlineFrom(
         G.flags.saveData.curRoom,
         hunter.TMod.x.base,
         hunter.TMod.y.base,
         targetX,
         targetY,
-        turrets
+        turrets,
+        config.range
     )
 end
 
@@ -1019,6 +1022,61 @@ local function addGrassHunters(room, reserved, identifier, index)
     return identifier
 end
 
+local function addPrisonOfficer(room, reserved, identifier, index)
+    if type(index) ~= "number"
+        or index < 2
+        or index > 5
+        or not Util.Math.chance(Macros.officer.spawnChance)
+    then
+        return identifier
+    end
+
+    local blocked = {}
+    for _, wall in ipairs(room.walls) do
+        blocked[coordKey(wall.x, wall.y)] = true
+    end
+    for _, enemy in ipairs(room.enemies) do
+        blocked[coordKey(enemy.pos[1], enemy.pos[2])] = true
+    end
+    for _, gate in ipairs(room.gates or {}) do
+        if gate.locked ~= false then
+            blocked[coordKey(gate.x, gate.y)] = true
+        end
+    end
+
+    local connected, critical = getCriticalPaths(room, blocked)
+    if not connected then
+        return identifier
+    end
+
+    local candidates = {}
+    for x = 1, room.size.w - 2 do
+        for y = 1, room.size.h - 2 do
+            local key = coordKey(x, y)
+            if Util.World.isFloor(room, x, y)
+                and not reserved[key]
+                and not blocked[key]
+                and not critical[key]
+            then
+                candidates[#candidates + 1] = {x, y}
+            end
+        end
+    end
+    if #candidates == 0 then
+        return identifier
+    end
+
+    local position = candidates[love.math.random(1, #candidates)]
+    room.enemies[#room.enemies + 1] = {
+        name = "officer",
+        pos = position,
+        facing = tostring(love.math.random(1, 4)),
+        id = identifier,
+    }
+    reserved[coordKey(position[1], position[2])] = true
+    return identifier + 1
+end
+
 local function addPrisonCellBoss(room, reserved, identifier, index)
     if type(index) ~= "number"
         or index < 2
@@ -1449,6 +1507,7 @@ function Util.World.regenerateRoom(room, index)
     identifier = addRoomEnemies(replacement, reserved, identifier, index)
     identifier = addGrassTurrets(replacement, reserved, identifier, index)
     identifier = addGrassHunters(replacement, reserved, identifier, index)
+    identifier = addPrisonOfficer(replacement, reserved, identifier, index)
     addPrisonCellBoss(replacement, reserved, identifier, index)
     addGrassCovers(replacement, reserved, index)
     assert(getCriticalPaths(replacement, roomBlockers(replacement)),
@@ -1577,6 +1636,7 @@ function Util.World.generateRoom(type, last_side, indices, getprev, index)
         identifier = addRoomEnemies(room, reserved, identifier, index)
         identifier = addGrassTurrets(room, reserved, identifier, index)
         identifier = addGrassHunters(room, reserved, identifier, index)
+        identifier = addPrisonOfficer(room, reserved, identifier, index)
         addPrisonCellBoss(room, reserved, identifier, index)
         addGrassCovers(room, reserved, index)
         assert(getCriticalPaths(room, roomBlockers(room)),

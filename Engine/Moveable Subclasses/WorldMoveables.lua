@@ -166,6 +166,15 @@ local TURRET_AIM_ORIGIN_OFFSETS = {
     ["4"] = {12, -32},
 }
 
+local RANGED_ENEMY_NAMES = {
+    hunter = true,
+    officer = true,
+}
+
+local function isRangedEnemyName(name)
+    return RANGED_ENEMY_NAMES[name] == true
+end
+
 local function getEnemyAimOrigin(enemy, gridX, gridY)
     local position = Util.World.toIsoPos(Vector(gridX, gridY))
     local offset = enemy.extra.name == "turret"
@@ -363,7 +372,7 @@ function WorldMoveable:draw()
             love.graphics.setLineWidth(oldLineWidth)
             love.graphics.setColor(Macros.colors.white)
         end
-        if self.extra.name == "hunter"
+        if isRangedEnemyName(self.extra.name)
             and self.extra.shotsRemaining > 0
             and PLAYER
             and Util.World.hasHunterSightline(
@@ -807,14 +816,14 @@ local function addEnemyShotEffect(shooter, target)
     }), "enemyShot"..shooter.id)
 end
 
-local function hunterPositionIsClear(hunter, x, y)
-    if enemyTileIsBlocked(hunter, x, y)
+local function rangedEnemyPositionIsClear(shooter, x, y)
+    if enemyTileIsBlocked(shooter, x, y)
         or (x == PLAYER.TMod.x.base and y == PLAYER.TMod.y.base)
     then
         return false
     end
     for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
-        if enemy ~= hunter
+        if enemy ~= shooter
             and enemy.extra.goalVertice
             and enemy.extra.goalVertice[1] == x
             and enemy.extra.goalVertice[2] == y
@@ -825,8 +834,9 @@ local function hunterPositionIsClear(hunter, x, y)
     return true
 end
 
-local function repositionHunter(hunter)
-    local startX, startY = hunter.TMod.x.base, hunter.TMod.y.base
+local function repositionRangedEnemy(shooter)
+    local config = Macros[shooter.extra.name]
+    local startX, startY = shooter.TMod.x.base, shooter.TMod.y.base
     local playerX, playerY = PLAYER.TMod.x.base, PLAYER.TMod.y.base
     local vertices = getAllValidVertices(
         G.flags.saveData.curRoom.size.w,
@@ -837,7 +847,7 @@ local function repositionHunter(hunter)
     vertices[startX][startY] = true
     local candidates = {}
     for _, position in ipairs(getAllAdjacentVertices(vertices, {startX, startY})) do
-        if hunterPositionIsClear(hunter, position[1], position[2]) then
+        if rangedEnemyPositionIsClear(shooter, position[1], position[2]) then
             candidates[#candidates + 1] = position
         end
     end
@@ -865,10 +875,11 @@ local function repositionHunter(hunter)
             y,
             playerX,
             playerY,
-            turretPositions
+            turretPositions,
+            config.range
         )
-        local score = -math.abs(distance - Macros.hunter.idealDistance) * 10
-            - math.max(0, Macros.hunter.idealDistance - distance) * 4
+        local score = -math.abs(distance - config.idealDistance) * 10
+            - math.max(0, config.idealDistance - distance) * 4
             + (hasNextShot and 6 or 0)
             + love.math.random()
         if not best or score > best.score then
@@ -880,43 +891,44 @@ local function repositionHunter(hunter)
         end
     end
 
-    hunter.extra.facing = getFacingTowardPoint(
+    shooter.extra.facing = getFacingTowardPoint(
         best.x,
         best.y,
         playerX,
         playerY
-    ) or hunter.extra.facing
+    ) or shooter.extra.facing
     if best.x ~= startX or best.y ~= startY then
-        hunter:moveToGrid(best.x, best.y)
+        shooter:moveToGrid(best.x, best.y)
     end
-    hunter:juice()
+    shooter:juice()
 end
 
-local function resolveHunterActions(allEnemies)
-    for _, hunter in ipairs(allEnemies) do
-        if hunter.extra.name == "hunter" and hunter.extra.hp > 0 then
-            local canShoot = hunter.extra.shotsRemaining > 0
+local function resolveRangedEnemyActions(allEnemies)
+    for _, shooter in ipairs(allEnemies) do
+        if isRangedEnemyName(shooter.extra.name) and shooter.extra.hp > 0 then
+            local config = Macros[shooter.extra.name]
+            local canShoot = shooter.extra.shotsRemaining > 0
                 and Util.World.hasHunterSightline(
-                    hunter,
+                    shooter,
                     PLAYER.TMod.x.base,
                     PLAYER.TMod.y.base
                 )
             if canShoot then
-                hunter.extra.facing = getFacingTowardPoint(
-                    hunter.TMod.x.base,
-                    hunter.TMod.y.base,
+                shooter.extra.facing = getFacingTowardPoint(
+                    shooter.TMod.x.base,
+                    shooter.TMod.y.base,
                     PLAYER.TMod.x.base,
                     PLAYER.TMod.y.base
-                ) or hunter.extra.facing
-                hunter.extra.shotsRemaining = hunter.extra.shotsRemaining - 1
-                addEnemyShotEffect(hunter, PLAYER)
-                hunter:juice()
-                if Util.World.modHP(-Macros.hunter.damage) then
+                ) or shooter.extra.facing
+                shooter.extra.shotsRemaining = shooter.extra.shotsRemaining - 1
+                addEnemyShotEffect(shooter, PLAYER)
+                shooter:juice()
+                if Util.World.modHP(-config.damage) then
                     return true
                 end
             else
-                repositionHunter(hunter)
-                hunter.extra.shotsRemaining = Macros.hunter.magazine
+                repositionRangedEnemy(shooter)
+                shooter.extra.shotsRemaining = config.magazine
             end
         end
     end
@@ -985,7 +997,7 @@ end
 
 function move_all_enemies()
     local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
-    if resolveHunterActions(allEnemies) then
+    if resolveRangedEnemyActions(allEnemies) then
         return
     end
     if resolveTurretActions(allEnemies) then
@@ -1084,7 +1096,7 @@ function WorldMoveable:decideMove()
     if self.properties.type == "enemy" then
         if self.extra.name == "guard" then return nil end
         if self.extra.name == "turret" then return nil end
-        if self.extra.name == "hunter" then return nil end
+        if isRangedEnemyName(self.extra.name) then return nil end
         if self.extra.name == "cellboss" then
             if self.extra.bossAction then
                 return
@@ -1177,8 +1189,8 @@ function WorldMoveable:initRoomStuff()
                 hp = Macros.maxHps[v.name],
                 facing = v.facing,
                 identifier = v.id,
-                shotsRemaining = v.name == "hunter"
-                    and Macros.hunter.magazine
+                shotsRemaining = isRangedEnemyName(v.name)
+                    and Macros[v.name].magazine
                     or nil,
             },
             updateOrder = 2,

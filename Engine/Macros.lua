@@ -44,6 +44,7 @@ Macros = {
 		cellboss = 40,
 		turret = 11,
 		hunter = 8,
+		officer = 5,
 
 		-- field
 
@@ -56,6 +57,7 @@ Macros = {
 		cellboss = "CellBoss",
 		turret = "Turret",
 		hunter = "Vampire Hunter",
+		officer = "Officer",
 	},
 	cellBoss = {
 		spawnChance = 1 / 8,
@@ -68,6 +70,13 @@ Macros = {
 		magazine = 2,
 		range = 4,
 		idealDistance = 4,
+	},
+	officer = {
+		spawnChance = 1 / 3,
+		damage = 2,
+		magazine = 1,
+		range = 3,
+		idealDistance = 3,
 	},
 	calculates = {
 		-- Guardian: moves around on a set axis, if player moves while near it, takes damage
