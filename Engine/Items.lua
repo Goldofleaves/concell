@@ -588,7 +588,10 @@ registerItem({
         if not self.isBeingUsed then
             self.targets = {}
             for _, gate in ipairs(Util.World.getAllWorldMoveablesWithType("gate")) do
-                if gate.extra.locked and get_orthogonal_dist(gate, PLAYER) == 1 then
+                if gate.extra.locked
+                    and gate.extra.unlockType ~= "statue"
+                    and get_orthogonal_dist(gate, PLAYER) == 1
+                then
                     self.targets[#self.targets + 1] = gate
                 end
             end

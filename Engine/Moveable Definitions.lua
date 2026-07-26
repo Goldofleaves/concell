@@ -199,8 +199,33 @@ function Macros.MDef.isometricGrid(w, h, area)
             end
         end
 
+        for index = 2, #path do
+            if path[index].statuePush then
+                return false
+            end
+        end
+
         local vertices = getAllValidVertices(w, h, { "wall", "enemy" })
-        if not isValidVertice(vertices, { targetX, targetY }) then
+        local statue = Util.World.getStatueAt(targetX, targetY)
+        local statuePush
+        if statue then
+            local destinationX = targetX + dx
+            local destinationY = targetY + dy
+            if not Util.World.canPushStatueTo(
+                statue,
+                destinationX,
+                destinationY
+            ) then
+                return false
+            end
+            statuePush = {
+                identifier = statue.extra.identifier,
+                fromX = targetX,
+                fromY = targetY,
+                toX = destinationX,
+                toY = destinationY,
+            }
+        elseif not isValidVertice(vertices, { targetX, targetY }) then
             return false
         end
 
@@ -218,6 +243,7 @@ function Macros.MDef.isometricGrid(w, h, area)
         table.insert(path, {
             point = Vector(targetCoords[1], targetCoords[2]),
             coords = targetCoords,
+            statuePush = statuePush,
         })
         grid.extra.drawAlpha = 1
         return true

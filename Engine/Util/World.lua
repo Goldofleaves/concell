@@ -112,6 +112,11 @@ local function roomBlocksSight(room, x, y)
             return true
         end
     end
+    for _, statue in ipairs(room.statues or {}) do
+        if statue.x == x and statue.y == y then
+            return true
+        end
+    end
     return false
 end
 
@@ -632,7 +637,7 @@ local function carveCompactShape(room, reserved)
 end
 
 local function generateFloorShape(room, reserved, index)
-    if isGrassIndex(index) then
+    if isGrassIndex(index) or room.layout == "open" then
         room.layout = "open"
         fillFloor(room)
     elseif room.layout == "maze" then
@@ -658,7 +663,10 @@ local function generateFloorShape(room, reserved, index)
 end
 
 local function addReachableBarrier(room, reserved, identifier, index)
-    if room.layout == "maze" or isGrassIndex(index) then
+    if room.layout == "maze"
+        or room.layout == "open"
+        or isGrassIndex(index)
+    then
         return identifier
     end
     for _ = 1, 24 do
@@ -687,7 +695,9 @@ local function addReachableBarrier(room, reserved, identifier, index)
                 local isGap = x == passageGap[1] and y == passageGap[2]
                 if Util.World.isFloor(room, x, y) and not isGap and not reserved[key] then
                     walls[#walls + 1] = {
-                        name = "prisonBar",
+                        name = isRuinsIndex(index)
+                            and "debris_"..love.math.random(1, 2)
+                            or "prisonBar",
                         type = "wall",
                         x = x,
                         y = y,
@@ -709,10 +719,13 @@ local function addReachableBarrier(room, reserved, identifier, index)
 end
 
 local function addPrisonGatePuzzle(room, reserved, index)
-    room.gates = {}
-    room.keys = {}
+    room.gates = room.gates or {}
+    room.keys = room.keys or {}
 
-    if type(index) ~= "number" or index < 2 or index > 5
+    local supportsGatePuzzle = type(index) == "number"
+        and ((index >= 2 and index <= 5) or isRuinsIndex(index))
+    if not supportsGatePuzzle
+        or #room.gates > 0
         or #room.doors < 2 or not Util.Math.chance(2 / 5)
     then
         return false
@@ -833,6 +846,160 @@ local function addPrisonGatePuzzle(room, reserved, index)
     }
     reserved[best.key] = true
     reserved[coordKey(keyPosition[1], keyPosition[2])] = true
+    return true
+end
+
+local function addStatuePuzzle(room, reserved, index, statueRoomIndex)
+    room.statues = room.statues or {}
+    room.buttons = room.buttons or {}
+    if index ~= statueRoomIndex
+        or not isRuinsIndex(index)
+        or #room.doors ~= 2
+        or #(room.gates or {}) > 0
+    then
+        return false
+    end
+
+    local entrance = room.doors[1].a
+    local exitDoor = room.doors[2]
+    local gateX, gateY = exitDoor.a.x, exitDoor.a.y
+    local walls = {}
+    for _, wall in ipairs(room.walls or {}) do
+        walls[coordKey(wall.x, wall.y)] = true
+    end
+    if walls[coordKey(gateX, gateY)] then
+        return false
+    end
+
+    local baseBlocked = {}
+    for key in pairs(walls) do
+        baseBlocked[key] = true
+    end
+    baseBlocked[coordKey(gateX, gateY)] = true
+
+    local directions = {
+        {1, 0},
+        {-1, 0},
+        {0, 1},
+        {0, -1},
+    }
+    local maximumPushDistance =
+        math.max(room.size.w, room.size.h) - 3
+    local desiredPushDistance = love.math.random(
+        math.min(3, maximumPushDistance),
+        maximumPushDistance
+    )
+    local candidates = {}
+    for x = 1, room.size.w - 2 do
+        for y = 1, room.size.h - 2 do
+            for _, direction in ipairs(directions) do
+                for pushDistance = 2, maximumPushDistance do
+                    local standX = x - direction[1]
+                    local standY = y - direction[2]
+                    local buttonX = x + direction[1] * pushDistance
+                    local buttonY = y + direction[2] * pushDistance
+                    local standKey = coordKey(standX, standY)
+                    local statueKey = coordKey(x, y)
+                    local buttonKey = coordKey(buttonX, buttonY)
+                    local laneKeys = {}
+                    local laneIsClear = Util.World.isFloor(
+                        room,
+                        standX,
+                        standY
+                    )
+                        and not reserved[standKey]
+                        and not baseBlocked[standKey]
+                    for step = 0, pushDistance do
+                        local laneX = x + direction[1] * step
+                        local laneY = y + direction[2] * step
+                        local laneKey = coordKey(laneX, laneY)
+                        laneKeys[#laneKeys + 1] = laneKey
+                        if not Util.World.isFloor(room, laneX, laneY)
+                            or reserved[laneKey]
+                            or baseBlocked[laneKey]
+                        then
+                            laneIsClear = false
+                        end
+                    end
+                    if laneIsClear then
+                        local prePushBlocked = {}
+                        for key in pairs(baseBlocked) do
+                            prePushBlocked[key] = true
+                        end
+                        prePushBlocked[statueKey] = true
+                        local reachable, distances = getReachableTiles(
+                            room,
+                            entrance,
+                            prePushBlocked
+                        )
+                        if reachable[standKey] then
+                            local solvedBlocked = {}
+                            for key in pairs(walls) do
+                                solvedBlocked[key] = true
+                            end
+                            solvedBlocked[buttonKey] = true
+                            if getCriticalPaths(room, solvedBlocked) then
+                                candidates[#candidates + 1] = {
+                                    statueX = x,
+                                    statueY = y,
+                                    standX = standX,
+                                    standY = standY,
+                                    buttonX = buttonX,
+                                    buttonY = buttonY,
+                                    laneKeys = laneKeys,
+                                    pushDistance = pushDistance,
+                                    score = distances[standKey] * 10
+                                        + math.abs(gateX - x)
+                                        + math.abs(gateY - y)
+                                        - math.abs(
+                                            pushDistance
+                                                - desiredPushDistance
+                                        ) * 1000
+                                        + love.math.random(),
+                                }
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if #candidates == 0 then
+        return false
+    end
+    table.sort(candidates, function(a, b)
+        return a.score > b.score
+    end)
+    local chosen = candidates[1]
+    local direction = (exitDoor.side == "tl" or exitDoor.side == "dr")
+        and 1
+        or -1
+
+    room.gates[1] = {
+        id = 1,
+        x = gateX,
+        y = gateY,
+        dir = direction,
+        locked = true,
+        unlockType = "statue",
+    }
+    room.statues[1] = {
+        id = 1,
+        x = chosen.statueX,
+        y = chosen.statueY,
+    }
+    room.buttons[1] = {
+        id = 1,
+        x = chosen.buttonX,
+        y = chosen.buttonY,
+        gateId = 1,
+        pressed = false,
+    }
+    reserved[coordKey(gateX, gateY)] = true
+    reserved[coordKey(chosen.standX, chosen.standY)] = true
+    for _, key in ipairs(chosen.laneKeys) do
+        reserved[key] = true
+    end
     return true
 end
 
@@ -1222,11 +1389,6 @@ local function addRuinsEnemies(
     for _, wall in ipairs(room.walls) do
         blocked[coordKey(wall.x, wall.y)] = true
     end
-    for _, gate in ipairs(room.gates or {}) do
-        if gate.locked ~= false then
-            blocked[coordKey(gate.x, gate.y)] = true
-        end
-    end
     for _, enemy in ipairs(room.enemies) do
         blocked[coordKey(enemy.pos[1], enemy.pos[2])] = true
     end
@@ -1269,6 +1431,34 @@ local function addRuinsEnemies(
                 reserved[key] = true
                 identifier = identifier + 1
                 hasAbraham = true
+                break
+            end
+            blocked[key] = nil
+        end
+    end
+
+    if Util.Math.chance(Macros.guardian.spawnChance) then
+        table.sort(candidates, function(a, b)
+            local start = room.doors[1].a
+            local distanceA = math.abs(a[1] - start.x)
+                + math.abs(a[2] - start.y)
+            local distanceB = math.abs(b[1] - start.x)
+                + math.abs(b[2] - start.y)
+            return distanceA > distanceB
+        end)
+        while #candidates > 0 do
+            local position = table.remove(candidates, 1)
+            local key = coordKey(position[1], position[2])
+            blocked[key] = true
+            if getCriticalPaths(room, blocked) then
+                room.enemies[#room.enemies + 1] = {
+                    name = "guardian",
+                    pos = position,
+                    facing = tostring(love.math.random(1, 4)),
+                    id = identifier,
+                }
+                reserved[key] = true
+                identifier = identifier + 1
                 break
             end
             blocked[key] = nil
@@ -1939,8 +2129,15 @@ local function randomRoomSize(index)
     end
 
     if isRuinsIndex(index) then
-        if Util.Math.chance(7 / 25) then
+        local layoutRoll = love.math.random()
+        if layoutRoll < 1 / 3 then
             return orient(8, love.math.random(11, 12), "maze")
+        elseif layoutRoll < 2 / 3 then
+            return orient(
+                love.math.random(7, 8),
+                love.math.random(11, 12),
+                "open"
+            )
         end
         return orient(
             love.math.random(7, 8),
@@ -1973,6 +2170,9 @@ end
 
 function Util.World.regenerateRoom(room, index, forceAbraham)
     local size, layout = randomRoomSize(index)
+    if #(room.statues or {}) > 0 then
+        layout = "open"
+    end
     local replacement = {
         size = size,
         layout = layout,
@@ -1983,6 +2183,8 @@ function Util.World.regenerateRoom(room, index, forceAbraham)
         keys = {},
         pickups = {},
         covers = {},
+        statues = {},
+        buttons = {},
     }
 
     for _, door in ipairs(room.doors) do
@@ -2006,6 +2208,8 @@ function Util.World.regenerateRoom(room, index, forceAbraham)
     end
     generateFloorShape(replacement, reserved, index)
     local identifier = addReachableBarrier(replacement, reserved, 1, index)
+    local statueRoomIndex = #(room.statues or {}) > 0 and index or nil
+    addStatuePuzzle(replacement, reserved, index, statueRoomIndex)
     addPrisonGatePuzzle(replacement, reserved, index)
     local bossRoomIndex
     local wizardBossRoomIndex
@@ -2253,10 +2457,14 @@ function Util.World.generateRoom(
     index,
     bossRoomIndex,
     wizardBossRoomIndex,
-    abrahamRoomIndex
+    abrahamRoomIndex,
+    statueRoomIndex
 )
     local room = {}
     room.size, room.layout = randomRoomSize(index)
+    if index == statueRoomIndex then
+        room.layout = "open"
+    end
     room.enemies = {}
     room.doors = {}
     room.walls = {}
@@ -2264,6 +2472,8 @@ function Util.World.generateRoom(
     room.keys = {}
     room.pickups = {}
     room.covers = {}
+    room.statues = {}
+    room.buttons = {}
     local identifier = 1
     if type == "init_room" then
         room.size = { w = 5, h = 5 }
@@ -2342,6 +2552,7 @@ function Util.World.generateRoom(
         end
         generateFloorShape(room, reserved, index)
         identifier = addReachableBarrier(room, reserved, identifier, index)
+        addStatuePuzzle(room, reserved, index, statueRoomIndex)
         addPrisonGatePuzzle(room, reserved, index)
         identifier = addPrisonCellBoss(
             room,
@@ -2399,6 +2610,7 @@ function Util.World.generateDungeon()
     local abrahamRoomIndex = Util.Math.chance(Macros.abraham.spawnChance)
         and love.math.random(13, 16)
         or nil
+    local statueRoomIndex = love.math.random(12, 16)
     local alphabet = "abcdefghij"
     local function getprevletter(a)
         return string.char(string.byte(a)-1)
@@ -2453,7 +2665,8 @@ function Util.World.generateDungeon()
             getIndex(),
             bossRoomIndex,
             wizardBossRoomIndex,
-            abrahamRoomIndex
+            abrahamRoomIndex,
+            statueRoomIndex
         )
         rooms[getIndex()] = room
         incrementCounters()
@@ -2591,6 +2804,10 @@ function getAllValidVertices(www, hhh, blockades)
             local hasblockade = false
             for k, v in ipairs(worldMoveables) do
                 if v.properties.type == "gate" and v.extra.locked then
+                    hasblockade = true
+                    break
+                end
+                if v.properties.type == "statue" then
                     hasblockade = true
                     break
                 end

@@ -277,6 +277,9 @@ function Macros.UIDef.overlay()
                             Util.World.modTime(1)
                             Util.Audio.playSfx("blip_hover", 2)
                             table.remove(s.extra.path, 1)
+                            Util.World.executeStatuePush(
+                                s.extra.path[1].statuePush
+                            )
                             local targetX = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
                             local targetY = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
                             PLAYER:moveToGrid(targetX, targetY)
@@ -301,6 +304,7 @@ function Macros.UIDef.overlay()
                 end
                 Util.World.modTime(1)
                 table.remove(s.extra.path, 1)
+                Util.World.executeStatuePush(s.extra.path[1].statuePush)
                 Util.Audio.playSfx("blip_hover", 2)
                 local targetX = Util.Math.round(s.extra.path[1].coords[1] - 0.2)
                 local targetY = Util.Math.round(s.extra.path[1].coords[2] - 0.2)
