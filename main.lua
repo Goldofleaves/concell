@@ -83,6 +83,7 @@ wrapper("ItemHemokinesis", 50, 47, "Items/")
 wrapper("ItemLunchbox", 50, 47, "Items/")
 wrapper("ItemBloodphial", 50, 47, "Items/")
 wrapper("ItemStrawberry", 50, 47, "Items/")
+wrapper("ItemBloodbag", 50, 47, "Items/")
 
 
 wrapper("Door", 40, 60, "Tiles/")
@@ -143,6 +144,8 @@ wrapper("tree_1", 40, 60, "Tiles/")
 wrapper("tree_2", 40, 60, "Tiles/")
 wrapper("tree_3", 40, 60, "Tiles/")
 wrapper("tree_4", 40, 60, "Tiles/")
+wrapper("debris_1", 40, 60, "Tiles/")
+wrapper("debris_2", 40, 60, "Tiles/")
 
 wrapper("cutscene", 600, 500)
 wrapper("gameOver", 600, 400)

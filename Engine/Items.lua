@@ -2,7 +2,9 @@ Centers = {}
 Pools = {
     common = { rate = 3, keys = {} },
     uncommon = { rate = 2, keys = {} },
-    rare = { rate = 1, keys = {} }
+    rare = { rate = 1, keys = {} },
+    misc = { rate = 0, keys = {} },
+    legendary = { rate = 0, keys = {} }
 }
 function registerItem(args)
     args.key = args.key or "ERROR"
@@ -793,5 +795,34 @@ registerItem({
             G.flags.saveData.gridsPerMove = G.flags.saveData.gridsPerMove - self.config.modMoves
             discardItem(nil, self.key)
         end
+    end,
+})
+registerItem({
+    key = "bloodbag",
+    sprite = "ItemBloodbag",
+    pool = "misc",
+    config = {
+        modHP = 5,
+        timeCost = 10,
+        vars = {
+            5,
+            10
+        }
+    },
+    text = {
+        "|s:2,2|Blood Bag",
+        "|s:2,2|Type: Usable",
+        "|s:2,2|Cost: {2} Mins",
+        "|s:2,2|This item heals {1}",
+        "|s:2,2|hp when it is used.",
+    },
+    canUse = function()
+        if G.flags.saveData.hp < Macros.maxhp then return "noState" end
+        return false
+    end,
+    onUse = function(self)
+        Util.World.modHP(self.config.modHP)
+        Util.World.modTime(self.config.timeCost)
+        discardItem(nil, self.key)
     end,
 })
