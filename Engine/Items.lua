@@ -610,7 +610,7 @@ registerItem({
 registerItem({
     key = "sacrificial_dagger",
     sprite = "ItemDagger",
-    pool = "uncommon",
+    pool = {"uncommon", "misc"},
     config = {
         enemy_damage = -1,
         self_healing = 2,
@@ -667,7 +667,7 @@ registerItem({
 registerItem({
     key = "hemokinesis",
     sprite = "ItemHemokinesis",
-    pool = "uncommon",
+    pool = {"uncommon", "misc"},
     config = {
         modHP = 1,
         vars = {
