@@ -258,6 +258,7 @@ end
 registerItem({
     key = "musket",
     sprite = "ItemMusket",
+    pool = "rare",
     config = {
         damage = -10,
         timeCost = 6,
@@ -302,6 +303,7 @@ registerItem({
 registerItem({
     key = "whip",
     sprite = "ItemWhip",
+    pool = "uncommon",
     config = {
         damage = -4,
         timeCost = 3,
@@ -347,6 +349,7 @@ registerItem({
 registerItem({
     key = "knife",
     sprite = "ItemKnife",
+    pool = "common",
     config = {
         damage = -2,
         timeCost = 2,
@@ -395,6 +398,7 @@ registerItem({
 registerItem({
     key = "greatsword",
     sprite = "ItemGreatsword",
+    pool = "common",
     config = {
         damage = -5,
         timeCost = 3,
@@ -437,6 +441,7 @@ registerItem({
 registerItem({
     key = "sunscreen",
     sprite = "ItemSunscreen",
+    pool = "rare",
     config = {
         timeMod = 30,
         vars = {
@@ -465,6 +470,7 @@ registerItem({
 registerItem({
     key = "rapier",
     sprite = "ItemRapier",
+    pool = "common",
     config = {
         damage = -4,
         timeCost = 1,
@@ -532,6 +538,7 @@ registerItem({
 registerItem({
     key = "aura",
     sprite = "ItemEminence",
+    pool = "uncommon",
     config = {
         damage = -1,
         vars = {
@@ -595,6 +602,7 @@ registerItem({
 registerItem({
     key = "sacrificial_dagger",
     sprite = "ItemDagger",
+    pool = "uncommon",
     config = {
         enemy_damage = -1,
         self_healing = 2,
@@ -651,6 +659,7 @@ registerItem({
 registerItem({
     key = "hemokinesis",
     sprite = "ItemHemokinesis",
+    pool = "uncommon",
     config = {
         modHP = 1,
         vars = {
@@ -673,6 +682,7 @@ registerItem({
 registerItem({
     key = "lunchbox",
     sprite = "ItemLunchbox",
+    pool = "rare",
     config = {
         modHP = 15,
         timeCost = 10,
@@ -701,6 +711,7 @@ registerItem({
 registerItem({
     key = "bloodphial",
     sprite = "ItemBloodphial",
+    pool = "uncommon",
     config = {
         modHP = 2,
         turns = 4,
@@ -741,6 +752,7 @@ registerItem({
 registerItem({
     key = "strawberry",
     sprite = "ItemStrawberry",
+    pool = "common",
     config = {
         modMoves = 2,
         turns = 4,
