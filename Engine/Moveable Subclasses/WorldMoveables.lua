@@ -9,6 +9,58 @@ end
 
 local IN_COMBAT = false
 
+local ITEM_DROP_EXCLUSIONS = {
+    knife = true,
+    prison_key = true,
+}
+
+function Util.World.spawnGroundItemPickup(itemKey, x, y, requiresPlayerExit)
+    local saveData = G.flags.saveData
+    local room = saveData.curRoom
+    room.pickups = room.pickups or {}
+    saveData.nextPickupId = saveData.nextPickupId or 1
+    local identifier = "pickup"..tostring(saveData.nextPickupId)
+    saveData.nextPickupId = saveData.nextPickupId + 1
+    room.pickups[#room.pickups + 1] = {
+        id = identifier,
+        x = x,
+        y = y,
+        itemKey = itemKey,
+        requiresPlayerExit = requiresPlayerExit == true,
+    }
+    return WorldMoveable({
+        x = x,
+        y = y,
+        type = "pickup",
+        extra = {
+            itemKey = itemKey,
+            identifier = identifier,
+            collection = "pickups",
+            requiresPlayerExit = requiresPlayerExit == true,
+        },
+        updateOrder = 2,
+        drawOrder = 10,
+    })
+end
+
+local function spawnEnemyItemDrop(x, y)
+    local saveData = G.flags.saveData
+    saveData.nextItemDropAt = saveData.nextItemDropAt
+        or love.math.random(7, 8)
+    if saveData.enemiesSlain < saveData.nextItemDropAt then
+        return
+    end
+
+    saveData.nextItemDropAt = saveData.nextItemDropAt
+        + love.math.random(7, 8)
+    local itemKey = poolItem(nil, ITEM_DROP_EXCLUSIONS)
+    if not itemKey then
+        return
+    end
+
+    Util.World.spawnGroundItemPickup(itemKey, x, y, false)
+end
+
 function WorldMoveable:checkEaseMusic()
     local should_be_in_combat = false
     for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
@@ -48,6 +100,7 @@ function WorldMoveable:modHP(m, silent)
                 end
             end
             G.flags.saveData.enemiesSlain = G.flags.saveData.enemiesSlain + 1
+            spawnEnemyItemDrop(self.TMod.x.base, self.TMod.y.base)
             WorldMoveable:checkEaseMusic()
             self:remove()
         else
@@ -307,12 +360,24 @@ function WorldMoveable:draw()
     if self.properties.type == "pickup" then
         love.graphics.setColor(Macros.colors.white)
         local v = Util.World.toIsoPos(Vector(visualX, visualY))
+        local atlasKey = self.extra.itemKey == "prison_key"
+            and "prisonKey"
+            or Centers[self.extra.itemKey].sprite
+        local atlas = Atlases[atlasKey]
+        local scale = Util.UI.getScalingFactor()
+        local drawX = v.contents[1] - 40 * scale
+        local drawY = v.contents[2] - 80 * scale
+        if self.extra.itemKey ~= "prison_key" then
+            drawX = v.contents[1] - atlas.singleDimention.w * scale
+            drawY = v.contents[2]
+                - (atlas.singleDimention.h * 2 - 40) * scale
+        end
         love.graphics.draw(
-            Atlases.prisonKey.image,
-            Atlases.prisonKey.splicedImages[0][0],
-            v.contents[1] - 40 * Util.UI.getScalingFactor(),
-            v.contents[2] - 80 * Util.UI.getScalingFactor(),
-            0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+            atlas.image,
+            atlas.splicedImages[0][0],
+            drawX,
+            drawY,
+            0, 2 * scale, 2 * scale
         )
     end
     if self.properties.type == "cover" then
@@ -469,18 +534,39 @@ function WorldMoveable:update(dt)
         or 12
     self.drawOrder = visualX + visualY + layerOffset
         + (self.properties.type == "door" and -.5 or 0)
-    if self.properties.type == "pickup"
-        and not self.extra.collected
+    local playerIsOnPickup = self.properties.type == "pickup"
         and PLAYER
-        and not PLAYER.extra.gridMove
         and PLAYER.TMod.x.base == self.TMod.x.base
         and PLAYER.TMod.y.base == self.TMod.y.base
+    if self.properties.type == "pickup"
+        and self.extra.requiresPlayerExit
+        and not playerIsOnPickup
+    then
+        self.extra.requiresPlayerExit = false
+        local collection = self.extra.collection or "keys"
+        for _, pickup in ipairs(
+            G.flags.saveData.curRoom[collection] or {}
+        ) do
+            if pickup.id == self.extra.identifier then
+                pickup.requiresPlayerExit = false
+                break
+            end
+        end
+    end
+    if self.properties.type == "pickup"
+        and not self.extra.collected
+        and not self.extra.requiresPlayerExit
+        and PLAYER
+        and not PLAYER.extra.gridMove
+        and playerIsOnPickup
         and addItem(self.extra.itemKey)
     then
         self.extra.collected = true
-        for index, key in ipairs(G.flags.saveData.curRoom.keys) do
+        local collection = self.extra.collection or "keys"
+        local pickups = G.flags.saveData.curRoom[collection] or {}
+        for index, key in ipairs(pickups) do
             if key.id == self.extra.identifier then
-                table.remove(G.flags.saveData.curRoom.keys, index)
+                table.remove(pickups, index)
                 break
             end
         end
@@ -1160,6 +1246,22 @@ function WorldMoveable:initRoomStuff()
             extra = {
                 itemKey = v.itemKey,
                 identifier = v.id,
+                collection = "keys",
+            },
+            updateOrder = 2,
+            drawOrder = 10
+        })
+    end
+    for _, v in ipairs(G.flags.saveData.curRoom.pickups or {}) do
+        WorldMoveable({
+            x = v.x,
+            y = v.y,
+            type = "pickup",
+            extra = {
+                itemKey = v.itemKey,
+                identifier = v.id,
+                collection = "pickups",
+                requiresPlayerExit = v.requiresPlayerExit == true,
             },
             updateOrder = 2,
             drawOrder = 10

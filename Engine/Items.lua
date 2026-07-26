@@ -18,6 +18,7 @@ function registerItem(args)
         canUse = args.canUse or function() return "noState" end,
         IBUupdate = args.IBUupdate or function(self) end,
         onUse = args.onUse or function(self) end,
+        isKey = args.isKey == true,
         text = args.text or {"|s:2,2|ERROR"}
     }
     table.insert(Pools[args.pool or "common"].keys, args.key)
@@ -46,6 +47,9 @@ function discardItem(slot, key)
         local i = slot
         key = G.flags.saveData.items[i].key
         local spr = Centers[key].sprite
+        local shouldDrop = Centers[key].isKey
+            and PLAYER
+            and G.flags.saveData.curRoom
         Util.Event.addEvent(Event(
             {
                 duration = 0.75,
@@ -73,6 +77,14 @@ function discardItem(slot, key)
         ), "itemDiscard" .. i)
         Centers[key].onDiscard(G.flags.saveData.items[i])
         table.remove(G.flags.saveData.items, slot)
+        if shouldDrop then
+            Util.World.spawnGroundItemPickup(
+                key,
+                PLAYER.TMod.x.base,
+                PLAYER.TMod.y.base,
+                true
+            )
+        end
         return true
     end
     for k, v in ipairs(G.flags.saveData.items) do
@@ -124,23 +136,46 @@ function hasItem(key)
 end
 
 ---@param pool? string
----@return string key
-function poolItem(pool)
+---@param excluded? table<string, boolean>
+---@return string? key
+function poolItem(pool, excluded)
+    excluded = excluded or {}
     if pool then
         local t = {}
         for k, v in ipairs(Pools[pool].keys) do
-            if Centers[v].inPool() and not hasItem(v) then
+            if not excluded[v]
+                and Centers[v].inPool()
+                and not hasItem(v)
+            then
                 table.insert(t, v)
             end
+        end
+        if #t == 0 then
+            return nil
         end
         return Util.Math.randomElement(t).v
     end
     local chances = {}
-    for k, v in ipairs(Pools) do
-        table.insert(chances, {val = k, weight = v.rate})
+    for key, itemPool in pairs(Pools) do
+        local hasEligibleItem = false
+        for _, itemKey in ipairs(itemPool.keys) do
+            if not excluded[itemKey]
+                and Centers[itemKey].inPool()
+                and not hasItem(itemKey)
+            then
+                hasEligibleItem = true
+                break
+            end
+        end
+        if hasEligibleItem then
+            table.insert(chances, {val = key, weight = itemPool.rate})
+        end
+    end
+    if #chances == 0 then
+        return nil
     end
     local p = Util.Math.weightedChance(chances)
-    return poolItem(p)
+    return poolItem(p, excluded)
 end
 function CALCULATECONTEXT(context)
     for k, v in ipairs(G.flags.saveData.items) do
@@ -522,6 +557,7 @@ registerItem({
 registerItem({
     key = "prison_key",
     sprite = "ItemPrisonKey",
+    isKey = true,
     inPool = function()
         return false
     end,

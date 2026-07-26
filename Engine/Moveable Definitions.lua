@@ -26,21 +26,54 @@ function Macros.MDef.isometricGrid(w, h, area)
     G.worldOffsetVector = Vector((ww - dw) / 2 + ddw, (hh - dh) / 2)
 
     local room = G.flags.saveData.curRoom
+    local tileAreaFallbacks = {
+        ruins = "prison",
+        thorn = "grass",
+    }
     local function hasFloor(x, y)
         return Util.World.isFloor(room, x, y)
     end
-    local function makeTileSprites(atlasKey, chance)
+    local function getTileAtlasKey(x, y, suffix)
+        local tileArea = room.tileAreas
+            and room.tileAreas[x]
+            and room.tileAreas[x][y]
+            or area
+        local atlasKey = tileArea..suffix
+        if Atlases[atlasKey] then
+            return atlasKey
+        end
+        local substituteArea = tileAreaFallbacks[tileArea]
+        if substituteArea and Atlases[substituteArea..suffix] then
+            return substituteArea..suffix
+        end
+
+        local fallbackArea = room.transition
+            and room.transition.fromArea
+            or area
+        atlasKey = fallbackArea..suffix
+        if Atlases[atlasKey] then
+            return atlasKey
+        end
+        return (Atlases["grass"..suffix] and "grass" or "prison")
+            ..suffix
+    end
+    local function makeTileSprites(suffix, chance)
         local sprites = {}
         for x = 0, w - 1 do
             for y = 0, h - 1 do
-                if hasFloor(x, y) and (not chance or Util.Math.chance(chance)) then
+                local include = not chance
+                    or (room.layout == "transition"
+                        and (x * 3 + y * 5) % 4 == 0)
+                    or (room.layout ~= "transition"
+                        and Util.Math.chance(chance))
+                if hasFloor(x, y) and include then
                     local vertex = Util.World.toIsoPos(Vector(x, y))
                     sprites[#sprites + 1] = {
                         pos = { x, y },
                         sprite = Sprite {
                             scaleX = 2,
                             scaleY = 2,
-                            atlasKey = atlasKey,
+                            atlasKey = getTileAtlasKey(x, y, suffix),
                             x = vertex.contents[1] + G.drawinfo.gridUnit,
                             y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                             worldCoords = false,
@@ -63,7 +96,11 @@ function Macros.MDef.isometricGrid(w, h, area)
                         sprite = Sprite {
                             scaleX = 2,
                             scaleY = 2,
-                            atlasKey = area .. "Edge" .. edge,
+                            atlasKey = getTileAtlasKey(
+                                x,
+                                y,
+                                "Edge"..edge
+                            ),
                             x = vertex.contents[1] + G.drawinfo.gridUnit,
                             y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
                             worldCoords = false,
@@ -82,8 +119,8 @@ function Macros.MDef.isometricGrid(w, h, area)
             w = w,
             h = h,
             sprites = {
-                base = makeTileSprites(area .. "Base"),
-                foley = makeTileSprites(area .. "Foley", 1 / 4),
+                base = makeTileSprites("Base"),
+                foley = makeTileSprites("Foley", 1 / 4),
                 edge = {
                     makeEdgeSprites(1, -1, 0),
                     makeEdgeSprites(2, 0, 1),

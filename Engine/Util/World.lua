@@ -57,6 +57,25 @@ local function isGrassIndex(index)
     return type(index) == "number" and index >= 6 and index <= 11
 end
 
+local TRANSITION_ROOM_CONFIGS = {
+    [5] = {
+        fromArea = "prison",
+        toArea = "grass",
+        enemies = {"cellmate", "turret"},
+    },
+    [11] = {
+        fromArea = "grass",
+        toArea = "ruins",
+        enemies = {"hunter", "cellmate"}, -- cause we have no fucking ruins enemies yet
+    },
+}
+
+local function getTransitionRoomConfig(index)
+    return type(index) == "number"
+        and TRANSITION_ROOM_CONFIGS[index]
+        or nil
+end
+
 local TURRET_FACING_VECTORS = {
     ["1"] = {-1, 0},
     ["2"] = {0, 1},
@@ -249,6 +268,19 @@ local function generateAuxDoor(side, w, h, index)
         aux = { x = g, y = h, a = { x = g, y = h-1 }, index = index, side = side }
     end
     return aux
+end
+
+local function generateCenteredAuxDoor(side, w, h, index)
+    local x = math.floor((w - 1) / 2)
+    local y = math.floor((h - 1) / 2)
+    if side == "tl" then
+        return {x = -1, y = y, a = {x = 0, y = y}, index = index, side = side}
+    elseif side == "dr" then
+        return {x = w, y = y, a = {x = w - 1, y = y}, index = index, side = side}
+    elseif side == "tr" then
+        return {x = x, y = -1, a = {x = x, y = 0}, index = index, side = side}
+    end
+    return {x = x, y = h, a = {x = x, y = h - 1}, index = index, side = side}
 end
 
 local function fillFloor(room)
@@ -772,6 +804,27 @@ local function addPrisonGatePuzzle(room, reserved, index)
     return true
 end
 
+local function getPrisonEnemyCap(room, index)
+    if type(index) ~= "number" or index < 2 or index > 5 then
+        return math.huge
+    end
+
+    local floorTiles = 0
+    for x = 0, room.size.w - 1 do
+        for y = 0, room.size.h - 1 do
+            if Util.World.isFloor(room, x, y) then
+                floorTiles = floorTiles + 1
+            end
+        end
+    end
+    if floorTiles <= 36 then
+        return 2
+    elseif floorTiles <= 52 then
+        return 3
+    end
+    return 4
+end
+
 local function addRoomEnemies(room, reserved, identifier, index)
     if isGrassIndex(index) then
         return identifier
@@ -804,7 +857,11 @@ local function addRoomEnemies(room, reserved, identifier, index)
         end
     end
 
-    for _ = 1, math.min(3, #candidates) do
+    local availableSlots = math.max(
+        0,
+        getPrisonEnemyCap(room, index) - #room.enemies
+    )
+    for _ = 1, math.min(3, availableSlots, #candidates) do
         local picked = love.math.random(1, #candidates)
         local position = table.remove(candidates, picked)
         room.enemies[#room.enemies + 1] = {
@@ -1026,6 +1083,7 @@ local function addPrisonOfficer(room, reserved, identifier, index)
     if type(index) ~= "number"
         or index < 2
         or index > 5
+        or #room.enemies >= getPrisonEnemyCap(room, index)
         or not Util.Math.chance(Macros.officer.spawnChance)
     then
         return identifier
@@ -1077,11 +1135,15 @@ local function addPrisonOfficer(room, reserved, identifier, index)
     return identifier + 1
 end
 
-local function addPrisonCellBoss(room, reserved, identifier, index)
-    if type(index) ~= "number"
-        or index < 2
-        or index > 5
-        or not Util.Math.chance(Macros.cellBoss.spawnChance)
+local function addPrisonCellBoss(
+    room,
+    reserved,
+    identifier,
+    index,
+    bossRoomIndex
+)
+    if index ~= bossRoomIndex
+        or #room.enemies >= getPrisonEnemyCap(room, index)
     then
         return identifier
     end
@@ -1441,6 +1503,97 @@ local function roomBlockers(room)
     return blocked
 end
 
+local function facingForVector(x, y)
+    if x < 0 then
+        return "1"
+    elseif y > 0 then
+        return "2"
+    elseif x > 0 then
+        return "3"
+    end
+    return "4"
+end
+
+local function transitionRoomPosition(room, depth, lateral)
+    local entrance = room.doors[1]
+    local inward = DOOR_INWARD[entrance.side]
+    local perpendicular = {-inward[2], inward[1]}
+    return {
+        entrance.a.x + inward[1] * depth + perpendicular[1] * lateral,
+        entrance.a.y + inward[2] * depth + perpendicular[2] * lateral,
+    }
+end
+
+local function generateTransitionRoom(room, reserved, index)
+    local config = getTransitionRoomConfig(index)
+    room.layout = "transition"
+    room.transition = {
+        fromArea = config.fromArea,
+        toArea = config.toArea,
+    }
+    fillFloor(room)
+
+    local entrance = room.doors[1]
+    local inward = DOOR_INWARD[entrance.side]
+    local travelLength = inward[1] ~= 0 and room.size.w or room.size.h
+    room.tileAreas = {}
+    for x = 0, room.size.w - 1 do
+        room.tileAreas[x] = {}
+        for y = 0, room.size.h - 1 do
+            local progress = (
+                (x - entrance.a.x) * inward[1]
+                + (y - entrance.a.y) * inward[2]
+            ) / (travelLength - 1)
+            if progress < 0.4 then
+                room.tileAreas[x][y] = config.fromArea
+            elseif progress > 0.6 then
+                room.tileAreas[x][y] = config.toArea
+            else
+                room.tileAreas[x][y] = (x + y) % 2 == 0
+                    and config.fromArea
+                    or config.toArea
+            end
+        end
+    end
+
+    local sourcePosition = transitionRoomPosition(room, 3, -2)
+    local targetPosition = transitionRoomPosition(
+        room,
+        travelLength - 3,
+        2
+    )
+    local enemyPositions = {sourcePosition, targetPosition}
+    for enemyIndex, enemyName in ipairs(config.enemies) do
+        local position = enemyPositions[enemyIndex]
+        room.enemies[#room.enemies + 1] = {
+            name = enemyName,
+            pos = position,
+            facing = enemyIndex == 1
+                and facingForVector(inward[1], inward[2])
+                or facingForVector(-inward[1], -inward[2]),
+            id = enemyIndex,
+        }
+        reserved[coordKey(position[1], position[2])] = true
+    end
+
+    local coverDepth = math.floor(travelLength / 2)
+    local coverFacing = inward[1] ~= 0
+        and (inward[1] > 0 and 3 or 1)
+        or (inward[2] > 0 and 2 or 4)
+    for lateral = -1, 1 do
+        local position = transitionRoomPosition(
+            room,
+            coverDepth,
+            lateral
+        )
+        room.covers[#room.covers + 1] = {
+            x = position[1],
+            y = position[2],
+            name = "cover"..coverFacing,
+        }
+    end
+end
+
 function Util.World.getWallDirection(room, wall)
     local horizontal = false
     local vertical = false
@@ -1460,7 +1613,10 @@ function Util.World.getWallDirection(room, wall)
     return wall.dir or 1
 end
 
-local function randomRoomSize()
+local function randomRoomSize(index)
+    if getTransitionRoomConfig(index) then
+        return {w = 10, h = 8}, "transition"
+    end
     if Util.Math.chance(7 / 25) then
         local longSide = love.math.random(8, 10)
         if Util.Math.chance(1 / 2) then
@@ -1479,7 +1635,7 @@ local function randomRoomSize()
 end
 
 function Util.World.regenerateRoom(room, index)
-    local size, layout = randomRoomSize()
+    local size, layout = randomRoomSize(index)
     local replacement = {
         size = size,
         layout = layout,
@@ -1488,11 +1644,15 @@ function Util.World.regenerateRoom(room, index)
         walls = {},
         gates = {},
         keys = {},
+        pickups = {},
         covers = {},
     }
 
     for _, door in ipairs(room.doors) do
-        replacement.doors[#replacement.doors + 1] = generateAuxDoor(
+        local doorGenerator = getTransitionRoomConfig(index)
+            and generateCenteredAuxDoor
+            or generateAuxDoor
+        replacement.doors[#replacement.doors + 1] = doorGenerator(
             door.side,
             replacement.size.w,
             replacement.size.h,
@@ -1501,14 +1661,38 @@ function Util.World.regenerateRoom(room, index)
     end
 
     local reserved = reserveDoorApproaches(replacement)
+    if getTransitionRoomConfig(index) then
+        generateTransitionRoom(replacement, reserved, index)
+        assert(getCriticalPaths(replacement, roomBlockers(replacement)),
+            "Transition room regeneration produced an unreachable exit")
+        return replacement
+    end
     generateFloorShape(replacement, reserved, index)
     local identifier = addReachableBarrier(replacement, reserved, 1, index)
     addPrisonGatePuzzle(replacement, reserved, index)
+    local bossRoomIndex
+    for _, enemy in ipairs(room.enemies or {}) do
+        if enemy.name == "cellboss" then
+            bossRoomIndex = index
+            break
+        end
+    end
+    identifier = addPrisonCellBoss(
+        replacement,
+        reserved,
+        identifier,
+        index,
+        bossRoomIndex
+    )
+    identifier = addPrisonOfficer(
+        replacement,
+        reserved,
+        identifier,
+        index
+    )
     identifier = addRoomEnemies(replacement, reserved, identifier, index)
     identifier = addGrassTurrets(replacement, reserved, identifier, index)
     identifier = addGrassHunters(replacement, reserved, identifier, index)
-    identifier = addPrisonOfficer(replacement, reserved, identifier, index)
-    addPrisonCellBoss(replacement, reserved, identifier, index)
     addGrassCovers(replacement, reserved, index)
     assert(getCriticalPaths(replacement, roomBlockers(replacement)),
         "World regeneration produced a room with an unreachable exit")
@@ -1572,14 +1756,22 @@ function Util.World.debugRegenerateCurrentRoom()
     return true
 end
 
-function Util.World.generateRoom(type, last_side, indices, getprev, index)
+function Util.World.generateRoom(
+    type,
+    last_side,
+    indices,
+    getprev,
+    index,
+    bossRoomIndex
+)
     local room = {}
-    room.size, room.layout = randomRoomSize()
+    room.size, room.layout = randomRoomSize(index)
     room.enemies = {}
     room.doors = {}
     room.walls = {}
     room.gates = {}
     room.keys = {}
+    room.pickups = {}
     room.covers = {}
     local identifier = 1
     if type == "init_room" then
@@ -1619,25 +1811,47 @@ function Util.World.generateRoom(type, last_side, indices, getprev, index)
         end
         local side = Util.World.getOppositeSide(last_side.side)
         local all = table.exclude({ "tl", "tr", "dl", "dr" }, side)
-        local lastAux = generateAuxDoor(side, room.size.w, room.size.h, getprev(last_side.index))
+        local doorGenerator = getTransitionRoomConfig(index)
+            and generateCenteredAuxDoor
+            or generateAuxDoor
+        local lastAux = doorGenerator(side, room.size.w, room.size.h, getprev(last_side.index))
         table.insert(room.doors, lastAux)
         for i = 1, r do
-            local ttype = Util.Math.randomElement(all).v
+            local ttype = getTransitionRoomConfig(index)
+                and Util.World.getOppositeSide(side)
+                or Util.Math.randomElement(all).v
             all = table.exclude(all, ttype)
             local indice = Util.Math.randomElement(indices).v
             indices = table.exclude(indices, indice)
-            table.insert(room.doors, generateAuxDoor(ttype, room.size.w, room.size.h, indice))
+            table.insert(room.doors, doorGenerator(ttype, room.size.w, room.size.h, indice))
         end
 
         local reserved = reserveDoorApproaches(room)
+        if getTransitionRoomConfig(index) then
+            generateTransitionRoom(room, reserved, index)
+            assert(getCriticalPaths(room, roomBlockers(room)),
+                "World generation produced an unreachable transition room")
+            return room
+        end
         generateFloorShape(room, reserved, index)
         identifier = addReachableBarrier(room, reserved, identifier, index)
         addPrisonGatePuzzle(room, reserved, index)
+        identifier = addPrisonCellBoss(
+            room,
+            reserved,
+            identifier,
+            index,
+            bossRoomIndex
+        )
+        identifier = addPrisonOfficer(
+            room,
+            reserved,
+            identifier,
+            index
+        )
         identifier = addRoomEnemies(room, reserved, identifier, index)
         identifier = addGrassTurrets(room, reserved, identifier, index)
         identifier = addGrassHunters(room, reserved, identifier, index)
-        identifier = addPrisonOfficer(room, reserved, identifier, index)
-        addPrisonCellBoss(room, reserved, identifier, index)
         addGrassCovers(room, reserved, index)
         assert(getCriticalPaths(room, roomBlockers(room)),
             "World generation produced a room with an unreachable exit")
@@ -1684,9 +1898,6 @@ function Util.World.getArea(index)
     if index >= 6 and index <= 11 then
         return "grass"
     end
-    if index == 12 then
-        return "f2r"
-    end
     return "ruins"
 end
 
@@ -1700,9 +1911,6 @@ function Util.World.getEnemy(index)
     if index >= 6 and index <= 11 then
         return "turret"
     end
-    if index == 12 then
-        return "turret"
-    end
     return "cellmate"
 end
 
@@ -1713,6 +1921,14 @@ function Util.World.generateDungeon()
     local main_len = 17
     local redirect = love.math.random(8, 10)
     local branch_len = love.math.random(2, 3)
+    local prisonBossRooms = {2, 3, 4}
+    local prisonBossChance = 1
+        - (1 - Macros.cellBoss.spawnChance) ^ #prisonBossRooms
+    local bossRoomIndex = Util.Math.chance(prisonBossChance)
+        and prisonBossRooms[
+            love.math.random(1, #prisonBossRooms)
+        ]
+        or nil
     local alphabet = "abcdefghij"
     local function getprevletter(a)
         return string.char(string.byte(a)-1)
@@ -1759,7 +1975,14 @@ function Util.World.generateDungeon()
     end
     local last_side
     while main_counter <= main_len do
-        local room = Util.World.generateRoom(getInfo().type, last_side, getInfo().indices, getPrevIndex, getIndex())
+        local room = Util.World.generateRoom(
+            getInfo().type,
+            last_side,
+            getInfo().indices,
+            getPrevIndex,
+            getIndex(),
+            bossRoomIndex
+        )
         rooms[getIndex()] = room
         incrementCounters()
         if main_counter == 2 then
