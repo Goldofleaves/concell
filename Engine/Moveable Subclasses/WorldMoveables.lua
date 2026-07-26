@@ -1423,7 +1423,6 @@ function WorldMoveable:resolveAbrahamAoe()
     self:clearEliteDanger()
     self.extra.eliteAction = nil
     self.extra.dangerCenter = nil
-    self.extra.shotsRemaining = Macros.abraham.magazine
 
     for index, position in ipairs(tiles) do
         local x, y = position[1], position[2]
@@ -1688,28 +1687,13 @@ local function getRangedFriendlyFireTarget(shooter)
     end
 end
 
-local function chooseAbrahamAction(shooter, config)
-    if shooter.extra.shotsRemaining > 0 then
-        if Util.Math.chance(config.jumpChance) and jumpAbraham(shooter) then
-            return
-        end
-        repositionRangedEnemy(shooter)
-        shooter.extra.shotsRemaining = config.magazine
-        return
-    end
-
+local function chooseAbrahamReloadAction(shooter, config)
     local choice = love.math.random()
-    if choice < config.aoeChance then
-        if shooter:prepareAbrahamAoe() then
-            return
-        end
-    elseif choice < config.aoeChance + config.jumpChance then
+    if choice < config.jumpChance then
         if jumpAbraham(shooter) then
             return
         end
-    elseif choice
-        < config.aoeChance + config.jumpChance + config.lineAttackChance
-    then
+    elseif choice < config.jumpChance + config.lineAttackChance then
         if shooter:prepareEliteAttack() then
             return
         end
@@ -1739,6 +1723,12 @@ local function resolveRangedEnemyActions(allEnemies)
                 end
                 goto continue
             end
+            if shooter.extra.name == "abraham"
+                and Util.Math.chance(config.aoeChance)
+                and shooter:prepareAbrahamAoe()
+            then
+                goto continue
+            end
             local canShoot = shooter.extra.shotsRemaining > 0
                 and Util.World.hasHunterSightline(
                     shooter,
@@ -1763,17 +1753,23 @@ local function resolveRangedEnemyActions(allEnemies)
                 elseif Util.World.modHP(-config.damage) then
                     return true
                 end
-            elseif shooter.extra.name == "abraham" then
-                chooseAbrahamAction(shooter, config)
-            else
+            elseif shooter.extra.shotsRemaining <= 0 then
                 local preparedAttack = shooter.extra.name == "elite"
-                    and shooter.extra.shotsRemaining <= 0
                     and Util.Math.chance(config.attackChance)
                     and shooter:prepareEliteAttack()
-                if not preparedAttack then
+                if shooter.extra.name == "abraham" then
+                    chooseAbrahamReloadAction(shooter, config)
+                elseif not preparedAttack then
                     repositionRangedEnemy(shooter)
                     shooter.extra.shotsRemaining = config.magazine
                 end
+            else
+                shooter.extra.facing = getFacingTowardPoint(
+                    shooter.TMod.x.base,
+                    shooter.TMod.y.base,
+                    PLAYER.TMod.x.base,
+                    PLAYER.TMod.y.base
+                ) or shooter.extra.facing
             end
         end
         ::continue::
