@@ -2679,6 +2679,7 @@ function Util.World.gameOver()
 end
 function Util.World.gameWin()
     if not getEventByNid("end1") then
+        local ref1, ref2 = G.flags.saveData.timer, G.flags.saveData.timemod
         for k, v in ipairs(G.audio.music) do
             v.source:stop()
             v.source:release()
@@ -2695,6 +2696,9 @@ function Util.World.gameWin()
                 drawOrder = 1e33,
                 duration = 3,
                 nid = "end1",
+                easeFunc = function (t)
+                    G.flags.saveData.timer = math.floor(Util.Math.lerp(ref1, Macros.maxtime + ref2, 1-(1-t)^2))
+                end,
                 drawFunc = function (t)
                     love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white, t))
                     love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
