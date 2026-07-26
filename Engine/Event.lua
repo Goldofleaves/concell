@@ -163,19 +163,20 @@ function Util.Event.easeInMusic(t, id, pid, grp, extra, prior)
 end
 
 function Util.Event.screenShake(Amp, Dur)
+	local ref = G.timer
 	Util.Event.addEvent(Event(
 		{
 			duration = Dur,
 			nid = "shake",
 			easeFunc = function(t, e)
-				G.dispOffset.x["Shake"..G.timer] = (math.random() - 0.5) * 2 * (1 - t) * Amp
-				G.dispOffset.y["Shake" .. G.timer] = (math.random() - 0.5) * 2 * (1 - t) * Amp
+				G.dispOffset.x["Shake" .. ref] = (math.random() - 0.5) * 2 * (1 - t) * Amp
+				G.dispOffset.y["Shake" .. ref] = (math.random() - 0.5) * 2 * (1 - t) * Amp
 			end,
 			endFunc = function()
-				G.dispOffset.x["Shake" .. G.timer] = nil
-				G.dispOffset.y["Shake" .. G.timer] = nil
+				G.dispOffset.x["Shake" .. ref] = nil
+				G.dispOffset.y["Shake" .. ref] = nil
 			end,
-			"Shake"..G.timer
+			"Shake" .. ref
 		}
 	))
 end

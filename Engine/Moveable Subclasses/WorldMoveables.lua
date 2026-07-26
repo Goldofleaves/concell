@@ -589,7 +589,18 @@ function WorldMoveable:update(dt)
     local layerOffset = self.properties.type == "danger" and 9
         or self.properties.type == "cover" and 11.5
         or 12
-    self.drawOrder = visualX + visualY + layerOffset
+    local getNum = function (a)
+        local a = tonumber(a)
+        local array = {
+            -1,
+            1,
+            1,
+            -1
+        }
+        return array[a]
+    end
+    self.drawOrder = visualX + visualY + layerOffset +
+        (self.properties.type == "cover" and getNum(self.extra.name:sub(#self.extra.name, #self.extra.name)) or 0)
         + (self.properties.type == "door" and -.5 or 0)
     local playerIsOnPickup = self.properties.type == "pickup"
         and PLAYER
