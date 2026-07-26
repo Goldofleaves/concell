@@ -662,7 +662,91 @@ local function generateFloorShape(room, reserved, index)
     end
 end
 
+local function addRuinsDebris(room, reserved)
+    local targetChains
+    if room.layout == "maze" then
+        targetChains = Util.Math.chance(1 / 3) and 2 or 1
+    elseif room.layout == "open" then
+        targetChains = love.math.random(2, 3)
+    else
+        targetChains = love.math.random(1, 2)
+    end
+
+    local blocked = {}
+    for _, wall in ipairs(room.walls or {}) do
+        blocked[coordKey(wall.x, wall.y)] = true
+    end
+
+    local chainsPlaced = 0
+    for _ = 1, 100 do
+        if chainsPlaced >= targetChains then
+            break
+        end
+        local vertical = Util.Math.chance(1 / 2)
+        local alongSize = vertical and room.size.h or room.size.w
+        local acrossSize = vertical and room.size.w or room.size.h
+        local maximumLength = math.min(
+            room.layout == "maze" and 3 or 5,
+            alongSize - 3
+        )
+        if maximumLength >= 2 and acrossSize >= 4 then
+            local length = love.math.random(2, maximumLength)
+            local start = love.math.random(
+                1,
+                alongSize - length - 1
+            )
+            local line = love.math.random(1, acrossSize - 2)
+            local positions = {}
+            local valid = true
+            for offset = 0, length - 1 do
+                local x = vertical and line or start + offset
+                local y = vertical and start + offset or line
+                local key = coordKey(x, y)
+                if not Util.World.isFloor(room, x, y)
+                    or reserved[key]
+                    or blocked[key]
+                then
+                    valid = false
+                    break
+                end
+                positions[#positions + 1] = {x, y}
+            end
+
+            if valid then
+                local trialBlocked = {}
+                for key in pairs(blocked) do
+                    trialBlocked[key] = true
+                end
+                for _, position in ipairs(positions) do
+                    trialBlocked[
+                        coordKey(position[1], position[2])
+                    ] = true
+                end
+                if getCriticalPaths(room, trialBlocked) then
+                    for _, position in ipairs(positions) do
+                        local key = coordKey(position[1], position[2])
+                        blocked[key] = true
+                        room.walls[#room.walls + 1] = {
+                            name = "debris_"
+                                .. love.math.random(1, 2),
+                            type = "wall",
+                            x = position[1],
+                            y = position[2],
+                            dir = vertical and 1 or -1,
+                        }
+                    end
+                    chainsPlaced = chainsPlaced + 1
+                end
+            end
+        end
+    end
+end
+
 local function addReachableBarrier(room, reserved, identifier, index)
+    if isRuinsIndex(index) then
+        addRuinsDebris(room, reserved)
+        return identifier
+    end
     if room.layout == "maze"
         or room.layout == "open"
         or isGrassIndex(index)
@@ -695,9 +779,7 @@ local function addReachableBarrier(room, reserved, identifier, index)
                 local isGap = x == passageGap[1] and y == passageGap[2]
                 if Util.World.isFloor(room, x, y) and not isGap and not reserved[key] then
                     walls[#walls + 1] = {
-                        name = isRuinsIndex(index)
-                            and "debris_"..love.math.random(1, 2)
-                            or "prisonBar",
+                        name = "prisonBar",
                         type = "wall",
                         x = x,
                         y = y,
@@ -2508,21 +2590,44 @@ function Util.World.generateRoom(
         if type == "branching" then
             r = 2
         elseif type == "dead_end" then
-            room.size = { w = 7, h = 7 }
-            room.layout = nil
+            room.size = { w = 10, h = 10 }
+            room.layout = "boss"
+            room.boss = "cain"
             fillFloor(room)
             room.floor[0][0] = nil
-            room.floor[0][6] = nil
-            room.floor[6][0] = nil
-            room.floor[6][6] = nil
+            room.floor[0][room.size.h - 1] = nil
+            room.floor[room.size.w - 1][0] = nil
+            room.floor[room.size.w - 1][room.size.h - 1] = nil
             local side = Util.World.getOppositeSide(last_side.side)
             local lastAux = generateCenteredAuxDoor(side, room.size.w, room.size.h, getprev(last_side.index))
             table.insert(room.doors, lastAux)
+            local inward = DOOR_INWARD[side]
+            local maximumDepth = inward[1] ~= 0
+                and room.size.w - 3
+                or room.size.h - 3
+            local rewardX = lastAux.a.x + inward[1] * maximumDepth
+            local rewardY = lastAux.a.y + inward[2] * maximumDepth
+            local bossDepth = math.max(3, math.floor(maximumDepth * 0.6))
+            local bossX = lastAux.a.x + inward[1] * bossDepth
+            local bossY = lastAux.a.y + inward[2] * bossDepth
+            local facingByEntrance = {
+                tl = "1",
+                tr = "4",
+                dl = "2",
+                dr = "3",
+            }
             room.keys[1] = {
                 id = 1,
-                x = 3,
-                y = 3,
+                x = rewardX,
+                y = rewardY,
                 itemKey = "excalibur",
+                lockedByEnemy = "cain",
+            }
+            room.enemies[1] = {
+                name = "cain",
+                pos = {bossX, bossY},
+                facing = facingByEntrance[side],
+                id = identifier,
             }
             return room
         end

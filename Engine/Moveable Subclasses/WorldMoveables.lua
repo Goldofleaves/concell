@@ -152,6 +152,10 @@ function WorldMoveable:modHP(m, silent)
                     self.extra.guardianAction = nil
                     self.extra.guardianChargeStage = nil
                 end
+                if self.extra.name == "cain" then
+                    self:clearCainDanger()
+                    self.extra.cainAction = nil
+                end
                 for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
                     if v.id == self.extra.identifier then
                         table.remove(G.flags.saveData.curRoom.enemies, k)
@@ -219,6 +223,13 @@ function WorldMoveable:moveToGrid(x, y, duration)
             { preset = "eoc" }
         ),
     }
+end
+
+function WorldMoveable:jumpToGrid(x, y, duration, arcHeight)
+    self:moveToGrid(x, y, duration or 0.42)
+    if self.extra.gridMove then
+        self.extra.gridMove.arcHeight = arcHeight or 60
+    end
 end
 
 function WorldMoveable:moveAlongGridPath(path, durationPerTile)
@@ -301,9 +312,11 @@ local function getEnemyAimOrigin(enemy, gridX, gridY)
     if offset then
         return position.contents[1] + offset[1] * scale,
             position.contents[2] + offset[2] * scale
+                - (enemy.extra.visualJumpOffset or 0)
     end
     return position.contents[1],
         position.contents[2] - 30 * scale
+            - (enemy.extra.visualJumpOffset or 0)
 end
 
 function WorldMoveable:draw()
@@ -396,9 +409,10 @@ function WorldMoveable:draw()
     if self.properties.type == "door" then
         love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white,0.67))
         local v = Util.World.toIsoPos(Vector(visualX, visualY))
+        local doorAtlas = self.extra.alternate and "DoorAlt" or "Door"
         love.graphics.draw(
-            Atlases.Door.image,
-            Atlases.Door.splicedImages[0][0],
+            Atlases[doorAtlas].image,
+            Atlases[doorAtlas].splicedImages[0][0],
             v.contents[1] - 40 * Util.UI.getScalingFactor(),
             v.contents[2] - 80 * Util.UI.getScalingFactor(),
             0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
@@ -421,7 +435,12 @@ function WorldMoveable:draw()
         love.graphics.setColor(Macros.colors.white)
         local v = Util.World.toIsoPos(Vector(visualX, visualY))
         local direction = self.extra.dir or 1
-        local sprite = self.extra.locked and "prisonGate" or "prisonGateOpen"
+        local gateSprite = self.extra.unlockType == "statue"
+            and "statueGate"
+            or "prisonGate"
+        local sprite = self.extra.locked
+            and gateSprite
+            or gateSprite.."Open"
         love.graphics.draw(
             Atlases[sprite].image,
             Atlases[sprite].splicedImages[0][0],
@@ -487,6 +506,8 @@ function WorldMoveable:draw()
     if self.properties.type == "enemy" then
         love.graphics.setColor(Macros.colors.white)
         local v = Util.World.toIsoPos(Vector(visualX, visualY))
+        v.contents[2] = v.contents[2]
+            - (self.extra.visualJumpOffset or 0)
         if not self.extra.name then
             print(self.extra)
             goto exit
@@ -499,6 +520,12 @@ function WorldMoveable:draw()
                 and self.extra.name .. self.extra.facing
                 or self.extra.name
             )
+        if self.extra.name == "cain"
+            and not Atlases[enemyAtlas]
+        then
+            enemyAtlas = "dawn"..self.extra.facing
+            love.graphics.setColor(Macros.colors.lightRed)
+        end
         if Atlases[enemyAtlas] and Atlases[enemyAtlas].image then
             love.graphics.draw(
                 Atlases[enemyAtlas].image,
@@ -636,12 +663,18 @@ function WorldMoveable:update(dt)
         else
             position = movement.ease(progress)
         end
+        self.extra.visualJumpOffset = movement.arcHeight
+            and math.sin(math.pi * progress)
+                * movement.arcHeight
+                * Util.UI.getScalingFactor()
+            or nil
         self.extra.visualGridX = position.x
         self.extra.visualGridY = position.y
         if movement.elapsed >= movement.duration then
             self.extra.gridMove = nil
             self.extra.visualGridX = nil
             self.extra.visualGridY = nil
+            self.extra.visualJumpOffset = nil
         end
     end
 
@@ -670,6 +703,21 @@ function WorldMoveable:update(dt)
         and PLAYER
         and PLAYER.TMod.x.base == self.TMod.x.base
         and PLAYER.TMod.y.base == self.TMod.y.base
+    local lockedByEnemyAlive = false
+    if self.properties.type == "pickup"
+        and self.extra.lockedByEnemy
+    then
+        for _, enemy in ipairs(
+            Util.World.getAllWorldMoveablesWithType("enemy")
+        ) do
+            if enemy.extra.name == self.extra.lockedByEnemy
+                and enemy.extra.hp > 0
+            then
+                lockedByEnemyAlive = true
+                break
+            end
+        end
+    end
     if self.properties.type == "pickup"
         and self.extra.requiresPlayerExit
         and not playerIsOnPickup
@@ -689,6 +737,7 @@ function WorldMoveable:update(dt)
         if type(self.extra.itemKey) == "string" then
             if not self.extra.collected
            and not self.extra.requiresPlayerExit
+           and not lockedByEnemyAlive
            and PLAYER
            and not PLAYER.extra.gridMove
            and playerIsOnPickup
@@ -709,6 +758,7 @@ function WorldMoveable:update(dt)
             local str = Util.Math.randomElement(self.extra.itemKey).v
             if not self.extra.collected
             and not self.extra.requiresPlayerExit
+            and not lockedByEnemyAlive
             and PLAYER
             and not PLAYER.extra.gridMove
             and playerIsOnPickup
@@ -1304,6 +1354,325 @@ function WorldMoveable:resolveGuardianTurn()
     return false
 end
 
+function WorldMoveable:clearCainDanger()
+    for _, marker in ipairs(self.extra.dangerMarkers or {}) do
+        marker:remove()
+    end
+    self.extra.dangerMarkers = nil
+    self.extra.dangerTiles = nil
+end
+
+local function getCainCloseAttackTiles(cain)
+    local room = G.flags.saveData.curRoom
+    local radius = Macros.cain.closeRange
+    local tiles = {}
+    for x = cain.TMod.x.base - radius,
+        cain.TMod.x.base + radius
+    do
+        for y = cain.TMod.y.base - radius,
+            cain.TMod.y.base + radius
+        do
+            local deltaX = x - cain.TMod.x.base
+            local deltaY = y - cain.TMod.y.base
+            if deltaX ~= 0 or deltaY ~= 0 then
+                if math.abs(deltaX) + math.abs(deltaY) <= radius
+                    and Util.World.isFloor(room, x, y)
+                then
+                    tiles[#tiles + 1] = {x, y}
+                end
+            end
+        end
+    end
+    return tiles
+end
+
+local function getCainAoeTiles(cain)
+    local room = G.flags.saveData.curRoom
+    local playerX, playerY = PLAYER.TMod.x.base, PLAYER.TMod.y.base
+    local deltaX = math.abs(playerX - cain.TMod.x.base)
+    local deltaY = math.abs(playerY - cain.TMod.y.base)
+    local halfWidth = math.floor(Macros.cain.lineWidth / 2)
+    local useColumns = deltaX >= deltaY
+    local tiles = {}
+    for x = 0, room.size.w - 1 do
+        for y = 0, room.size.h - 1 do
+            local inAttack = useColumns
+                and math.abs(x - playerX) <= halfWidth
+                or not useColumns
+                    and math.abs(y - playerY) <= halfWidth
+            if inAttack and Util.World.isFloor(room, x, y) then
+                tiles[#tiles + 1] = {x, y}
+            end
+        end
+    end
+    return tiles
+end
+
+function WorldMoveable:prepareCainAttack(action)
+    local tiles = action == "close"
+        and getCainCloseAttackTiles(self)
+        or getCainAoeTiles(self)
+    if #tiles == 0 then
+        return false
+    end
+
+    self:clearCainDanger()
+    local markers = {}
+    for _, position in ipairs(tiles) do
+        markers[#markers + 1] = WorldMoveable({
+            x = position[1],
+            y = position[2],
+            type = "danger",
+            extra = {
+                cainIdentifier = self.extra.identifier,
+            },
+            updateOrder = 2,
+            drawOrder = position[1] + position[2] + 9,
+        })
+    end
+    self.extra.facing = getFacingTowardPoint(
+        self.TMod.x.base,
+        self.TMod.y.base,
+        PLAYER.TMod.x.base,
+        PLAYER.TMod.y.base
+    ) or self.extra.facing
+    self.extra.cainAction = action
+    self.extra.dangerTiles = tiles
+    self.extra.dangerMarkers = markers
+    self:juice(3)
+    return true
+end
+
+function WorldMoveable:resolveCainAttack()
+    local action = self.extra.cainAction
+    local tiles = self.extra.dangerTiles or {}
+    self.extra.attackSequence = (self.extra.attackSequence or 0) + 1
+    local sequence = self.extra.attackSequence
+    self:clearCainDanger()
+    self.extra.cainAction = nil
+    if action == "aoe" then
+        self.extra.cainAoeCooldown = Macros.cain.aoeCooldown
+    end
+
+    for index, position in ipairs(tiles) do
+        local x, y = position[1], position[2]
+        Util.Event.addEvent(Event({
+            duration = 0.4,
+            drawOrder = x + y + 10,
+            drawFunc = function(time)
+                local r, g, b, a = love.graphics.getColor()
+                love.graphics.setColor(Macros.colors.white)
+                local frame = math.min(4, math.floor(time * 4) + 1)
+                drawWorldTileAtlas("tileAttack_"..frame, x, y)
+                love.graphics.setColor(r, g, b, a)
+            end,
+        }), "cainAttack"..self.id.."_"..sequence.."_"..index)
+    end
+    Util.Audio.playSfx("slam")
+    self:juice(5)
+
+    local damage = action == "aoe"
+        and Macros.cain.aoeDamage
+        or Macros.cain.closeDamage
+    for _, position in ipairs(tiles) do
+        if position[1] == PLAYER.TMod.x.base
+            and position[2] == PLAYER.TMod.y.base
+        then
+            return Util.World.modHP(-damage)
+        end
+    end
+    return false
+end
+
+local function cainPositionIsClear(cain, x, y)
+    if x == PLAYER.TMod.x.base and y == PLAYER.TMod.y.base then
+        return false
+    end
+    if enemyTileIsBlocked(cain, x, y) then
+        return false
+    end
+    for _, door in ipairs(G.flags.saveData.curRoom.doors or {}) do
+        if math.abs(door.a.x - x) + math.abs(door.a.y - y) <= 1 then
+            return false
+        end
+    end
+    return true
+end
+
+function WorldMoveable:jumpCain()
+    local room = G.flags.saveData.curRoom
+    local startX, startY = self.TMod.x.base, self.TMod.y.base
+    local minimumJump = math.ceil(
+        math.max(room.size.w, room.size.h) / 2
+    )
+    local candidates = {}
+    for x = 0, room.size.w - 1 do
+        for y = 0, room.size.h - 1 do
+            local jumpDistance = math.abs(x - startX)
+                + math.abs(y - startY)
+            if jumpDistance >= minimumJump
+                and cainPositionIsClear(self, x, y)
+            then
+                local playerDistance =
+                    math.abs(PLAYER.TMod.x.base - x)
+                    + math.abs(PLAYER.TMod.y.base - y)
+                candidates[#candidates + 1] = {
+                    x = x,
+                    y = y,
+                    score = -math.abs(
+                        playerDistance - Macros.cain.idealDistance
+                    ) * 20
+                        + jumpDistance
+                        + love.math.random(),
+                }
+            end
+        end
+    end
+    if #candidates == 0 then
+        return false
+    end
+    table.sort(candidates, function(a, b)
+        return a.score > b.score
+    end)
+    local destination = candidates[1]
+    self.extra.facing = getFacingTowardPoint(
+        destination.x,
+        destination.y,
+        PLAYER.TMod.x.base,
+        PLAYER.TMod.y.base
+    ) or self.extra.facing
+    self:jumpToGrid(destination.x, destination.y, 0.42, 60)
+    self:juice(4)
+    return true
+end
+
+function WorldMoveable:dodgeCain()
+    local room = G.flags.saveData.curRoom
+    local startX, startY = self.TMod.x.base, self.TMod.y.base
+    local vertices = getAllValidVertices(
+        room.size.w,
+        room.size.h,
+        {"wall", "enemy", "door"}
+    )
+    vertices[startX] = vertices[startX] or {}
+    vertices[startX][startY] = true
+    local queue = {{
+        x = startX,
+        y = startY,
+        path = {},
+    }}
+    local queueIndex = 1
+    local seen = {[startX..","..startY] = true}
+    local candidates = {}
+    while queueIndex <= #queue do
+        local current = queue[queueIndex]
+        queueIndex = queueIndex + 1
+        if #current.path < Macros.cain.moveDistance then
+            for _, position in ipairs(getAllAdjacentVertices(
+                vertices,
+                {current.x, current.y}
+            )) do
+                local x, y = position[1], position[2]
+                local key = x..","..y
+                if not seen[key] and cainPositionIsClear(self, x, y) then
+                    seen[key] = true
+                    local path = {}
+                    for index, step in ipairs(current.path) do
+                        path[index] = {step[1], step[2]}
+                    end
+                    path[#path + 1] = {x, y}
+                    local candidate = {
+                        x = x,
+                        y = y,
+                        path = path,
+                    }
+                    candidates[#candidates + 1] = candidate
+                    queue[#queue + 1] = candidate
+                end
+            end
+        end
+    end
+    if #candidates == 0 then
+        self.extra.facing = getFacingTowardPoint(
+            startX,
+            startY,
+            PLAYER.TMod.x.base,
+            PLAYER.TMod.y.base
+        ) or self.extra.facing
+        self:juice()
+        return false
+    end
+
+    local playerDistanceAtStart =
+        math.abs(PLAYER.TMod.x.base - startX)
+        + math.abs(PLAYER.TMod.y.base - startY)
+    local best
+    for _, candidate in ipairs(candidates) do
+        local playerDistance =
+            math.abs(PLAYER.TMod.x.base - candidate.x)
+            + math.abs(PLAYER.TMod.y.base - candidate.y)
+        local score = -math.abs(
+            playerDistance - Macros.cain.idealDistance
+        ) * 18
+            + (playerDistance > playerDistanceAtStart and 8 or 0)
+            + #candidate.path
+            + love.math.random()
+        if not best or score > best.score then
+            best = {
+                x = candidate.x,
+                y = candidate.y,
+                path = candidate.path,
+                score = score,
+            }
+        end
+    end
+    self.extra.facing = getFacingTowardPoint(
+        best.x,
+        best.y,
+        PLAYER.TMod.x.base,
+        PLAYER.TMod.y.base
+    ) or self.extra.facing
+    self:moveAlongGridPath(best.path, 0.12)
+    self:juice()
+    return true
+end
+
+function WorldMoveable:resolveCainTurn()
+    if self.extra.cainAction then
+        return self:resolveCainAttack()
+    end
+    if (self.extra.cainAoeCooldown or 0) > 0 then
+        self.extra.cainAoeCooldown =
+            self.extra.cainAoeCooldown - 1
+    end
+
+    local distance = math.abs(
+        PLAYER.TMod.x.base - self.TMod.x.base
+    ) + math.abs(
+        PLAYER.TMod.y.base - self.TMod.y.base
+    )
+    if distance <= Macros.cain.closeRange
+        and Util.Math.chance(Macros.cain.closeAttackChance)
+        and self:prepareCainAttack("close")
+    then
+        return false
+    end
+    if distance > Macros.cain.closeRange
+        and (self.extra.cainAoeCooldown or 0) <= 0
+        and Util.Math.chance(Macros.cain.aoeAttackChance)
+        and self:prepareCainAttack("aoe")
+    then
+        return false
+    end
+    if Util.Math.chance(Macros.cain.jumpChance)
+        and self:jumpCain()
+    then
+        return false
+    end
+    self:dodgeCain()
+    return false
+end
+
 local function getWizardCastRange()
     local size = G.flags.saveData.curRoom.size
     return math.ceil(
@@ -1861,7 +2230,7 @@ local function jumpAbraham(shooter)
         PLAYER.TMod.x.base,
         PLAYER.TMod.y.base
     ) or shooter.extra.facing
-    shooter:moveToGrid(destination.x, destination.y, 0.3)
+    shooter:jumpToGrid(destination.x, destination.y, 0.42, 60)
     shooter.extra.shotsRemaining = Macros.abraham.magazine
     shooter:juice(4)
     return true
@@ -2369,6 +2738,10 @@ function move_all_enemies()
                 if v:resolveGuardianTurn() then
                     return
                 end
+            elseif v.extra.name == "cain" then
+                if v:resolveCainTurn() then
+                    return
+                end
             elseif v.extra.goalVertice then
                 local goalX, goalY = v.extra.goalVertice[1], v.extra.goalVertice[2]
                 if goalX == PLAYER.TMod.x.base and goalY == PLAYER.TMod.y.base then
@@ -2464,6 +2837,7 @@ function WorldMoveable:decideMove()
         if self.extra.name == "turret" then return nil end
         if isRangedEnemyName(self.extra.name) then return nil end
         if self.extra.name == "guardian" then return nil end
+        if self.extra.name == "cain" then return nil end
         if self.extra.name == "skeleton" then
             self:planSkeletonMove()
             return
@@ -2563,6 +2937,7 @@ function WorldMoveable:initRoomStuff()
                 itemKey = v.itemKey,
                 identifier = v.id,
                 collection = "keys",
+                lockedByEnemy = v.lockedByEnemy,
             },
             updateOrder = 2,
             drawOrder = 10
@@ -2627,6 +3002,8 @@ function WorldMoveable:initRoomStuff()
                 index = v.index,
                 side = v.side,
                 name = v.name,
+                alternate = type(G.flags.saveData.curRoomIndex) == "string"
+                    or type(v.index) == "string",
             },
             updateOrder = 2,
             drawOrder = 30

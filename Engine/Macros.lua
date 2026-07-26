@@ -54,12 +54,14 @@ Macros = {
 		elite = 18,
 		abraham = 40,
 		guardian = 18,
+		cain = 36,
 		
 	},
 	bossEnemies = {
 		cellboss = true,
 		wizard = true,
 		abraham = true,
+		cain = true,
 	},
 	names = {
 		guard = "Guard",
@@ -73,6 +75,7 @@ Macros = {
 		abraham = "Abraham",
 		guardian = "Guardian",
 		wizard = "Wizard",
+		cain = "Cain",
 	},
 	cellBoss = {
 		spawnChance = 1 / 8,
@@ -129,6 +132,18 @@ Macros = {
 		spawnChance = 1 / 3,
 		damage = 12,
 		chargeTurns = 2,
+	},
+	cain = {
+		closeRange = 2,
+		closeDamage = 11,
+		closeAttackChance = 0.65,
+		aoeDamage = 14,
+		aoeCooldown = 3,
+		aoeAttackChance = 0.65,
+		lineWidth = 3,
+		moveDistance = 3,
+		idealDistance = 5,
+		jumpChance = 0.2,
 	},
 	wizard = {
 		damage = 10,

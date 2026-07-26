@@ -28,7 +28,6 @@ function Macros.MDef.isometricGrid(w, h, area)
     local room = G.flags.saveData.curRoom
     local tileAreaFallbacks = {
         ruins = "prison",
-        thorn = "grass",
     }
     local function hasFloor(x, y)
         return Util.World.isFloor(room, x, y)
