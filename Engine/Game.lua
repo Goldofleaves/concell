@@ -193,12 +193,6 @@ function Game:update(dt)
 	InfoQueue.updateTutorials()
 	self.mousepos.oldx, self.mousepos.oldy = Util.UI.convertUIPosToPos(love.mouse.getX(), love.mouse.getY())
 end
-love.keyboard.setTextInput(true)
-function love.textinput(t)
-	if G.debug.console then
-		G.debug.constext = G.debug.constext .. t
-	end
-end
 
 local function getDirectionalItemTarget(direction)
 	local bestTarget
@@ -225,93 +219,7 @@ local function getDirectionalItemTarget(direction)
 end
 
 function love.keypressed(key)
-	if key == "backspace" and G.debug.console then
-		G.debug.constext = string.sub(G.debug.constext, 1, -2)
-	end
-	if key == "k" then
-		G.debug.console = not G.debug.console
-	end
-	if key == "l" and not G.debug.console then
-		for i = 1, 7 do
-			local char = string.char(string.byte("a")+i)
-			if not G.flags.saveData.rooms[char] then
-				print(i)
-				local index = string.char(string.byte("a") + i - 1)
-				G.flags.saveData.curRoomIndex = index
-				G.flags.saveData.curRoom = G.flags.saveData.rooms[index]
-
-				getObjectByNid("isoGrid"):remove()
-				getObjectByNid("isoGridWeb"):remove()
-				Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h,
-					Util.World.getArea(index))
-				local list = {}
-				for k, v in ipairs(G.I.MOVEABLES) do
-					if v.objectType == "WORLDMOVEABLE" then
-						table.insert(list, v)
-					end
-				end
-				for k, v in ipairs(list) do
-					v:remove()
-				end
-				PLAYER = WorldMoveable({
-					x = 0,
-					y = 1,
-					type = "player",
-					drawOrder = 31,
-					updateOrder = 1,
-					extra = { facing = "1" }
-				})
-				WorldMoveable:initRoomStuff()
-				WorldMoveable:checkEaseMusic()
-				break
-			end
-		end
-	end
-	if key == "g" and not G.debug.console then
-		Util.World.gameWin()
-	end
-	if key == "u" and not G.debug.console then
-		Util.World.gameOver()
-	end
-	if key == "r"
-		and not G.debug.console
-		and love.keyboard.isDown("lctrl", "rctrl")
-	then
-		if not Util.World.debugRegenerateCurrentRoom() then
-			print("[DEBUG] Current room cannot be regenerated right now")
-		end
-	end
-	if key == "a"
-		and not G.debug.console
-		and love.keyboard.isDown("lctrl", "rctrl")
-	then
-		if not Util.World.debugRegenerateCurrentRoom(true) then
-			print("[DEBUG] Abraham room generation requires a playable ruins room")
-		end
-	end
-	if key == "t"
-		and not G.debug.console
-		and love.keyboard.isDown("lctrl", "rctrl")
-	then
-		if not Util.World.debugJumpToAreaTransition() then
-			print("[DEBUG] Cannot jump to this area's transition room right now")
-		end
-	end
-	if key == "return" and G.debug.console then
-		if string.sub(G.debug.constext,1,1) == "=" then
-			G.debug.constext = "return ".. string.sub(G.debug.constext, 2, #G.debug.constext)
-		end
-		local func, err = load(G.debug.constext)
-		G.debug.constext = ""
-		if func then
-			local suc, res = pcall(func)
-			print(res)
-		else
-			print(err)
-		end
-	end
-
-	if G.debug.console or G.flags.isMoving or getEventByNid("transition") then
+	if G.flags.isMoving or getEventByNid("transition") then
 		return
 	end
 
@@ -449,10 +357,6 @@ function Game:draw()
 		love.graphics.rectangle("fill", (actualWidth - 2 * actualHeight) / 2 + 2 * actualHeight + 2, 0, 2, actualHeight)
 	end
 	love.graphics.setColor { r, g, b, a }
-	if G.debug.console then
-		local t = AdvancedText("|s:3,3||c:red|"..G.debug.constext)
-		t:draw(1,1, true)
-	end
 end
 
 Game()
