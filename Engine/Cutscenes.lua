@@ -44,7 +44,7 @@ Macros.CDefs.Opening = function()
 					G.flags.saveData.igt = 0
 					s:remove()
 					addItem("knife")
-					addItem("strawberry")
+					--addItem("strawberry")
 					Macros.UIDef.overlay()
 					Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
 					G.flags.saveData.rooms = Util.World.generateDungeon()
