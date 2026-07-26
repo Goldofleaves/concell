@@ -1968,6 +1968,7 @@ function WorldMoveable:onRoomClear()
             blocked)
         tiles[coordKey(PLAYER.TMod.x.base, PLAYER.TMod.y.base)] = nil
         local randomTile = Util.Math.randomElement(tiles).v
+        Util.Audio.playSfx("start_jingle", 2)
         WorldMoveable({
             x = randomTile[1],
             y = randomTile[2],
