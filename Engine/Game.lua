@@ -29,7 +29,7 @@ function Game:new()
 			timemod = 0,
 			igt = 0,
 			enemiesSlain = 0,
-			nextItemDropAt = love.math.random(7, 8),
+			nextItemDropAt = love.math.random(4, 6),
 			nextPickupId = 1,
 			totalDamage = 0
 		}
@@ -230,8 +230,47 @@ function love.keypressed(key)
 	if key == "k" then
 		G.debug.console = not G.debug.console
 	end
+	if key == "l" then
+		for i = 1, 7 do
+			local char = string.char(string.byte("a")+i)
+			if not G.flags.saveData.rooms[char] then
+				print(i)
+				local index = string.char(string.byte("a") + i - 1)
+				G.flags.saveData.curRoomIndex = index
+				G.flags.saveData.curRoom = G.flags.saveData.rooms[index]
+
+				getObjectByNid("isoGrid"):remove()
+				getObjectByNid("isoGridWeb"):remove()
+				Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h,
+					Util.World.getArea(index))
+				local list = {}
+				for k, v in ipairs(G.I.MOVEABLES) do
+					if v.objectType == "WORLDMOVEABLE" then
+						table.insert(list, v)
+					end
+				end
+				for k, v in ipairs(list) do
+					v:remove()
+				end
+				PLAYER = WorldMoveable({
+					x = 0,
+					y = 1,
+					type = "player",
+					drawOrder = 31,
+					updateOrder = 1,
+					extra = { facing = "1" }
+				})
+				WorldMoveable:initRoomStuff()
+				WorldMoveable:checkEaseMusic()
+				break
+			end
+		end
+	end
 	if key == "g" then
 		Util.World.gameWin()
+	end
+	if key == "u" then
+		Util.World.gameOver()
 	end
 	if key == "r"
 		and not G.debug.console
@@ -269,6 +308,7 @@ function love.keypressed(key)
 
 	local grid = getObjectByNid("isoGridWeb")
 	local moveButton = getObjectByNid("MoveButton")
+	local cancelButton = getObjectByNid("CancelButton")
 	if not grid or not PLAYER or not moveButton then
 		return
 	end
@@ -319,6 +359,8 @@ function love.keypressed(key)
 		moveButton:onClick()
 	-- elseif key == "space" and #grid.extra.path == 1 then
 	-- 	moveButton:onClick()
+	elseif (key == "c" and #grid.extra.path > 0) then
+		cancelButton:onClick()
 	elseif key == "f5" then
 		love.window.setFullscreen(not love.window.getFullscreen())
 	end

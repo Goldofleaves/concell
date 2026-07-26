@@ -39,7 +39,7 @@ function Util.World.getOppositeSideDoor(side)
     return G.flags.saveData.curRoom.doors[1]
 end
 
-local function coordKey(x, y)
+function coordKey(x, y)
     return x .. "," .. y
 end
 
@@ -422,7 +422,7 @@ local function getCriticalPaths(room, blocked)
     return true, critical
 end
 
-local function getReachableTiles(room, start, blocked)
+function getReachableTiles(room, start, blocked)
     local startKey = coordKey(start.x, start.y)
     if not Util.World.isFloor(room, start.x, start.y) or blocked[startKey] then
         return {}, {}
@@ -2184,14 +2184,30 @@ function Util.World.generateRoom(
         if type == "branching" then
             r = 2
         elseif type == "dead_end" then
-            r = 0
+            room.size = { w = 7, h = 7 }
+            room.layout = nil
+            fillFloor(room)
+            room.floor[0][0] = nil
+            room.floor[0][6] = nil
+            room.floor[6][0] = nil
+            room.floor[6][6] = nil
+            local side = Util.World.getOppositeSide(last_side.side)
+            local lastAux = generateCenteredAuxDoor(side, room.size.w, room.size.h, getprev(last_side.index))
+            table.insert(room.doors, lastAux)
+            room.keys[1] = {
+                id = 1,
+                x = 3,
+                y = 3,
+                itemKey = "excalibur",
+            }
+            return room
         end
         local side = Util.World.getOppositeSide(last_side.side)
         local all = table.exclude({ "tl", "tr", "dl", "dr" }, side)
         local doorGenerator = getTransitionRoomConfig(index)
             and generateCenteredAuxDoor
             or generateAuxDoor
-        local lastAux = doorGenerator(side, room.size.w, room.size.h, getprev(last_side.index))
+        local lastAux = generateCenteredAuxDoor(side, room.size.w, room.size.h, getprev(last_side.index))
         table.insert(room.doors, lastAux)
         for i = 1, r do
             local ttype = getTransitionRoomConfig(index)
@@ -2239,78 +2255,19 @@ function Util.World.generateRoom(
         identifier = addRuinsEnemies(room, reserved, identifier, index)
         addGrassCovers(room, reserved, index)
         addGroundHealingItem(room, reserved, index)
+        room.maxId = identifier
         assert(getCriticalPaths(room, roomBlockers(room)),
             "World generation produced a room with an unreachable exit")
     end
     return room
 end
-function Util.World.modTime(m)
-    local t = {m} -- stuff it in a table so it's mutable
-    CALCULATECONTEXT({modTime = true, time = t})
-    G.flags.saveData.timer = G.flags.saveData.timer + t[1]
-    if G.flags.saveData.timer >= Macros.maxtime + G.flags.saveData.timemod then
-        CALCULATECONTEXT({ death = true, method = "timer" })
-        if G.flags.saveData.timer >= Macros.maxtime + G.flags.saveData.timemod then
-            Util.World.gameOver()
-        end
-    end
-end
-
-function Util.World.modHP(m)
-    local t = { m } -- stuff it in a table so it's mutable
-    CALCULATECONTEXT({ modHP = true, hp = t, hurting = PLAYER })
-    if t[1] < 0 then
-        Util.Audio.playSfx("hit", 2)
-        Util.Event.screenShake(2*Util.UI.getScalingFactor(), 0.3, "globalShake")
-    elseif t[1] > 0 then
-        Util.Audio.playSfx("heal")
-    end
-    G.flags.saveData.hp = math.min(Macros.maxhp, G.flags.saveData.hp + t[1])
-    if G.flags.saveData.hp <= 0 then
-        CALCULATECONTEXT({ death = true, method = "hp" })
-        if G.flags.saveData.hp <= 0 then
-            Util.World.gameOver()
-            return true
-        end
-    end
-end
-function Util.World.getArea(index)
-    if type(index) == "string" then
-        return "thorn"
-    end
-    if index <= 5 then
-        return "prison"
-    end
-    if index == 6 then
-        --return "p2g"
-        return "grass"
-    end
-    if index >= 6 and index <= 11 then
-        return "grass"
-    end
-    return "ruins"
-end
-
-function Util.World.getEnemy(index)
-    if type(index) == "string" then
-        return "cellmate"
-    end
-    if index <= 5 then
-        return "cellmate"
-    end
-    if index >= 6 and index <= 11 then
-        return "turret"
-    end
-    return "skeleton"
-end
-
 function Util.World.generateDungeon()
     local rooms = {}
     local main_counter = 1
     local dungeon_counter = 0
     local main_len = 17
     local redirect = love.math.random(8, 10)
-    local branch_len = love.math.random(2, 3)
+    local branch_len = love.math.random(3, 5)
     local prisonBossRooms = {2, 3, 4}
     local prisonBossChance = 1
         - (1 - Macros.cellBoss.spawnChance) ^ #prisonBossRooms
@@ -2395,6 +2352,68 @@ function Util.World.generateDungeon()
     end
     return rooms
 end
+
+function Util.World.modTime(m)
+    local t = { m } -- stuff it in a table so it's mutable
+    CALCULATECONTEXT({ modTime = true, time = t })
+    G.flags.saveData.timer = G.flags.saveData.timer + t[1]
+    if G.flags.saveData.timer >= Macros.maxtime + G.flags.saveData.timemod then
+        CALCULATECONTEXT({ death = true, method = "timer" })
+        if G.flags.saveData.timer >= Macros.maxtime + G.flags.saveData.timemod then
+            Util.World.gameOver()
+        end
+    end
+end
+
+function Util.World.modHP(m)
+    local t = { m } -- stuff it in a table so it's mutable
+    CALCULATECONTEXT({ modHP = true, hp = t, hurting = PLAYER })
+    if t[1] < 0 then
+        Util.Audio.playSfx("hit", 2)
+        Util.Event.screenShake(2 * Util.UI.getScalingFactor(), 0.3)
+    elseif t[1] > 0 then
+        Util.Audio.playSfx("heal")
+    end
+    G.flags.saveData.hp = math.min(Macros.maxhp, G.flags.saveData.hp + t[1])
+    if G.flags.saveData.hp <= 0 then
+        CALCULATECONTEXT({ death = true, method = "hp" })
+        if G.flags.saveData.hp <= 0 then
+            Util.World.gameOver()
+            return true
+        end
+    end
+end
+
+function Util.World.getArea(index)
+    if type(index) == "string" then
+        return "thorn"
+    end
+    if index <= 5 then
+        return "prison"
+    end
+    if index == 6 then
+        --return "p2g"
+        return "grass"
+    end
+    if index >= 6 and index <= 11 then
+        return "grass"
+    end
+    return "ruins"
+end
+
+function Util.World.getEnemy(index)
+    if type(index) == "string" then
+        return "cellmate"
+    end
+    if index <= 5 then
+        return "cellmate"
+    end
+    if index >= 6 and index <= 11 then
+        return "turret"
+    end
+    return "skeleton"
+end
+
 ---@param c {[1]:number,[2]:number}
 ---@return table WorldMoveables
 function Util.World.getAllWorldMoveablesWithCoord(c)
@@ -2565,7 +2584,6 @@ function Util.World.gameWin()
                             end
                         }
                     ), "endOfGame")
-                
             end
             }
         ),"endOfGame")

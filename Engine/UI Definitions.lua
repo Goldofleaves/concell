@@ -73,14 +73,14 @@ function Macros.UIDef.title()
             self.extra.text:draw(self.T.x + 0.25 + 2 * dh, 9.5 + 0.29 - dh, true)
         end,
         onClick = function(s)
-            if not s.clicked then
+            if not s.clicked and not getEventByNid("transition") then
                 Util.Event.easeOutMusic(2, "titleID")
+                repeat
                 Util.Event.transition(4, function()
                     Util.Event.easeInMusic(2, "interrogation", "interrogationID", "interrogationGRP", nil, 2)
-                    repeat
                         Macros.CDefs.Opening()
-                    until getObjectByNid("openingcutscene")
-                end, "delay1")
+                    end, "delay1")
+                until getEventByNid("transition")
                 Util.Audio.playSfx("start_jingle", 2)
                 s.clicked = true
             end

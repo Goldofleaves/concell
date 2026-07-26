@@ -57,13 +57,13 @@ end
 local function spawnEnemyItemDrop(x, y)
     local saveData = G.flags.saveData
     saveData.nextItemDropAt = saveData.nextItemDropAt
-        or love.math.random(7, 8)
+        or love.math.random(4, 6)
     if saveData.enemiesSlain < saveData.nextItemDropAt then
         return
     end
 
     saveData.nextItemDropAt = saveData.nextItemDropAt
-        + love.math.random(7, 8)
+        + love.math.random(4, 6)
     local itemKey = poolItem(nil, ITEM_DROP_EXCLUSIONS)
     if not itemKey then
         return
@@ -88,6 +88,7 @@ function WorldMoveable:checkEaseMusic()
     elseif not should_be_in_combat and IN_COMBAT then
         IN_COMBAT = false
         Util.Audio.musicPop("battleID")
+        self:onRoomClear()
     end
 end
 
@@ -418,7 +419,7 @@ function WorldMoveable:draw()
         local v = Util.World.toIsoPos(Vector(visualX, visualY))
         local atlasKey = self.extra.itemKey == "prison_key"
             and "prisonKey"
-            or Centers[self.extra.itemKey].sprite
+            or (self.extra.itemKey == "excalibur" and "excalibur_throne"or (type(self.extra.itemKey) == "table" and "hp_package" or Centers[self.extra.itemKey].sprite))
         local atlas = Atlases[atlasKey]
         local scale = Util.UI.getScalingFactor()
         local drawX = v.contents[1] - 40 * scale
@@ -632,25 +633,47 @@ function WorldMoveable:update(dt)
             end
         end
     end
-    if self.properties.type == "pickup"
-        and not self.extra.collected
-        and not self.extra.requiresPlayerExit
-        and PLAYER
-        and not PLAYER.extra.gridMove
-        and playerIsOnPickup
-        and addItem(self.extra.itemKey)
-    then
-        self.extra.collected = true
-        local collection = self.extra.collection or "keys"
-        local pickups = G.flags.saveData.curRoom[collection] or {}
-        for index, key in ipairs(pickups) do
-            if key.id == self.extra.identifier then
-                table.remove(pickups, index)
-                break
+    if self.properties.type == "pickup" then
+        if type(self.extra.itemKey) == "string" then
+            if not self.extra.collected
+           and not self.extra.requiresPlayerExit
+           and PLAYER
+           and not PLAYER.extra.gridMove
+           and playerIsOnPickup
+           and addItem(self.extra.itemKey) then
+                self.extra.collected = true
+                local collection = self.extra.collection or "keys"
+                local pickups = G.flags.saveData.curRoom[collection] or {}
+                for index, key in ipairs(pickups) do
+                    if key.id == self.extra.identifier then
+                        table.remove(pickups, index)
+                        break
+                    end
+                end
+                Util.Audio.playSfx("key_pick")
+                self:remove()
+            end
+        else
+            local str = Util.Math.randomElement(self.extra.itemKey).v
+            if not self.extra.collected
+            and not self.extra.requiresPlayerExit
+            and PLAYER
+            and not PLAYER.extra.gridMove
+            and playerIsOnPickup
+            and addItem(str) then
+                self.extra.collected = true
+                local collection = self.extra.collection or "keys"
+                local pickups = G.flags.saveData.curRoom[collection] or {}
+                for index, key in ipairs(pickups) do
+                    if key.id == self.extra.identifier then
+                        table.remove(pickups, index)
+                        break
+                    end
+                end
+                Util.Audio.playSfx("key_pick")
+                self:remove()
             end
         end
-        Util.Audio.playSfx("key_pick")
-        self:remove()
     end
     -- self:decideMove()
 end
@@ -1650,7 +1673,31 @@ function WorldMoveable:advanceSkeletonRevival()
     end
     return true
 end
-
+function WorldMoveable:onRoomClear()
+    if not G.flags.saveData.curRoom.hasHeals then
+        G.flags.saveData.curRoom.hasHeals = true
+        local blocked = {}
+        for _, wall in ipairs(G.flags.saveData.curRoom.walls) do
+            blocked[coordKey(wall.x, wall.y)] = true
+        end
+        local tiles = getReachableTiles(G.flags.saveData.curRoom, { x = PLAYER.TMod.x.base, y = PLAYER.TMod.y.base }, blocked)
+        tiles[coordKey( PLAYER.TMod.x.base, PLAYER.TMod.y.base)] = nil
+        local randomTile = Util.Math.randomElement(tiles).v
+        WorldMoveable({
+            x = randomTile[1],
+            y = randomTile[2],
+            type = "pickup",
+            extra = {
+                itemKey = Pools.misc.keys,
+                identifier = G.flags.saveData.curRoom.maxId + 1,
+                collection = "pickups",
+            },
+            updateOrder = 2,
+            drawOrder = 10
+        })
+        G.flags.saveData.curRoom.maxId = G.flags.saveData.curRoom.maxId + 1
+    end
+end
 function WorldMoveable:planSkeletonMove()
     if self.extra.downedTurns then
         return false
