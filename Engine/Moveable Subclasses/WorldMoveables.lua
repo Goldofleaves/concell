@@ -159,6 +159,26 @@ local function drawPixelLockedLine(fromX, fromY, toX, toY)
     )
 end
 
+local TURRET_AIM_ORIGIN_OFFSETS = {
+    ["1"] = {-14, -32},
+    ["2"] = {-12, -26},
+    ["3"] = {10, -26},
+    ["4"] = {12, -32},
+}
+
+local function getEnemyAimOrigin(enemy, gridX, gridY)
+    local position = Util.World.toIsoPos(Vector(gridX, gridY))
+    local offset = enemy.extra.name == "turret"
+        and TURRET_AIM_ORIGIN_OFFSETS[enemy.extra.facing]
+    local scale = Util.UI.getScalingFactor()
+    if offset then
+        return position.contents[1] + offset[1] * scale,
+            position.contents[2] + offset[2] * scale
+    end
+    return position.contents[1],
+        position.contents[2] - 30 * scale
+end
+
 function WorldMoveable:draw()
     Moveable.draw(self)
     local lookup = {
@@ -331,11 +351,12 @@ function WorldMoveable:draw()
         then
             local playerX, playerY = PLAYER:getVisualGridPosition()
             local playerVector = Util.World.toIsoPos(Vector(playerX, playerY))
+            local aimX, aimY = getEnemyAimOrigin(self, visualX, visualY)
             local oldLineWidth = love.graphics.getLineWidth()
             love.graphics.setColor(Macros.colors.red)
             drawPixelLockedLine(
-                v.contents[1],
-                v.contents[2] - 30 * Util.UI.getScalingFactor(),
+                aimX,
+                aimY,
                 playerVector.contents[1],
                 playerVector.contents[2] - 30 * Util.UI.getScalingFactor()
             )
@@ -768,15 +789,15 @@ local function addEnemyShotEffect(shooter, target)
         drawFunc = function(time)
             local r, g, b, a = love.graphics.getColor()
             local oldLineWidth = love.graphics.getLineWidth()
-            local start = Util.World.toIsoPos(Vector(startX, startY))
             local finish = Util.World.toIsoPos(Vector(targetX, targetY))
+            local aimX, aimY = getEnemyAimOrigin(shooter, startX, startY)
             love.graphics.setColor(Util.Color.SetOpacity(
                 Macros.colors.red,
                 1 - time
             ))
             drawPixelLockedLine(
-                start.contents[1],
-                start.contents[2] - 30 * Util.UI.getScalingFactor(),
+                aimX,
+                aimY,
                 finish.contents[1],
                 finish.contents[2] - 30 * Util.UI.getScalingFactor()
             )
