@@ -824,7 +824,7 @@ local function addGrassTrees(room, reserved, identifier, index)
                 type = "wall",
                 x = x,
                 y = y,
-                dir = love.math.random(-1, 1),
+                dir = Util.Math.chance(1 / 2) and -1 or 1,
             }
             blocked[coordKey(x, y)] = true
         else
@@ -2227,7 +2227,7 @@ function Util.World.getWallDirection(room, wall)
     elseif vertical and not horizontal then
         return 1
     end
-    return wall.dir or 1
+    return wall.dir == -1 and -1 or 1
 end
 
 local function randomRoomSize(index)

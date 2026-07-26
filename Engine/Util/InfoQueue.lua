@@ -125,7 +125,8 @@ function InfoQueue.checkRoomTutorials()
             "|s:2,2||c:yellow|MOVEMENT",
             "|s:2,2|Click floor tiles or use arrows to plan a route.",
             "|s:2,2|Press Enter to move. Press Space to bide time.",
-            "|s:2,2|Remember, time is not infinite...",
+            "|s:2,2|Remember, your time is finite...",
+            "|s:2,2|You must escape before the sun rises.",
         })
     end
     if #(room.keys or {}) > 0 then
