@@ -311,7 +311,7 @@ registerItem({
 registerItem({
     key = "whip",
     sprite = "ItemWhip",
-    pool = "uncommon",
+    pool = "common",
     config = {
         damage = -4,
         timeCost = 3,
@@ -406,12 +406,12 @@ registerItem({
 registerItem({
     key = "greatsword",
     sprite = "ItemGreatsword",
-    pool = "common",
+    pool = "uncommon",
     config = {
-        damage = -5,
+        damage = -3,
         timeCost = 3,
         vars = {
-            5,
+            3,
             3
         }
     },
@@ -478,13 +478,13 @@ registerItem({
 registerItem({
     key = "rapier",
     sprite = "ItemRapier",
-    pool = "common",
+    pool = "uncommon",
     config = {
-        damage = -4,
-        timeCost = 1,
+        damage = -8,
+        timeCost = 3,
         vars = {
-            4,
-            1
+            8,
+            3
         }
     },
     text = {
@@ -612,13 +612,13 @@ registerItem({
     sprite = "ItemDagger",
     pool = {"uncommon", "misc"},
     config = {
-        enemy_damage = -1,
+        enemy_damage = -2,
         self_healing = 2,
-        time_cost = 1,
+        time_cost = 3,
         vars = {
-            1,
             2,
-            1
+            2,
+            3
         }
     },
     text = {
@@ -667,11 +667,11 @@ registerItem({
 registerItem({
     key = "hemokinesis",
     sprite = "ItemHemokinesis",
-    pool = {"uncommon", "misc"},
+    pool = "uncommon",
     config = {
-        modHP = 1,
+        modHP = 3,
         vars = {
-            1,
+            3,
         }
     },
     text = {
@@ -809,10 +809,10 @@ registerItem({
     pool = "misc",
     config = {
         modHP = 5,
-        timeCost = 10,
+        timeCost = 6,
         vars = {
             5,
-            10
+            6
         }
     },
     text = {
