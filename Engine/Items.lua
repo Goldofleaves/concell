@@ -738,3 +738,48 @@ registerItem({
         end
     end,
 })
+registerItem({
+    key = "strawberry",
+    sprite = "ItemStrawberry",
+    config = {
+        modMoves = 2,
+        turns = 4,
+        toggled = false,
+        vars = {
+            2,
+            4,
+            "Off"
+        }
+    },
+    text = {
+        "|s:2,2|Strawberry",
+        "|s:2,2|Type: Usable",
+        "|s:2,2|State: {3}",
+        "|s:2,2|For the next {2}",
+        "|s:2,2|moves, you may move",
+        "|s:2,2|{1} more spaces.",
+    },
+    canUse = function()
+        return "noState"
+    end,
+    onUse = function(self)
+        self.config.toggled = not self.config.toggled
+        if self.config.toggled then
+            G.flags.saveData.gridsPerMove = G.flags.saveData.gridsPerMove + self.config.modMoves
+        else
+            G.flags.saveData.gridsPerMove = G.flags.saveData.gridsPerMove - self.config.modMoves
+        end
+        self.config.vars[3] = self.config.toggled and "On" or "Off"
+        Util.Audio.playSfx("blip_hover", 2)
+    end,
+    calculate = function(context, self)
+        if context.moveEnd and self.config.toggled then
+            self.config.turns = self.config.turns - 1
+            self.config.vars[2] = self.config.vars[2] - 1
+        end
+        if self.config.turns == 0 then
+            G.flags.saveData.gridsPerMove = G.flags.saveData.gridsPerMove - self.config.modMoves
+            discardItem(nil, self.key)
+        end
+    end,
+})

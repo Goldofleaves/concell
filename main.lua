@@ -32,27 +32,34 @@ local function wrapper(key, px, py, folders)
     folders = folders or ""
     registerAtlasSimple(key, "Assets/Sprites/"..folders..key..".png", px, py)
 end
+
 wrapper("grassBase",  40, 21, "Tiles/Grass/")
 wrapper("grassFoley", 40, 21, "Tiles/Grass/")
 wrapper("grassEdge1", 40, 21, "Tiles/Grass/")
 wrapper("grassEdge2", 40, 21, "Tiles/Grass/")
 wrapper("grassEdge3", 40, 21, "Tiles/Grass/")
 wrapper("grassEdge4", 40, 21, "Tiles/Grass/")
+
 wrapper("ruinsBase",  40, 21, "Tiles/Ruins/")
 wrapper("ruinsFoley", 40, 21, "Tiles/Ruins/")
 wrapper("ruinsEdge1", 40, 21, "Tiles/Ruins/")
 wrapper("ruinsEdge2", 40, 21, "Tiles/Ruins/")
 wrapper("ruinsEdge3", 40, 21, "Tiles/Ruins/")
 wrapper("ruinsEdge4", 40, 21, "Tiles/Ruins/")
+
 wrapper("prisonBase",  40, 21, "Tiles/Prison/")
 wrapper("prisonFoley", 40, 21, "Tiles/Prison/")
 wrapper("prisonEdge1", 40, 21, "Tiles/Prison/")
 wrapper("prisonEdge2", 40, 21, "Tiles/Prison/")
 wrapper("prisonEdge3", 40, 21, "Tiles/Prison/")
 wrapper("prisonEdge4", 40, 21, "Tiles/Prison/")
+
+
 wrapper("titlescreenBg", 600, 400, "Title/")
 wrapper("titlescreenFg", 600, 400, "Title/")
 wrapper("titlescreenDawn", 600, 400, "Title/")
+
+
 wrapper("UICancel", 600, 400, "UI/")
 wrapper("UIHP", 600, 400, "UI/")
 wrapper("UIItemRibbon", 600, 400, "UI/")
@@ -60,6 +67,8 @@ wrapper("UIMove", 600, 400, "UI/")
 wrapper("UIMoveInactive", 600, 400, "UI/")
 wrapper("UITimer", 600, 400, "UI/")
 wrapper("UITimerIcon", 25, 47, "UI/")
+
+
 wrapper("ItemBlank", 50, 47, "Items/")
 wrapper("ItemKnife", 50, 47, "Items/")
 wrapper("ItemMusket", 50, 47, "Items/")
@@ -73,6 +82,9 @@ wrapper("ItemDagger", 50, 47, "Items/")
 wrapper("ItemHemokinesis", 50, 47, "Items/")
 wrapper("ItemLunchbox", 50, 47, "Items/")
 wrapper("ItemBloodphial", 50, 47, "Items/")
+wrapper("ItemStrawberry", 50, 47, "Items/")
+
+
 wrapper("Door", 40, 60, "Tiles/")
 wrapper("Target", 40, 60, "Tiles/")
 wrapper("prisonBar", 40, 60, "Tiles/")
@@ -123,6 +135,8 @@ wrapper("tileAttack_1", 40, 60, "Tiles/")
 wrapper("tileAttack_2", 40, 60, "Tiles/")
 wrapper("tileAttack_3", 40, 60, "Tiles/")
 wrapper("tileAttack_4", 40, 60, "Tiles/")
+
+
 wrapper("cutscene", 600, 500)
 wrapper("gameOver", 600, 400)
 wrapper("gameWin", 600, 400)
