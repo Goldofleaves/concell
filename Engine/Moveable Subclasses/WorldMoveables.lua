@@ -575,7 +575,13 @@ function WorldMoveable:draw()
             txt:draw(v.contents[1] - txt:getTotalWidth() / 2,
             v.contents[2] - 60 * Util.UI.getScalingFactor())
 
-            local name = AdvancedText("|o:night||s:2,2|" .. Macros.names[self.extra.name])
+            local nameColor = Macros.bossEnemies[self.extra.name]
+                and "|c:yellow|"
+                or ""
+            local name = AdvancedText(
+                "|o:night|"..nameColor.."|s:2,2|"
+                    .. Macros.names[self.extra.name]
+            )
             name:draw(v.contents[1] - name:getTotalWidth() / 2,
             v.contents[2] - 92 * Util.UI.getScalingFactor())
             love.graphics.pop()

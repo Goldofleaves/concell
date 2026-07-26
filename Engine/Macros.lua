@@ -56,10 +56,15 @@ Macros = {
 		guardian = 18,
 		
 	},
+	bossEnemies = {
+		cellboss = true,
+		wizard = true,
+		abraham = true,
+	},
 	names = {
 		guard = "Guard",
 		cellmate = "Cellmate",
-		cellboss = "CellBoss",
+		cellboss = "Bruiser",
 		turret = "Turret",
 		hunter = "Vampire Hunter",
 		officer = "Officer",
