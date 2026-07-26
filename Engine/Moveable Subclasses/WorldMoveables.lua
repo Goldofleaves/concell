@@ -69,6 +69,39 @@ function WorldMoveable:juice(r)
         }),"juice"..self.id
     )
 end
+
+function WorldMoveable:getVisualGridPosition()
+    return self.extra.visualGridX or self.TMod.x.base,
+        self.extra.visualGridY or self.TMod.y.base
+end
+
+function WorldMoveable:moveToGrid(x, y, duration)
+    local startX, startY = self:getVisualGridPosition()
+    self.TMod.x.base = x
+    self.TMod.y.base = y
+
+    duration = duration or 0.22
+    if duration <= 0 or (startX == x and startY == y) then
+        self.extra.gridMove = nil
+        self.extra.visualGridX = nil
+        self.extra.visualGridY = nil
+        return
+    end
+
+    self.extra.visualGridX = startX
+    self.extra.visualGridY = startY
+    self.extra.gridMove = {
+        elapsed = 0,
+        duration = duration,
+        ease = Util.EaseSplines.createEase(
+            { x = startX, y = startY },
+            { x = x, y = y },
+            nil,
+            { preset = "eoc" }
+        ),
+    }
+end
+
 function WorldMoveable:draw()
     Moveable.draw(self)
     local lookup = {
@@ -88,15 +121,24 @@ function WorldMoveable:draw()
             color = Macros.colors.transparent,
             radius = 7 * self.properties.mult
         },
+        gate = {
+            color = Macros.colors.transparent,
+            radius = 7 * self.properties.mult
+        },
+        pickup = {
+            color = Macros.colors.transparent,
+            radius = 5 * self.properties.mult
+        },
     }
     local r, g, b, a = love.graphics.getColor()
-    local vector = Util.World.toIsoPos(Vector(self.TMod.x.base + 0.2, self.TMod.y.base + 0.2))
+    local visualX, visualY = self:getVisualGridPosition()
+    local vector = Util.World.toIsoPos(Vector(visualX + 0.2, visualY + 0.2))
     love.graphics.setColor(lookup[self.properties.type].color)
-    if self.properties.type == "enemy" and TARGETED_ENEMIES then
+    if (self.properties.type == "enemy" or self.properties.type == "gate") and TARGETED_ENEMIES then
         for _, t in ipairs(TARGETED_ENEMIES) do
             if t == self then
                 love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white,0.67))
-                local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
+                local v = Util.World.toIsoPos(Vector(visualX, visualY))
                 love.graphics.draw(
                     Atlases.Target.image,
                     Atlases.Target.splicedImages[0][0],
@@ -133,7 +175,7 @@ function WorldMoveable:draw()
     love.graphics.circle("fill", vector.contents[1], vector.contents[2], lookup[self.properties.type].radius*Util.UI.getScalingFactor())
     if self.properties.type == "door" then
         love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white,0.67))
-        local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
+        local v = Util.World.toIsoPos(Vector(visualX, visualY))
         love.graphics.draw(
             Atlases.Door.image,
             Atlases.Door.splicedImages[0][0],
@@ -145,7 +187,7 @@ function WorldMoveable:draw()
     -- Util.World.getDir
     if self.properties.type == "wall" then
         love.graphics.setColor(Macros.colors.white)
-        local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
+        local v = Util.World.toIsoPos(Vector(visualX, visualY))
         local direction = self.extra.dir or 1
         love.graphics.draw(
             Atlases[self.extra.name].image,
@@ -155,9 +197,33 @@ function WorldMoveable:draw()
             0, 2 * direction * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
     end
+    if self.properties.type == "gate" then
+        love.graphics.setColor(Macros.colors.white)
+        local v = Util.World.toIsoPos(Vector(visualX, visualY))
+        local direction = self.extra.dir or 1
+        local sprite = self.extra.locked and "prisonGate" or "prisonGateOpen"
+        love.graphics.draw(
+            Atlases[sprite].image,
+            Atlases[sprite].splicedImages[0][0],
+            v.contents[1] - 40 * direction * Util.UI.getScalingFactor(),
+            v.contents[2] - 80 * Util.UI.getScalingFactor(),
+            0, 2 * direction * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+        )
+    end
+    if self.properties.type == "pickup" then
+        love.graphics.setColor(Macros.colors.white)
+        local v = Util.World.toIsoPos(Vector(visualX, visualY))
+        love.graphics.draw(
+            Atlases.prisonKey.image,
+            Atlases.prisonKey.splicedImages[0][0],
+            v.contents[1] - 40 * Util.UI.getScalingFactor(),
+            v.contents[2] - 80 * Util.UI.getScalingFactor(),
+            0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+        )
+    end
     if self.properties.type == "enemy" then
         love.graphics.setColor(Macros.colors.white)
-        local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
+        local v = Util.World.toIsoPos(Vector(visualX, visualY))
         if not self.extra.name then
             print(self.extra)
             goto exit
@@ -201,7 +267,7 @@ function WorldMoveable:draw()
     end
     if self.properties.type == "player" then
         love.graphics.setColor(Macros.colors.white)
-        local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
+        local v = Util.World.toIsoPos(Vector(visualX, visualY))
         love.graphics.draw(
             Atlases["dawn"..self.extra.facing].image,
             Atlases["dawn"..self.extra.facing].splicedImages[0][0],
@@ -215,8 +281,57 @@ function WorldMoveable:draw()
 end
 function WorldMoveable:update(dt)
     Moveable.update(self, dt)
-    self.drawOrder = self.TMod.x.base + self.TMod.y.base + 12 + (self.properties.type == "door" and -.5 or 0)
+    if self.extra.gridMove then
+        local movement = self.extra.gridMove
+        movement.elapsed = math.min(movement.elapsed + dt, movement.duration)
+        local position = movement.ease(movement.elapsed / movement.duration)
+        self.extra.visualGridX = position.x
+        self.extra.visualGridY = position.y
+        if movement.elapsed >= movement.duration then
+            self.extra.gridMove = nil
+            self.extra.visualGridX = nil
+            self.extra.visualGridY = nil
+        end
+    end
+
+    local visualX, visualY = self:getVisualGridPosition()
+    self.drawOrder = visualX + visualY + 12 + (self.properties.type == "door" and -.5 or 0)
+    if self.properties.type == "pickup"
+        and not self.extra.collected
+        and PLAYER
+        and not PLAYER.extra.gridMove
+        and PLAYER.TMod.x.base == self.TMod.x.base
+        and PLAYER.TMod.y.base == self.TMod.y.base
+        and addItem(self.extra.itemKey)
+    then
+        self.extra.collected = true
+        for index, key in ipairs(G.flags.saveData.curRoom.keys) do
+            if key.id == self.extra.identifier then
+                table.remove(G.flags.saveData.curRoom.keys, index)
+                break
+            end
+        end
+        Util.Audio.playSfx("key_pick")
+        self:remove()
+    end
     -- self:decideMove()
+end
+
+function WorldMoveable:unlock()
+    if self.properties.type ~= "gate" or not self.extra.locked then
+        return false
+    end
+
+    self.extra.locked = false
+    for _, gate in ipairs(G.flags.saveData.curRoom.gates) do
+        if gate.id == self.extra.identifier then
+            gate.locked = false
+            break
+        end
+    end
+    Util.Audio.playSfx("gate_unlock")
+    self:juice()
+    return true
 end
 function move_all_enemies()
     local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
@@ -224,8 +339,7 @@ function move_all_enemies()
         if v.extra.goalVertice then
             if v.extra.goalVertice[1] ~= PLAYER.TMod.x.base or v.extra.goalVertice[2] ~= PLAYER.TMod.y.base then
                 v.extra.facing = Util.World.getDir({{coords = {v.TMod.x.base, v.TMod.y.base}}, {coords = v.extra.goalVertice}})
-                v.TMod.x.base = v.extra.goalVertice[1]
-                v.TMod.y.base = v.extra.goalVertice[2]
+                v:moveToGrid(v.extra.goalVertice[1], v.extra.goalVertice[2])
             else
                 local ret = Util.World.modHP(-2)
                 if ret then return end
@@ -330,6 +444,33 @@ function WorldMoveable:decideMove()
     end
 end
 function WorldMoveable:initRoomStuff()
+    for _, v in ipairs(G.flags.saveData.curRoom.gates or {}) do
+        WorldMoveable({
+            x = v.x,
+            y = v.y,
+            type = "gate",
+            extra = {
+                locked = v.locked ~= false,
+                dir = v.dir,
+                identifier = v.id,
+            },
+            updateOrder = 2,
+            drawOrder = 11
+        })
+    end
+    for _, v in ipairs(G.flags.saveData.curRoom.keys or {}) do
+        WorldMoveable({
+            x = v.x,
+            y = v.y,
+            type = "pickup",
+            extra = {
+                itemKey = v.itemKey,
+                identifier = v.id,
+            },
+            updateOrder = 2,
+            drawOrder = 10
+        })
+    end
     for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
         local j = WorldMoveable({
             x = v.pos[1],

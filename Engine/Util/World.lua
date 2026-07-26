@@ -204,6 +204,40 @@ local function getCriticalPaths(room, blocked)
     return true, critical
 end
 
+local function getReachableTiles(room, start, blocked)
+    local startKey = coordKey(start.x, start.y)
+    if not Util.World.isFloor(room, start.x, start.y) or blocked[startKey] then
+        return {}, {}
+    end
+
+    local queue = { { start.x, start.y } }
+    local head = 1
+    local reachable = { [startKey] = { start.x, start.y } }
+    local distances = { [startKey] = 0 }
+    local directions = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
+
+    while head <= #queue do
+        local current = queue[head]
+        head = head + 1
+        local currentKey = coordKey(current[1], current[2])
+        for _, direction in ipairs(directions) do
+            local x = current[1] + direction[1]
+            local y = current[2] + direction[2]
+            local key = coordKey(x, y)
+            if Util.World.isFloor(room, x, y)
+                and not blocked[key]
+                and not reachable[key]
+            then
+                reachable[key] = { x, y }
+                distances[key] = distances[currentKey] + 1
+                queue[#queue + 1] = { x, y }
+            end
+        end
+    end
+
+    return reachable, distances
+end
+
 local function carveBranchedShape(room)
     clearFloor(room)
     local hub = {
@@ -425,6 +459,134 @@ local function addReachableBarrier(room, reserved, identifier)
     return identifier
 end
 
+local function addPrisonGatePuzzle(room, reserved, index)
+    room.gates = {}
+    room.keys = {}
+
+    if type(index) ~= "number" or index < 2 or index > 5
+        or #room.doors < 2 or not Util.Math.chance(2 / 5)
+    then
+        return false
+    end
+
+    local blocked = {}
+    for _, wall in ipairs(room.walls) do
+        blocked[coordKey(wall.x, wall.y)] = true
+    end
+
+    local start = room.doors[1].a
+    local reachable, baseDistances = getReachableTiles(room, start, blocked)
+    local connected, critical = getCriticalPaths(room, blocked)
+    if not connected then
+        return false
+    end
+
+    local doorTiles = {}
+    for _, door in ipairs(room.doors) do
+        doorTiles[coordKey(door.a.x, door.a.y)] = true
+    end
+
+    local best
+    for key, position in pairs(reachable) do
+        if not reserved[key] and not doorTiles[key] then
+            blocked[key] = true
+            local gateReachable, gateDistances = getReachableTiles(room, start, blocked)
+            blocked[key] = nil
+
+            local blockedExitCount = 0
+            local distanceIncrease = 0
+            for doorIndex = 2, #room.doors do
+                local door = room.doors[doorIndex]
+                local doorKey = coordKey(door.a.x, door.a.y)
+                if not gateReachable[doorKey] then
+                    blockedExitCount = blockedExitCount + 1
+                else
+                    distanceIncrease = distanceIncrease
+                        + math.max(0, gateDistances[doorKey] - baseDistances[doorKey])
+                end
+            end
+
+            local keySpace = 0
+            for reachableKey in pairs(gateReachable) do
+                if reachableKey ~= coordKey(start.x, start.y)
+                    and reachableKey ~= key
+                    and not doorTiles[reachableKey]
+                    and not reserved[reachableKey]
+                then
+                    keySpace = keySpace + 1
+                end
+            end
+
+            local blocksEveryExit = blockedExitCount == #room.doors - 1
+            local isUseful = (room.layout == "maze" and blocksEveryExit)
+                or (room.layout ~= "maze"
+                    and (blockedExitCount > 0 or distanceIncrease > 0))
+            if keySpace > 0 and isUseful then
+                local score = blockedExitCount * 10000
+                    + distanceIncrease * 100
+                    + (critical[key] and 25 or 0)
+                    + baseDistances[key]
+                if not best or score > best.score then
+                    best = {
+                        x = position[1],
+                        y = position[2],
+                        key = key,
+                        score = score,
+                        reachable = gateReachable,
+                        distances = gateDistances,
+                    }
+                end
+            end
+        end
+    end
+
+    if not best then
+        return false
+    end
+
+    local keyPosition
+    local keyDistance = -1
+    for key, position in pairs(best.reachable) do
+        if key ~= coordKey(start.x, start.y)
+            and key ~= best.key
+            and not doorTiles[key]
+            and not reserved[key]
+            and best.distances[key] > keyDistance
+        then
+            keyPosition = position
+            keyDistance = best.distances[key]
+        end
+    end
+    if not keyPosition then
+        return false
+    end
+
+    local horizontalPath = Util.World.isFloor(room, best.x - 1, best.y)
+        and Util.World.isFloor(room, best.x + 1, best.y)
+    local verticalPath = Util.World.isFloor(room, best.x, best.y - 1)
+        and Util.World.isFloor(room, best.x, best.y + 1)
+    local direction = horizontalPath and not verticalPath and 1
+        or verticalPath and not horizontalPath and -1
+        or 1
+
+    room.gates[1] = {
+        id = 1,
+        x = best.x,
+        y = best.y,
+        dir = direction,
+        locked = true,
+    }
+    room.keys[1] = {
+        id = 1,
+        x = keyPosition[1],
+        y = keyPosition[2],
+        itemKey = "prison_key",
+    }
+    reserved[best.key] = true
+    reserved[coordKey(keyPosition[1], keyPosition[2])] = true
+    return true
+end
+
 local function addRoomEnemies(room, reserved, identifier, index)
     local blocked = {}
     for _, wall in ipairs(room.walls) do
@@ -523,6 +685,8 @@ function Util.World.regenerateRoom(room, index)
         enemies = {},
         doors = {},
         walls = {},
+        gates = {},
+        keys = {},
     }
 
     for _, door in ipairs(room.doors) do
@@ -537,6 +701,7 @@ function Util.World.regenerateRoom(room, index)
     local reserved = reserveDoorApproaches(replacement)
     generateFloorShape(replacement, reserved)
     local identifier = addReachableBarrier(replacement, reserved, 1)
+    addPrisonGatePuzzle(replacement, reserved, index)
     addRoomEnemies(replacement, reserved, identifier, index)
     return replacement
 end
@@ -604,6 +769,8 @@ function Util.World.generateRoom(type, last_side, indices, getprev, index)
     room.enemies = {}
     room.doors = {}
     room.walls = {}
+    room.gates = {}
+    room.keys = {}
     local identifier = 1
     if type == "init_room" then
         room.size = { w = 5, h = 5 }
@@ -655,6 +822,7 @@ function Util.World.generateRoom(type, last_side, indices, getprev, index)
         local reserved = reserveDoorApproaches(room)
         generateFloorShape(room, reserved)
         identifier = addReachableBarrier(room, reserved, identifier)
+        addPrisonGatePuzzle(room, reserved, index)
         addRoomEnemies(room, reserved, identifier, index)
         assert(getCriticalPaths(room, roomBlockers(room)),
             "World generation produced a room with an unreachable exit")
@@ -855,6 +1023,10 @@ function getAllValidVertices(www, hhh, blockades)
             local worldMoveables = Util.World.getAllWorldMoveablesWithCoord({ x, y })
             local hasblockade = false
             for k, v in ipairs(worldMoveables) do
+                if v.properties.type == "gate" and v.extra.locked then
+                    hasblockade = true
+                    break
+                end
                 for kk, vv in ipairs(blockades) do
                     if v.properties.type == vv then
                         hasblockade = true

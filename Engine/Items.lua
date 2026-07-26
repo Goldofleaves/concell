@@ -427,8 +427,7 @@ registerItem({
             -- move to the midpoint
             local mx = (enemy.TMod.x.base + PLAYER.TMod.x.base)/2
             local my = (enemy.TMod.y.base + PLAYER.TMod.y.base)/2
-            PLAYER.TMod.x.base = mx
-            PLAYER.TMod.y.base = my
+            PLAYER:moveToGrid(mx, my)
         end
     end
 })
@@ -454,6 +453,43 @@ registerItem({
             for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
                 enemy:modHP(self.config.damage, true)
             end
+        end
+    end,
+})
+
+registerItem({
+    key = "prison_key",
+    sprite = "ItemPrisonKey",
+    inPool = function()
+        return false
+    end,
+    text = {
+        "|s:2,2|Prison Key",
+        "|s:2,2|Type: Key",
+        "|s:2,2|You may find that",
+        "|s:2,2|this key opens many",
+        "|s:2,2|new doors for you.",
+        "|s:2,2|Consumed when used.",
+    },
+    canUse = function(self)
+        if not self.isBeingUsed then
+            self.targets = {}
+            for _, gate in ipairs(Util.World.getAllWorldMoveablesWithType("gate")) do
+                if gate.extra.locked and get_orthogonal_dist(gate, PLAYER) == 1 then
+                    self.targets[#self.targets + 1] = gate
+                end
+            end
+            if #self.targets > 0 then
+                return "hasState"
+            end
+        end
+        return false
+    end,
+    onUse = function(self, gate)
+        if not self.isBeingUsed then
+            TARGETED_ENEMIES = self.targets
+        elseif gate and gate:unlock() then
+            discardItem(nil, self.key)
         end
     end,
 })
