@@ -23,7 +23,13 @@ function registerItem(args)
         isKey = args.isKey == true,
         text = args.text or {"|s:2,2|ERROR"}
     }
-    table.insert(Pools[args.pool or "common"].keys, args.key)
+    if type(args.pool or "common") == "table" then
+        for k, v in ipairs(args.pool) do
+            table.insert(Pools[v].keys, args.key)
+        end
+    else
+        table.insert(Pools[args.pool or "common"].keys, args.key)
+    end
     Centers[args.key] = t
 end
 ---@param key string
@@ -713,7 +719,7 @@ registerItem({
 registerItem({
     key = "bloodphial",
     sprite = "ItemBloodphial",
-    pool = "uncommon",
+    pool = {"uncommon", "misc"},
     config = {
         modHP = 2,
         turns = 4,
