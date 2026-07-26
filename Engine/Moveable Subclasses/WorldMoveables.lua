@@ -57,13 +57,13 @@ end
 local function spawnEnemyItemDrop(x, y)
     local saveData = G.flags.saveData
     saveData.nextItemDropAt = saveData.nextItemDropAt
-        or love.math.random(7, 8)
+        or love.math.random(4, 6)
     if saveData.enemiesSlain < saveData.nextItemDropAt then
         return
     end
 
     saveData.nextItemDropAt = saveData.nextItemDropAt
-        + love.math.random(7, 8)
+        + love.math.random(4, 6)
     local itemKey = poolItem(nil, ITEM_DROP_EXCLUSIONS)
     if not itemKey then
         return
