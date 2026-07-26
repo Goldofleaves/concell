@@ -138,6 +138,12 @@ function WorldMoveable:modHP(m, silent)
                 if self.extra.name == "elite" then
                     self:clearEliteDanger()
                 end
+                if self.extra.name == "wizard" then
+                    self:clearWizardDanger()
+                    self.extra.wizardAction = nil
+                    self.extra.goalVertice = nil
+                    self.extra.goalPath = nil
+                end
                 for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
                     if v.id == self.extra.identifier then
                         table.remove(G.flags.saveData.curRoom.enemies, k)
@@ -948,6 +954,254 @@ local function getFacingTowardPoint(fromX, fromY, toX, toY)
     end
 end
 
+local function getWizardCastRange()
+    local size = G.flags.saveData.curRoom.size
+    return math.ceil(
+        math.max(size.w, size.h) * Macros.wizard.rangeFraction
+    )
+end
+
+function WorldMoveable:clearWizardDanger()
+    for _, marker in ipairs(self.extra.dangerMarkers or {}) do
+        marker:remove()
+    end
+    self.extra.dangerMarkers = nil
+    self.extra.dangerTiles = nil
+    self.extra.dangerCenter = nil
+end
+
+function WorldMoveable:prepareWizardAttack()
+    local centerX = PLAYER.TMod.x.base
+    local centerY = PLAYER.TMod.y.base
+    local radius = Macros.wizard.aoeRadius
+    local tiles = {}
+    local markers = {}
+
+    self:clearWizardDanger()
+    for x = centerX - radius, centerX + radius do
+        for y = centerY - radius, centerY + radius do
+            local deltaX = x - centerX
+            local deltaY = y - centerY
+            if deltaX * deltaX + deltaY * deltaY <= radius * radius
+                and Util.World.isFloor(G.flags.saveData.curRoom, x, y)
+            then
+                tiles[#tiles + 1] = {x, y}
+                markers[#markers + 1] = WorldMoveable({
+                    x = x,
+                    y = y,
+                    type = "danger",
+                    extra = {wizardIdentifier = self.extra.identifier},
+                    updateOrder = 2,
+                    drawOrder = x + y + 9,
+                })
+            end
+        end
+    end
+    if #tiles == 0 then
+        return false
+    end
+
+    self.extra.facing = getFacingTowardPoint(
+        self.TMod.x.base,
+        self.TMod.y.base,
+        centerX,
+        centerY
+    ) or self.extra.facing
+    self.extra.wizardAction = "attack"
+    self.extra.goalVertice = nil
+    self.extra.goalPath = nil
+    self.extra.dangerCenter = {centerX, centerY}
+    self.extra.dangerTiles = tiles
+    self.extra.dangerMarkers = markers
+    self:juice(3)
+    return true
+end
+
+function WorldMoveable:planWizardMove(towardPlayer)
+    local room = G.flags.saveData.curRoom
+    local startX, startY = self.TMod.x.base, self.TMod.y.base
+    local vertices = getAllValidVertices(
+        room.size.w,
+        room.size.h,
+        {"wall", "enemy", "door"}
+    )
+    vertices[startX] = vertices[startX] or {}
+    vertices[startX][startY] = true
+
+    local queue = {{
+        x = startX,
+        y = startY,
+        path = {},
+    }}
+    local queueIndex = 1
+    local seen = {[startX..","..startY] = true}
+    local candidates = {}
+    while queueIndex <= #queue do
+        local current = queue[queueIndex]
+        queueIndex = queueIndex + 1
+        if #current.path < Macros.wizard.moveDistance then
+            for _, position in ipairs(getAllAdjacentVertices(
+                vertices,
+                {current.x, current.y}
+            )) do
+                local x, y = position[1], position[2]
+                local key = x..","..y
+                if not seen[key]
+                    and not (
+                        x == PLAYER.TMod.x.base
+                        and y == PLAYER.TMod.y.base
+                    )
+                    and not enemyTileIsBlocked(self, x, y)
+                    and not cellBossGoalIsReserved(self, x, y)
+                then
+                    seen[key] = true
+                    local path = {}
+                    for index, step in ipairs(current.path) do
+                        path[index] = {step[1], step[2]}
+                    end
+                    path[#path + 1] = {x, y}
+                    local candidate = {
+                        x = x,
+                        y = y,
+                        path = path,
+                    }
+                    candidates[#candidates + 1] = candidate
+                    queue[#queue + 1] = candidate
+                end
+            end
+        end
+    end
+    if #candidates == 0 then
+        return false
+    end
+
+    local castRange = getWizardCastRange()
+    local best
+    for _, candidate in ipairs(candidates) do
+        local distance = math.abs(PLAYER.TMod.x.base - candidate.x)
+            + math.abs(PLAYER.TMod.y.base - candidate.y)
+        local score
+        if towardPlayer then
+            score = -distance * 20 + #candidate.path
+        else
+            score = -math.abs(distance - castRange) * 20
+                + distance
+                + #candidate.path
+        end
+        score = score + love.math.random()
+        if not best or score > best.score then
+            best = {
+                x = candidate.x,
+                y = candidate.y,
+                path = candidate.path,
+                score = score,
+            }
+        end
+    end
+
+    self.extra.wizardAction = "move"
+    self.extra.goalPath = best.path
+    self.extra.goalVertice = {best.x, best.y}
+    return true
+end
+
+function WorldMoveable:resolveWizardMove()
+    local movement = {}
+    for _, position in ipairs(self.extra.goalPath or {}) do
+        if position[1] == PLAYER.TMod.x.base
+            and position[2] == PLAYER.TMod.y.base
+        then
+            break
+        end
+        if enemyTileIsBlocked(self, position[1], position[2]) then
+            break
+        end
+        movement[#movement + 1] = {position[1], position[2]}
+    end
+
+    self.extra.wizardAction = nil
+    self.extra.goalPath = nil
+    self.extra.goalVertice = nil
+    if #movement == 0 then
+        return
+    end
+
+    local fromX, fromY = self.TMod.x.base, self.TMod.y.base
+    if #movement > 1 then
+        fromX, fromY = movement[#movement - 1][1], movement[#movement - 1][2]
+    end
+    local destination = movement[#movement]
+    self.extra.facing = getFacingTowardPoint(
+        fromX,
+        fromY,
+        destination[1],
+        destination[2]
+    ) or self.extra.facing
+    self:moveAlongGridPath(movement, 0.1)
+    self:juice()
+end
+
+function WorldMoveable:resolveWizardAttack()
+    local tiles = self.extra.dangerTiles or {}
+    self.extra.attackSequence = (self.extra.attackSequence or 0) + 1
+    local sequence = self.extra.attackSequence
+    self:clearWizardDanger()
+    self.extra.wizardAction = nil
+
+    for index, position in ipairs(tiles) do
+        local x, y = position[1], position[2]
+        Util.Event.addEvent(Event({
+            duration = 0.4,
+            drawOrder = x + y + 10,
+            drawFunc = function(time)
+                local r, g, b, a = love.graphics.getColor()
+                love.graphics.setColor(Macros.colors.white)
+                local frame = math.min(4, math.floor(time * 4) + 1)
+                drawWorldTileAtlas("tileAttack_"..frame, x, y)
+                love.graphics.setColor(r, g, b, a)
+            end,
+        }), "wizardAttack"..self.id.."_"..sequence.."_"..index)
+    end
+    Util.Audio.playSfx("slam")
+    self:juice(4)
+
+    for _, position in ipairs(tiles) do
+        if position[1] == PLAYER.TMod.x.base
+            and position[2] == PLAYER.TMod.y.base
+        then
+            return Util.World.modHP(-Macros.wizard.damage)
+        end
+    end
+    return false
+end
+
+function WorldMoveable:resolveWizardTurn()
+    if self.extra.wizardAction == "attack" then
+        return self:resolveWizardAttack()
+    elseif self.extra.wizardAction == "move" then
+        self:resolveWizardMove()
+    end
+    return false
+end
+
+function WorldMoveable:planWizardAction()
+    if self.extra.wizardAction then
+        return
+    end
+
+    local distance = math.abs(PLAYER.TMod.x.base - self.TMod.x.base)
+        + math.abs(PLAYER.TMod.y.base - self.TMod.y.base)
+    if distance > getWizardCastRange() then
+        self:planWizardMove(true)
+    elseif distance < Macros.wizard.minDistance
+        and self:planWizardMove(false)
+    then
+        return
+    elseif not self:prepareWizardAttack() then
+        self:planWizardMove(true)
+    end
+end
+
 function WorldMoveable:clearEliteDanger()
     for _, marker in ipairs(self.extra.dangerMarkers or {}) do
         marker:remove()
@@ -1515,36 +1769,44 @@ function move_all_enemies()
         return
     end
     for k, v in ipairs(allEnemies) do
-        if v.extra.name == "skeleton" and v:advanceSkeletonRevival() then
-            -- A downed skeleton keeps occupying its tile until it revives.
-        elseif v.extra.name == "skeleton" and v.extra.goalPath then
-            if v:resolveSkeletonMove() then
-                return
-            end
-        elseif v.extra.name == "cellboss" then
-            if v:resolveCellBossTurn() then
-                return
-            end
-        elseif v.extra.goalVertice then
-            local goalX, goalY = v.extra.goalVertice[1], v.extra.goalVertice[2]
-            if goalX == PLAYER.TMod.x.base and goalY == PLAYER.TMod.y.base then
-                local ret = Util.World.modHP(-2)
-                if ret then return end
-            elseif not enemyTileIsBlocked(v, goalX, goalY) then
-                v.extra.facing = Util.World.getDir({
-                    {coords = {v.TMod.x.base, v.TMod.y.base}},
-                    {coords = {goalX, goalY}},
-                })
-                v:moveToGrid(goalX, goalY)
-            else
+        if v.extra.hp > 0 or v.extra.name == "skeleton" then
+            if v.extra.name == "skeleton" and v:advanceSkeletonRevival() then
+                -- A downed skeleton keeps occupying its tile until it revives.
+            elseif v.extra.name == "skeleton" and v.extra.goalPath then
+                if v:resolveSkeletonMove() then
+                    return
+                end
+            elseif v.extra.name == "cellboss" then
+                if v:resolveCellBossTurn() then
+                    return
+                end
+            elseif v.extra.name == "wizard" then
+                if v:resolveWizardTurn() then
+                    return
+                end
+            elseif v.extra.goalVertice then
+                local goalX, goalY = v.extra.goalVertice[1], v.extra.goalVertice[2]
+                if goalX == PLAYER.TMod.x.base and goalY == PLAYER.TMod.y.base then
+                    local ret = Util.World.modHP(-2)
+                    if ret then return end
+                elseif not enemyTileIsBlocked(v, goalX, goalY) then
+                    v.extra.facing = Util.World.getDir({
+                        {coords = {v.TMod.x.base, v.TMod.y.base}},
+                        {coords = {goalX, goalY}},
+                    })
+                    v:moveToGrid(goalX, goalY)
+                else
+                    v.extra.goalVertice = nil
+                end
                 v.extra.goalVertice = nil
+                v:juice()
             end
-            v.extra.goalVertice = nil
-            v:juice()
         end
     end
     for k, v in ipairs(allEnemies) do
-        v:decideMove()
+        if v.extra.hp > 0 then
+            v:decideMove()
+        end
     end
 end
 function WorldMoveable:switchRoom()
@@ -1616,6 +1878,10 @@ function WorldMoveable:decideMove()
         if isRangedEnemyName(self.extra.name) then return nil end
         if self.extra.name == "skeleton" then
             self:planSkeletonMove()
+            return
+        end
+        if self.extra.name == "wizard" then
+            self:planWizardAction()
             return
         end
         if self.extra.name == "cellboss" then

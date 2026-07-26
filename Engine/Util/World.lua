@@ -879,6 +879,82 @@ local function addRoomEnemies(room, reserved, identifier, index)
     return identifier
 end
 
+local function roomHasEnemy(room, enemyName)
+    for _, enemy in ipairs(room.enemies or {}) do
+        if enemy.name == enemyName then
+            return true
+        end
+    end
+    return false
+end
+
+local function addGrassWizard(
+    room,
+    reserved,
+    identifier,
+    index,
+    wizardBossRoomIndex
+)
+    if index ~= wizardBossRoomIndex then
+        return identifier
+    end
+
+    local blocked = {}
+    for _, wall in ipairs(room.walls) do
+        blocked[coordKey(wall.x, wall.y)] = true
+    end
+    for _, gate in ipairs(room.gates or {}) do
+        if gate.locked ~= false then
+            blocked[coordKey(gate.x, gate.y)] = true
+        end
+    end
+    for _, enemy in ipairs(room.enemies) do
+        blocked[coordKey(enemy.pos[1], enemy.pos[2])] = true
+    end
+
+    local entrance = room.doors[1] and room.doors[1].a
+    local candidates = {}
+    for x = 1, room.size.w - 2 do
+        for y = 1, room.size.h - 2 do
+            local key = coordKey(x, y)
+            if Util.World.isFloor(room, x, y)
+                and not reserved[key]
+                and not blocked[key]
+            then
+                local entranceDistance = entrance
+                    and math.abs(x - entrance.x) + math.abs(y - entrance.y)
+                    or 0
+                candidates[#candidates + 1] = {
+                    x = x,
+                    y = y,
+                    score = entranceDistance + love.math.random(),
+                }
+            end
+        end
+    end
+    table.sort(candidates, function(a, b)
+        return a.score > b.score
+    end)
+
+    for _, candidate in ipairs(candidates) do
+        local key = coordKey(candidate.x, candidate.y)
+        blocked[key] = true
+        if getCriticalPaths(room, blocked) then
+            room.enemies[#room.enemies + 1] = {
+                name = "wizard",
+                pos = {candidate.x, candidate.y},
+                facing = tostring(love.math.random(1, 4)),
+                id = identifier,
+            }
+            reserved[key] = true
+            return identifier + 1
+        end
+        blocked[key] = nil
+    end
+
+    return identifier
+end
+
 local function addGrassTurrets(room, reserved, identifier, index)
     if not isGrassIndex(index) then
         return identifier
@@ -892,6 +968,9 @@ local function addGrassTurrets(room, reserved, identifier, index)
         if gate.locked ~= false then
             blocked[coordKey(gate.x, gate.y)] = true
         end
+    end
+    for _, enemy in ipairs(room.enemies) do
+        blocked[coordKey(enemy.pos[1], enemy.pos[2])] = true
     end
 
     local connected, critical = getCriticalPaths(room, blocked)
@@ -953,7 +1032,9 @@ local function addGrassTurrets(room, reserved, identifier, index)
         return a.score > b.score
     end)
 
-    local desired = room.size.w * room.size.h >= 60 and 3 or 2
+    local desired = roomHasEnemy(room, "wizard")
+        and 1
+        or (room.size.w * room.size.h >= 60 and 3 or 2)
     local chosen = {}
     for _, candidate in ipairs(candidates) do
         if #chosen >= desired then
@@ -1047,7 +1128,9 @@ local function addGrassHunters(room, reserved, identifier, index)
         return a.score > b.score
     end)
 
-    local desired = room.size.w * room.size.h >= 60 and 2 or 1
+    local desired = roomHasEnemy(room, "wizard")
+        and 1
+        or (room.size.w * room.size.h >= 60 and 2 or 1)
     local chosen = {}
     for _, candidate in ipairs(candidates) do
         if #chosen >= desired then
@@ -1581,6 +1664,72 @@ local function addGrassCovers(room, reserved, index)
     end
 end
 
+local function addGroundHealingItem(room, reserved, index)
+    if getTransitionRoomConfig(index)
+        or not Util.Math.chance(Macros.groundHealing.spawnChance)
+    then
+        return false
+    end
+
+    local blocked = {}
+    local occupied = {}
+    for _, wall in ipairs(room.walls or {}) do
+        local key = coordKey(wall.x, wall.y)
+        blocked[key] = true
+        occupied[key] = true
+    end
+    for _, gate in ipairs(room.gates or {}) do
+        local key = coordKey(gate.x, gate.y)
+        occupied[key] = true
+        if gate.locked ~= false then
+            blocked[key] = true
+        end
+    end
+    for _, enemy in ipairs(room.enemies or {}) do
+        local key = coordKey(enemy.pos[1], enemy.pos[2])
+        blocked[key] = true
+        occupied[key] = true
+    end
+    for _, cover in ipairs(room.covers or {}) do
+        occupied[coordKey(cover.x, cover.y)] = true
+    end
+    for _, keyPickup in ipairs(room.keys or {}) do
+        occupied[coordKey(keyPickup.x, keyPickup.y)] = true
+    end
+    for _, pickup in ipairs(room.pickups or {}) do
+        occupied[coordKey(pickup.x, pickup.y)] = true
+    end
+
+    local entrance = room.doors[1] and room.doors[1].a
+    if not entrance then
+        return false
+    end
+    local reachable = getReachableTiles(room, entrance, blocked)
+    local candidates = {}
+    for key, position in pairs(reachable) do
+        if not reserved[key] and not occupied[key] then
+            candidates[#candidates + 1] = position
+        end
+    end
+    if #candidates == 0 then
+        return false
+    end
+
+    local itemKey = poolItem(Macros.groundHealing.pool)
+    if not itemKey then
+        return false
+    end
+    local position = candidates[love.math.random(1, #candidates)]
+    room.pickups[#room.pickups + 1] = {
+        id = "mapHealing",
+        x = position[1],
+        y = position[2],
+        itemKey = itemKey,
+    }
+    reserved[coordKey(position[1], position[2])] = true
+    return true
+end
+
 local function roomBlockers(room)
     local blocked = {}
     for _, wall in ipairs(room.walls) do
@@ -1784,10 +1933,12 @@ function Util.World.regenerateRoom(room, index)
     local identifier = addReachableBarrier(replacement, reserved, 1, index)
     addPrisonGatePuzzle(replacement, reserved, index)
     local bossRoomIndex
+    local wizardBossRoomIndex
     for _, enemy in ipairs(room.enemies or {}) do
         if enemy.name == "cellboss" then
             bossRoomIndex = index
-            break
+        elseif enemy.name == "wizard" then
+            wizardBossRoomIndex = index
         end
     end
     identifier = addPrisonCellBoss(
@@ -1804,10 +1955,18 @@ function Util.World.regenerateRoom(room, index)
         index
     )
     identifier = addRoomEnemies(replacement, reserved, identifier, index)
+    identifier = addGrassWizard(
+        replacement,
+        reserved,
+        identifier,
+        index,
+        wizardBossRoomIndex
+    )
     identifier = addGrassTurrets(replacement, reserved, identifier, index)
     identifier = addGrassHunters(replacement, reserved, identifier, index)
     identifier = addRuinsEnemies(replacement, reserved, identifier, index)
     addGrassCovers(replacement, reserved, index)
+    addGroundHealingItem(replacement, reserved, index)
     assert(getCriticalPaths(replacement, roomBlockers(replacement)),
         "World regeneration produced a room with an unreachable exit")
     return replacement
@@ -1979,7 +2138,8 @@ function Util.World.generateRoom(
     indices,
     getprev,
     index,
-    bossRoomIndex
+    bossRoomIndex,
+    wizardBossRoomIndex
 )
     local room = {}
     room.size, room.layout = randomRoomSize(index)
@@ -2067,10 +2227,18 @@ function Util.World.generateRoom(
             index
         )
         identifier = addRoomEnemies(room, reserved, identifier, index)
+        identifier = addGrassWizard(
+            room,
+            reserved,
+            identifier,
+            index,
+            wizardBossRoomIndex
+        )
         identifier = addGrassTurrets(room, reserved, identifier, index)
         identifier = addGrassHunters(room, reserved, identifier, index)
         identifier = addRuinsEnemies(room, reserved, identifier, index)
         addGrassCovers(room, reserved, index)
+        addGroundHealingItem(room, reserved, index)
         assert(getCriticalPaths(room, roomBlockers(room)),
             "World generation produced a room with an unreachable exit")
     end
@@ -2151,6 +2319,7 @@ function Util.World.generateDungeon()
             love.math.random(1, #prisonBossRooms)
         ]
         or nil
+    local wizardBossRoomIndex = love.math.random(8, 10)
     local alphabet = "abcdefghij"
     local function getprevletter(a)
         return string.char(string.byte(a)-1)
@@ -2203,7 +2372,8 @@ function Util.World.generateDungeon()
             getInfo().indices,
             getPrevIndex,
             getIndex(),
-            bossRoomIndex
+            bossRoomIndex,
+            wizardBossRoomIndex
         )
         rooms[getIndex()] = room
         incrementCounters()

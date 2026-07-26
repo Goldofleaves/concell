@@ -47,6 +47,7 @@ Macros = {
 		-- field
 		turret = 14,
 		hunter = 16,
+		wizard = 14,
 
 		-- ruins
 		skeleton = 3,
@@ -62,6 +63,7 @@ Macros = {
 		officer = "Officer",
 		skeleton = "Skeleton",
 		elite = "Elite Hunter",
+		wizard = "Wizard",
 	},
 	cellBoss = {
 		spawnChance = 1 / 8,
@@ -97,6 +99,17 @@ Macros = {
 		attackDamage = 10,
 		attackRange = 7,
 		attackChance = 1 / 2,
+	},
+	wizard = {
+		damage = 10,
+		moveDistance = 3,
+		rangeFraction = 1 / 2,
+		minDistance = 3,
+		aoeRadius = 2,
+	},
+	groundHealing = {
+		spawnChance = 1 / 3,
+		pool = "misc",
 	},
 	calculates = {
 		-- Guardian: moves around on a set axis, if player moves while near it, takes damage
