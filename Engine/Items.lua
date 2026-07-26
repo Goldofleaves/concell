@@ -591,3 +591,60 @@ registerItem({
         end
     end,
 })
+
+registerItem({
+    key = "sacrificial_dagger",
+    sprite = "ItemDagger",
+    config = {
+        enemy_damage = -1,
+        self_healing = 2,
+        time_cost = 1,
+        vars = {
+            1,
+            2,
+            1
+        }
+    },
+    text = {
+        "|s:2,2|Sacrificial Dagger",
+        "|s:2,2|Type: Weapon",
+        "|s:2,2|Cost: {3} Mins",
+        "|s:2,2|Damage: {1}",
+        "|s:2,2|This weapon can attack",
+        "|s:2,2|all units adjacent to it.",
+        "|s:2,2|Has a lifesteal of {2} HP."
+    },
+    canUse = function(self)
+        local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
+
+        local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall"})
+        local adjacents = getAllAdjacentVertices(vertices, { PLAYER.TMod.x.base, PLAYER.TMod.y.base })
+
+        if not self.isBeingUsed then
+            self.targets = {}
+            for _, e in ipairs(enemies) do
+                for _, v in ipairs(adjacents) do
+                    if e.TMod.x.base == v[1] and e.TMod.y.base == v[2] then
+                        self.targets[#self.targets + 1] = e
+                    end
+                end
+            end
+
+            if #self.targets > 0 then
+                return "hasState"
+            end
+        end
+    end,
+    onUse = function(self, enemy)
+        if not self.isBeingUsed then
+            TARGETED_ENEMIES = self.targets
+        else
+            enemy:modHP(self.config.enemy_damage)
+
+            local heal_amount = math.max(0, math.min(self.config.self_healing, Macros.maxhp - G.flags.saveData.hp))
+            Util.World.modHP(heal_amount)
+            
+            Util.World.modTime(self.config.time_cost)
+        end
+    end
+})
