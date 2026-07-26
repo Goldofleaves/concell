@@ -1,3 +1,5 @@
+io.stdout:setvbuf("no")
+
 love.graphics.setDefaultFilter("nearest", "nearest", 1)
 love.graphics.setLineStyle("rough")
 Util = {}
@@ -68,6 +70,10 @@ wrapper("dawn1", 40, 60, "Tiles/")
 wrapper("dawn2", 40, 60, "Tiles/")
 wrapper("dawn3", 40, 60, "Tiles/")
 wrapper("dawn4", 40, 60, "Tiles/")
+wrapper("cellmate1", 40, 60, "Tiles/")
+wrapper("cellmate2", 40, 60, "Tiles/")
+wrapper("cellmate3", 40, 60, "Tiles/")
+wrapper("cellmate4", 40, 60, "Tiles/")
 wrapper("cutscene", 600, 500)
 wrapper("gameOver", 600, 400)
 wrapper("gameWin", 600, 400)

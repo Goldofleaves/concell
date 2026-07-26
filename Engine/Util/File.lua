@@ -10,25 +10,29 @@ function Util.File.saveTableToFile(tab, fn)
 		number = "num",
 		boolean = "bol"
 	}
-	local function recursion(a, spaces)
+	local function recursion(a, spaces, parentPath)
 	for k, v in pairs(a) do
+		local path = parentPath.."."..tostring(k)
+		local keyType = typetab[type(k)]
+		assert(keyType, "Unsupported save key type '"..type(k).."' at "..path)
 		if type(v) == "table" then
 			if next(v) then
-			returnstring = returnstring..string.rep(" ", spaces).."key:"..typetab[type(k)].."|"..k.."|value:|tab:|end"
+			returnstring = returnstring..string.rep(" ", spaces).."key:"..keyType.."|"..k.."|value:|tab:|end"
 			returnstring = returnstring.."\n"
-			recursion(v, spaces + 1)
+			recursion(v, spaces + 1, path)
 			else
-			returnstring = returnstring..string.rep(" ", spaces).."key:"..typetab[type(k)].."|"..k.."|value:|emt:|end" -- accounting for an empty table
+			returnstring = returnstring..string.rep(" ", spaces).."key:"..keyType.."|"..k.."|value:|emt:|end" -- accounting for an empty table
 			returnstring = returnstring.."\n"
-			recursion(v, spaces + 1)
 			end
 		else
-		returnstring = returnstring..string.rep(" ", spaces).."key:"..typetab[type(k)].."|"..k.."|value:|"..typetab[type(v)].."|"..tostring(v).."|end"
+		local valueType = typetab[type(v)]
+		assert(valueType, "Unsupported save value type '"..type(v).."' at "..path)
+		returnstring = returnstring..string.rep(" ", spaces).."key:"..keyType.."|"..k.."|value:|"..valueType.."|"..tostring(v).."|end"
 		returnstring = returnstring.."\n"
 		end
 	end
 	end
-	recursion(tab, 0)
+	recursion(tab, 0, "saveData")
 	returnstring = string.sub(returnstring, 1, -2)
 	love.filesystem.write(fn..Macros.fileSuffix , returnstring)
 end

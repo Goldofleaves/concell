@@ -143,33 +143,8 @@ function Macros.UIDef.title()
 						extra = {facing = G.flags.saveData.playerFacing}
                     })
                     Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, Util.World.getArea(G.flags.saveData.curRoomIndex))
-                    for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
-                        local j = WorldMoveable({
-                            x = v.pos[1],
-                            y = v.pos[2],
-                            type = "enemy",
-                            extra = {
-                                index = v.index,
-                                side = v.side
-                            },
-                            updateOrder = 2,
-                            drawOrder = 10
-                        })
-                        j:decideMove()
-                    end
-                    for k, v in ipairs(G.flags.saveData.curRoom.doors) do
-                        WorldMoveable({
-                            x = v.x,
-                            y = v.y,
-                            type = "door",
-                            extra = {
-                                index = v.index,
-                                side = v.side
-                            },
-                            updateOrder = 2,
-                            drawOrder = 30
-                        })
-                    end
+                    ---moved into a separate init method
+                    WorldMoveable:initRoomStuff()
                 end, "delay1")
                 s.clicked = true
             end

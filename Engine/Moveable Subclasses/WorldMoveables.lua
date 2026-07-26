@@ -109,12 +109,25 @@ function WorldMoveable:draw()
         end
     end
     if self.properties.type == "enemy" and self.extra.goalVertice then
+        local predictedPlayerX = PLAYER.TMod.x.base
+        local predictedPlayerY = PLAYER.TMod.y.base
+        local grid = getObjectByNid("isoGridWeb")
+        if grid and grid.extra.path[#grid.extra.path] then
+            local endpoint = grid.extra.path[#grid.extra.path].coords
+            predictedPlayerX = Util.Math.round(endpoint[1] - 0.2)
+            predictedPlayerY = Util.Math.round(endpoint[2] - 0.2)
+        end
+        local willDamagePlayer = self.extra.name == "cellmate"
+            and self.extra.goalVertice[1] == predictedPlayerX
+            and self.extra.goalVertice[2] == predictedPlayerY
+        local pathColor = willDamagePlayer and Macros.colors.darkRed or Macros.colors.darkGreen
+        local goalColor = willDamagePlayer and Macros.colors.red or Macros.colors.green
         local goalVector = Util.World.toIsoPos(Vector(self.extra.goalVertice[1] + 0.2, self.extra.goalVertice[2] + 0.2))
-        love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.darkGreen, 0.7))
+        love.graphics.setColor(Util.Color.SetOpacity(pathColor, 0.7))
         love.graphics.setLineWidth(2.5 * Util.UI.getScalingFactor())
         love.graphics.line(vector.contents[1], vector.contents[2], goalVector.contents[1], goalVector.contents[2])
         love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
-        love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.green, 0.7))
+        love.graphics.setColor(Util.Color.SetOpacity(goalColor, 0.7))
         love.graphics.circle("fill", goalVector.contents[1], goalVector.contents[2], lookup[self.properties.type].radius / 5 * 3 * Util.UI.getScalingFactor())
     end
     love.graphics.circle("fill", vector.contents[1], vector.contents[2], lookup[self.properties.type].radius*Util.UI.getScalingFactor())
@@ -133,18 +146,23 @@ function WorldMoveable:draw()
     if self.properties.type == "wall" then
         love.graphics.setColor(Macros.colors.white)
         local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
+        local direction = self.extra.dir or 1
         love.graphics.draw(
             Atlases[self.extra.name].image,
             Atlases[self.extra.name].splicedImages[0][0],
-            v.contents[1] - 40 * Util.UI.getScalingFactor(),
+            v.contents[1] - 40 * direction * Util.UI.getScalingFactor(),
             v.contents[2] - 80 * Util.UI.getScalingFactor(),
-            0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+            0, 2 * direction * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
     end
     if self.properties.type == "enemy" then
         love.graphics.setColor(Macros.colors.white)
         local v = Util.World.toIsoPos(Vector(self.TMod.x.base, self.TMod.y.base))
-        if Atlases[self.extra.name .. self.extra.facing] and Atlases[self.extra.name .. self.extra.facing].image then
+        if not self.extra.name then
+            print(self.extra)
+            goto exit
+        end
+        if self.extra.name and Atlases[self.extra.name .. self.extra.facing] and Atlases[self.extra.name .. self.extra.facing].image then
             love.graphics.draw(
                 Atlases[self.extra.name..self.extra.facing].image,
                 Atlases[self.extra.name..self.extra.facing].splicedImages[0][0],
@@ -192,6 +210,7 @@ function WorldMoveable:draw()
             0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
     end
+    ::exit::
     love.graphics.setColor(r,g,b,a)
 end
 function WorldMoveable:update(dt)
@@ -227,8 +246,22 @@ function WorldMoveable:switchRoom()
     if self.properties.type == "door" then
         Util.Event.transition(2, function()
             local old_facing = PLAYER.extra.facing
-            G.flags.saveData.curRoomIndex = self.extra.index
-            G.flags.saveData.curRoom = G.flags.saveData.rooms[self.extra.index]
+            local oldRoomIndex = G.flags.saveData.curRoomIndex
+            local targetRoomIndex = self.extra.index
+            local targetRoom = G.flags.saveData.rooms[targetRoomIndex]
+
+            local entrance
+            for _, door in ipairs(targetRoom.doors) do
+                if door.index == oldRoomIndex then
+                    entrance = door
+                    break
+                end
+            end
+
+            local spawn = entrance.a
+            G.flags.saveData.curRoomIndex = targetRoomIndex
+            G.flags.saveData.curRoom = targetRoom
+
             getObjectByNid("isoGrid"):remove()
             getObjectByNid("isoGridWeb"):remove()
             Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h,
@@ -252,17 +285,16 @@ function WorldMoveable:switchRoom()
                 return array[s]
             end
             PLAYER = WorldMoveable({
-                x = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).x,
-                y = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).y,
+                x = spawn.x,
+                y = spawn.y,
                 type = "player",
                 drawOrder = 31,
                 updateOrder = 1,
                 extra = {facing = old_facing}
             })
             WorldMoveable:initRoomStuff()
-            G.flags.saveData.playerPos = { x = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra
-            .side)).x, y = Util.World.getDoorAdjacentPos(Util.World.getOppositeSideDoor(self.extra.side)).y }
-            G.flags.saveData.playerFacing = convert(Util.World.getOppositeSide(self.extra.side))
+            G.flags.saveData.playerPos = { x = spawn.x, y = spawn.y }
+            G.flags.saveData.playerFacing = convert(entrance.side)
             self:checkEaseMusic()
             Util.World.saveGame()
         end, "delay2")
@@ -331,6 +363,7 @@ function WorldMoveable:initRoomStuff()
         })
     end
     for k, v in ipairs(G.flags.saveData.curRoom.walls) do
+        local direction = Util.World.getWallDirection(G.flags.saveData.curRoom, v)
         WorldMoveable({
             x = v.x,
             y = v.y,
@@ -339,6 +372,7 @@ function WorldMoveable:initRoomStuff()
                 index = v.index,
                 side = v.side,
                 name = v.name,
+                dir = direction,
             },
             updateOrder = 2,
             drawOrder = 11

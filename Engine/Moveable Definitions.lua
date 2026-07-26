@@ -24,133 +24,71 @@ function Macros.MDef.isometricGrid(w, h, area)
     local ww = G.drawinfo.gridUnit * Macros.screenDimentions.x * Macros.gridSingleSubdivision
     local hh = G.drawinfo.gridUnit * Macros.screenDimentions.y * Macros.gridSingleSubdivision
     G.worldOffsetVector = Vector((ww - dw) / 2 + ddw, (hh - dh) / 2)
+
+    local room = G.flags.saveData.curRoom
+    local function hasFloor(x, y)
+        return Util.World.isFloor(room, x, y)
+    end
+    local function makeTileSprites(atlasKey, chance)
+        local sprites = {}
+        for x = 0, w - 1 do
+            for y = 0, h - 1 do
+                if hasFloor(x, y) and (not chance or Util.Math.chance(chance)) then
+                    local vertex = Util.World.toIsoPos(Vector(x, y))
+                    sprites[#sprites + 1] = {
+                        pos = { x, y },
+                        sprite = Sprite {
+                            scaleX = 2,
+                            scaleY = 2,
+                            atlasKey = atlasKey,
+                            x = vertex.contents[1] + G.drawinfo.gridUnit,
+                            y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
+                            worldCoords = false,
+                            drawOrder = chance and 4 or 3,
+                        }
+                    }
+                end
+            end
+        end
+        return sprites
+    end
+    local function makeEdgeSprites(edge, dx, dy)
+        local sprites = {}
+        for x = 0, w - 1 do
+            for y = 0, h - 1 do
+                if hasFloor(x, y) and not hasFloor(x + dx, y + dy) then
+                    local vertex = Util.World.toIsoPos(Vector(x, y))
+                    sprites[#sprites + 1] = {
+                        pos = { x, y },
+                        sprite = Sprite {
+                            scaleX = 2,
+                            scaleY = 2,
+                            atlasKey = area .. "Edge" .. edge,
+                            x = vertex.contents[1] + G.drawinfo.gridUnit,
+                            y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
+                            worldCoords = false,
+                            drawOrder = 4,
+                        }
+                    }
+                end
+            end
+        end
+        return sprites
+    end
+
     local t1 = {
         nid = "isoGrid",
         extra = {
             w = w,
             h = h,
             sprites = {
-                base = (function ()
-                    local t = {}
-                    for x = 0, w - 1 do
-                        for y = 0, h - 1 do
-                            local vertex = Util.World.toIsoPos(Vector(x, y))
-                            table.insert(t, {
-                                pos = { x, y },
-                                sprite = Sprite {
-                                    scaleX = 2,
-                                    scaleY = 2,
-                                    atlasKey = area.."Base",
-                                    x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
-                                    worldCoords = false,
-                                    drawOrder = 3
-                                }
-                            })
-                        end
-                    end
-                    return t
-                end)(),
-                foley = (function()
-                    local t = {}
-                    for x = 0, w - 1 do
-                        for y = 0, h - 1 do
-                            if Util.Math.chance(1/4) then
-                                local vertex = Util.World.toIsoPos(Vector(x, y))
-                                table.insert(t, {
-                                    pos = { x, y },
-                                    sprite = Sprite {
-                                        scaleX = 2,
-                                        scaleY = 2,
-                                        atlasKey = area .. "Foley",
-                                        x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                        y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
-                                        worldCoords = false,
-                                        drawOrder = 4
-                                    }
-                                })
-                            end
-                        end
-                    end
-                    return t
-                end)(),
+                base = makeTileSprites(area .. "Base"),
+                foley = makeTileSprites(area .. "Foley", 1 / 4),
                 edge = {
-                    (function()
-                        local t = {}
-                        for y = 0, h - 1 do
-                            local vertex = Util.World.toIsoPos(Vector(0, y))
-                            table.insert(t, {
-                                pos = { 0, y },
-                                sprite = Sprite {
-                                    scaleX = 2,
-                                    scaleY = 2,
-                                    atlasKey = area .. "Edge1",
-                                    x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
-                                    worldCoords = false,
-                                    drawOrder = 4
-                                }
-                            })
-                        end
-                        return t
-                    end)(),
-                    (function()
-                        local t = {}
-                        for x = 0, w - 1 do
-                            local vertex = Util.World.toIsoPos(Vector(x, h-1))
-                            table.insert(t, {
-                                pos = { x, h-1 },
-                                sprite = Sprite {
-                                    scaleX = 2,
-                                    scaleY = 2,
-                                    atlasKey = area .. "Edge2",
-                                    x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
-                                    worldCoords = false,
-                                    drawOrder = 4
-                                }
-                            })
-                        end
-                        return t
-                    end)(),
-                    (function()
-                        local t = {}
-                        for y = 0, h - 1 do
-                            local vertex = Util.World.toIsoPos(Vector(w-1, y))
-                            table.insert(t, {
-                                pos = { w - 1, y },
-                                sprite = Sprite {
-                                    scaleX = 2,
-                                    scaleY = 2,
-                                    atlasKey = area .. "Edge3",
-                                    x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
-                                    worldCoords = false,
-                                    drawOrder = 4
-                                }
-                            })
-                        end
-                        return t
-                    end)(),
-                    (function()
-                        local t = {}
-                        for x = 0, w - 1 do
-                            local vertex = Util.World.toIsoPos(Vector(x, 0))
-                            table.insert(t, {
-                                pos = { x, 0 },
-                                sprite = Sprite {
-                                    scaleX = 2,
-                                    scaleY = 2,
-                                    atlasKey = area .. "Edge4",
-                                    x = vertex.contents[1] + G.drawinfo.gridUnit,
-                                    y = vertex.contents[2] - G.drawinfo.gridUnit / 20,
-                                    worldCoords = false,
-                                    drawOrder = 4
-                                }
-                            })
-                        end
-                        return t
-                    end)()
+                    makeEdgeSprites(1, -1, 0),
+                    makeEdgeSprites(2, 0, 1),
+                    makeEdgeSprites(3, 1, 0),
+                    makeEdgeSprites(4, 0, -1),
                 }
             }
         },
@@ -189,13 +127,15 @@ function Macros.MDef.isometricGrid(w, h, area)
                     for j = 1, s.extra.h do
                         local x = i - 1
                         local y = j - 1
-                        local vertices = {
-                            Util.World.toIsoPos(Vector(x, y)),
-                            Util.World.toIsoPos(Vector(x+1, y)),
-                            Util.World.toIsoPos(Vector(x+1, y+1)),
-                            Util.World.toIsoPos(Vector(x, y+1)),
-                        }
-                        Util.Draw.drawVectorPolygon("line", vertices)
+                        if hasFloor(x, y) then
+                            local vertices = {
+                                Util.World.toIsoPos(Vector(x, y)),
+                                Util.World.toIsoPos(Vector(x+1, y)),
+                                Util.World.toIsoPos(Vector(x+1, y+1)),
+                                Util.World.toIsoPos(Vector(x, y+1)),
+                            }
+                            Util.Draw.drawVectorPolygon("line", vertices)
+                        end
                     end
                 end
             end
@@ -243,7 +183,14 @@ function Macros.MDef.isometricGrid(w, h, area)
                     s.extra.drawAlpha = 1
                     local vertices = getAllValidVertices(w, h, {"wall", "enemy"})
                     local p, rr = getClosestPointAndDistance()
-                    if rr < min and isValidVertice(vertices, { p.contents[1] - 0.2, p.contents[2] - 0.2 }) and #s.extra.path < G.flags.saveData.gridsPerMove + 1 and not G.flags.isMoving then
+                    local hasEnemies = #Util.World.getAllWorldMoveablesWithType("enemy") > 0
+                    local withinMoveLimit = not hasEnemies
+                        or #s.extra.path < G.flags.saveData.gridsPerMove + 1
+                    if rr < min
+                        and isValidVertice(vertices, { p.contents[1] - 0.2, p.contents[2] - 0.2 })
+                        and withinMoveLimit
+                        and not G.flags.isMoving
+                    then
                         if not alreadyExists(p.contents) and isAdjacent(p.contents) then
                             table.insert(s.extra.path, { point = p, coords = p.contents })
                         end
