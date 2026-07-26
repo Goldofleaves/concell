@@ -442,9 +442,11 @@ function WorldMoveable:draw()
         )
     end
     if self.properties.type == "danger" then
-        love.graphics.setColor(Macros.colors.white)
         local frame = math.floor(love.timer.getTime() * 5) % 2 + 1
-        drawWorldTileAtlas("danger_"..frame, visualX, visualY)
+        love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.black, 0.2))
+        drawWorldTileAtlas("danger_" .. frame, visualX+0.05, visualY+0.05)
+        love.graphics.setColor(Macros.colors.white)
+        drawWorldTileAtlas("danger_" .. frame, visualX, visualY)
     end
     if self.properties.type == "enemy" then
         love.graphics.setColor(Macros.colors.white)
@@ -602,6 +604,9 @@ function WorldMoveable:update(dt)
     self.drawOrder = visualX + visualY + layerOffset +
         (self.properties.type == "cover" and getNum(self.extra.name:sub(#self.extra.name, #self.extra.name)) or 0)
         + (self.properties.type == "door" and -.5 or 0)
+    if self.properties.type == "danger" then
+        self.drawOrder = 9
+    end
     local playerIsOnPickup = self.properties.type == "pickup"
         and PLAYER
         and PLAYER.TMod.x.base == self.TMod.x.base

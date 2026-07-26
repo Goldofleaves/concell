@@ -130,6 +130,7 @@ function Macros.MDef.isometricGrid(w, h, area)
             }
         },
         updateOrder = 0,
+        drawOrder = 8,
         updateFunc = function(s, dt)
             local vec = Vector(a1 * math.sin(phi1 * G.timer) * Util.UI.getScalingFactor(), a2 * math.sin(phi2 * (chi + G.timer))* Util.UI.getScalingFactor())
             local deltawV = Util.World.toIsoPos(Vector(s.extra.w - 1, 0)):sub(Util.World.toIsoPos(Vector(0, s.extra.h - 1)), true)

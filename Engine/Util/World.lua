@@ -2249,7 +2249,6 @@ function Util.World.getAllWorldMoveablesWithType(type)
 end
 function Util.World.saveGame()
     print("[WORLD] Saving game...")
-    print(G.flags.saveData)
     local cachedTargets = {}
     for index, item in ipairs(G.flags.saveData.items) do
         if item.targets then
@@ -2268,7 +2267,6 @@ function Util.World.saveGame()
 end
 function Util.World.loadGame()
     print("[WORLD] Loading game...")
-    print(G.flags.saveData)
     Util.File.setTableWithFile(G.flags.saveData, "runInfo")
 end
 function getAllValidVertices(www, hhh, blockades)

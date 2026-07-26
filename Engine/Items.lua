@@ -760,7 +760,7 @@ registerItem({
         "|s:2,2|{1} more spaces.",
     },
     canUse = function()
-        return "noState"
+        return G.flags.isMoving and false or "noState"
     end,
     onUse = function(self)
         self.config.toggled = not self.config.toggled
