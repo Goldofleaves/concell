@@ -2024,7 +2024,22 @@ function Util.World.generateRoom(
         if type == "branching" then
             r = 2
         elseif type == "dead_end" then
-            r = 0
+            room.size = { w = 5, h = 5 }
+            room.layout = nil
+            fillFloor(room)
+            local side = Util.World.getOppositeSide(last_side.side)
+            local doorGenerator = getTransitionRoomConfig(index)
+                and generateCenteredAuxDoor
+                or generateAuxDoor
+            local lastAux = doorGenerator(side, room.size.w, room.size.h, getprev(last_side.index))
+            table.insert(room.doors, lastAux)
+            room.keys[1] = {
+                id = 1,
+                x = 3,
+                y = 3,
+                itemKey = "excalibur",
+            }
+            return room
         end
         local side = Util.World.getOppositeSide(last_side.side)
         local all = table.exclude({ "tl", "tr", "dl", "dr" }, side)

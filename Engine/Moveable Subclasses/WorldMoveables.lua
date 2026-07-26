@@ -412,7 +412,7 @@ function WorldMoveable:draw()
         local v = Util.World.toIsoPos(Vector(visualX, visualY))
         local atlasKey = self.extra.itemKey == "prison_key"
             and "prisonKey"
-            or Centers[self.extra.itemKey].sprite
+            or (self.extra.itemKey == "excalibur" and "excalibur_throne"or Centers[self.extra.itemKey].sprite)
         local atlas = Atlases[atlasKey]
         local scale = Util.UI.getScalingFactor()
         local drawX = v.contents[1] - 40 * scale
