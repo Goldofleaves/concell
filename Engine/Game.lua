@@ -280,6 +280,14 @@ function love.keypressed(key)
 			print("[DEBUG] Current room cannot be regenerated right now")
 		end
 	end
+	if key == "a"
+		and not G.debug.console
+		and love.keyboard.isDown("lctrl", "rctrl")
+	then
+		if not Util.World.debugRegenerateCurrentRoom(true) then
+			print("[DEBUG] Abraham room generation requires a playable ruins room")
+		end
+	end
 	if key == "t"
 		and not G.debug.console
 		and love.keyboard.isDown("lctrl", "rctrl")
