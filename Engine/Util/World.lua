@@ -799,7 +799,39 @@ local function addReachableBarrier(room, reserved, identifier, index)
     room.walls = {}
     return identifier
 end
-
+local function addGrassTrees(room, reserved, identifier, index)
+    if not isGrassIndex(index) then
+        return
+    end
+    local blocked = {}
+    for _, wall in ipairs(room.walls) do
+        blocked[coordKey(wall.x, wall.y)] = true
+    end
+    for _, cover in ipairs(room.covers) do
+        blocked[coordKey(cover.x, cover.y)] = true
+    end
+    local allVerts = getReachableTiles(room, room.doors[1].a, blocked)
+    allVerts[coordKey(room.doors[1].a.x, room.doors[1].a.y)] = nil
+    for _ = 1, love.math.random(2, 5) do
+        ::init::
+        local walls = room.walls
+        local randomVert = Util.Math.randomElement(allVerts).v
+        local x, y = randomVert[1], randomVert[2]
+        local c, _ = getCriticalPaths(room, blocked)
+        if not reserved[coordKey(x, y)] and c then
+            walls[#walls + 1] = {
+                name = "tree_" .. love.math.random(1, 4),
+                type = "wall",
+                x = x,
+                y = y,
+                dir = love.math.random(-1, 1),
+            }
+            blocked[coordKey(x, y)] = true
+        else
+            goto init
+        end
+    end
+end
 local function addPrisonGatePuzzle(room, reserved, index)
     room.gates = room.gates or {}
     room.keys = room.keys or {}
@@ -2690,6 +2722,7 @@ function Util.World.generateRoom(
             abrahamRoomIndex
         )
         addGrassCovers(room, reserved, index)
+        addGrassTrees(room, reserved, identifier, index)
         addGroundHealingItem(room, reserved, index)
         assert(getCriticalPaths(room, roomBlockers(room)),
             "World generation produced a room with an unreachable exit")
