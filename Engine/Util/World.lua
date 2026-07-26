@@ -2269,7 +2269,7 @@ function Util.World.generateRoom(
                 blocked[coordKey(wall.x, wall.y)] = true
             end
             local tiles = getReachableTiles(room, t, blocked)
-            tiles[coordKey(PLAYER.TMod.x.base, PLAYER.TMod.y.base)] = nil
+            tiles[coordKey(t.x, t.y)] = nil
             local randomTile = Util.Math.randomElement(tiles).v
             identifier = identifier + 1
             room.pickups[#room.pickups + 1] = {
