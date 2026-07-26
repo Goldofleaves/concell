@@ -289,12 +289,24 @@ function love.keypressed(key)
 		kp3 = 3,
 		kp4 = 4,
 	}
+	local unLoadItemSlots = {
+		["f1"] = 1,
+		["f2"] = 2,
+		["f3"] = 3,
+		["f4"] = 4,
+	}
 	local itemSlot = itemSlots[key]
+	local unLoadItemSlot = unLoadItemSlots[key]
 	local direction = directions[key]
 	if itemSlot then
 		local itemButton = getObjectByNid("itemButton"..itemSlot)
 		if itemButton then
 			itemButton:onClick()
+		end
+	elseif unLoadItemSlot then
+		local itemButton = getObjectByNid("itemButton" .. itemSlot)
+		if itemButton then
+			itemButton:onRightClick()
 		end
 	elseif direction and TARGETED_ENEMIES then
 		local target = getDirectionalItemTarget(direction)
@@ -303,10 +315,12 @@ function love.keypressed(key)
 		end
 	elseif direction and grid.extra.tryPlanMove then
 		grid.extra.tryPlanMove(grid, direction[1], direction[2])
-	elseif (key == "return" or key == "kpenter") and #grid.extra.path > 1 then
+	elseif (key == "return" or key == "kpenter" or key == "space") --[[and #grid.extra.path > 1]] then
 		moveButton:onClick()
-	elseif key == "space" and #grid.extra.path == 1 then
-		moveButton:onClick()
+	-- elseif key == "space" and #grid.extra.path == 1 then
+	-- 	moveButton:onClick()
+	elseif key == "f5" then
+		love.window.setFullscreen(not love.window.getFullscreen())
 	end
 end
 
