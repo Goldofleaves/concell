@@ -114,7 +114,7 @@ Macros = {
 		aoeDamage = 14,
 		aoeRadius = 2,
 		aoeRange = 7,
-		aoeChance = 0.35,
+		aoeChance = 0.5,
 		jumpChance = 0.35,
 		lineAttackChance = 0.15,
 	},
