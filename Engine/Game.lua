@@ -190,6 +190,7 @@ function Game:update(dt)
 			Centers[v.key].IBUupdate(v)
 		end
 	end
+	InfoQueue.updateTutorials()
 	self.mousepos.oldx, self.mousepos.oldy = Util.UI.convertUIPosToPos(love.mouse.getX(), love.mouse.getY())
 end
 love.keyboard.setTextInput(true)
