@@ -290,7 +290,9 @@ registerItem({
         if not self.isBeingUsed then
             self.targets = {}
             for _, e in ipairs(enemies) do
-                if e.TMod.x.base == PLAYER.TMod.x.base and e.TMod.y.base == PLAYER.TMod.y.base then
+                if
+                    (e.TMod.x.base == PLAYER.TMod.x.base or e.TMod.y.base == PLAYER.TMod.y.base)
+                then
                     self.targets[#self.targets + 1] = e
                 end
             end
