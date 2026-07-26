@@ -29,7 +29,7 @@ function Game:new()
 			timemod = 0,
 			igt = 0,
 			enemiesSlain = 0,
-			nextItemDropAt = love.math.random(7, 8),
+			nextItemDropAt = love.math.random(4, 6),
 			nextPickupId = 1,
 			totalDamage = 0
 		}

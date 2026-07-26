@@ -2142,7 +2142,7 @@ function Util.World.generateDungeon()
     local dungeon_counter = 0
     local main_len = 17
     local redirect = love.math.random(8, 10)
-    local branch_len = love.math.random(2, 3)
+    local branch_len = love.math.random(3, 5)
     local prisonBossRooms = {2, 3, 4}
     local prisonBossChance = 1
         - (1 - Macros.cellBoss.spawnChance) ^ #prisonBossRooms
