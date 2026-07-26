@@ -812,23 +812,30 @@ local function addGrassTrees(room, reserved, identifier, index)
     end
     local allVerts = getReachableTiles(room, room.doors[1].a, blocked)
     allVerts[coordKey(room.doors[1].a.x, room.doors[1].a.y)] = nil
+    local candidates = {}
+    for key, position in pairs(allVerts) do
+        if not reserved[key] then
+            candidates[#candidates + 1] = position
+        end
+    end
     for _ = 1, love.math.random(2, 5) do
-        ::init::
-        local walls = room.walls
-        local randomVert = Util.Math.randomElement(allVerts).v
-        local x, y = randomVert[1], randomVert[2]
-        local c, _ = getCriticalPaths(room, blocked)
-        if not reserved[coordKey(x, y)] and c then
-            walls[#walls + 1] = {
-                name = "tree_" .. love.math.random(1, 4),
-                type = "wall",
-                x = x,
-                y = y,
-                dir = Util.Math.chance(1 / 2) and -1 or 1,
-            }
-            blocked[coordKey(x, y)] = true
-        else
-            goto init
+        while #candidates > 0 do
+            local candidateIndex = love.math.random(1, #candidates)
+            local position = table.remove(candidates, candidateIndex)
+            local x, y = position[1], position[2]
+            local key = coordKey(x, y)
+            blocked[key] = true
+            if getCriticalPaths(room, blocked) then
+                room.walls[#room.walls + 1] = {
+                    name = "tree_" .. love.math.random(1, 4),
+                    type = "wall",
+                    x = x,
+                    y = y,
+                    dir = Util.Math.chance(1 / 2) and -1 or 1,
+                }
+                break
+            end
+            blocked[key] = nil
         end
     end
 end
