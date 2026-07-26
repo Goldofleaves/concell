@@ -1169,6 +1169,7 @@ function WorldMoveable:resolveCellBossAttack()
     self.extra.goalVertice = nil
     self.extra.goalPath = nil
     self.extra.bossAction = nil
+    self.extra.attackRechargeTurns = Macros.cellBoss.rechargeTurns
 
     for index, position in ipairs(tiles) do
         local x, y = position[1], position[2]
@@ -1202,6 +1203,16 @@ function WorldMoveable:resolveCellBossTurn()
         return self:resolveCellBossAttack()
     elseif self.extra.bossAction == "move" then
         self:resolveCellBossMove()
+        if (self.extra.attackRechargeTurns or 0) > 0 then
+            self.extra.attackRechargeTurns =
+                self.extra.attackRechargeTurns - 1
+        end
+    elseif self.extra.bossAction == "recharge" then
+        self.extra.bossAction = nil
+        self.extra.attackRechargeTurns = math.max(
+            0,
+            (self.extra.attackRechargeTurns or 0) - 1
+        )
     end
     return false
 end
@@ -2850,6 +2861,12 @@ function WorldMoveable:decideMove()
             if self.extra.bossAction then
                 return
             end
+            if (self.extra.attackRechargeTurns or 0) > 0 then
+                if not self:planCellBossMove() then
+                    self.extra.bossAction = "recharge"
+                end
+                return
+            end
             if Util.Math.chance(1 / 2) and self:planCellBossMove() then
                 return
             end
@@ -3025,4 +3042,5 @@ function WorldMoveable:initRoomStuff()
             drawOrder = 11
         })
     end
+    InfoQueue.checkRoomTutorials()
 end

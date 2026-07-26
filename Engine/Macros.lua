@@ -82,6 +82,7 @@ Macros = {
 		damage = 15,
 		minMove = 1,
 		maxMove = 4,
+		rechargeTurns = 2,
 	},
 	hunter = {
 		damage = 3,
