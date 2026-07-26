@@ -97,7 +97,6 @@ Macros.CDefs.Death = function()
 	})
 end
 Macros.CDefs.Win = function(ss, data)
-	G = nil
 	G = Game()
 	Sprite({
 		nid = "gameWin",

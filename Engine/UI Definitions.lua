@@ -77,7 +77,9 @@ function Macros.UIDef.title()
                 Util.Event.easeOutMusic(2, "titleID")
                 Util.Event.transition(4, function()
                     Util.Event.easeInMusic(2, "interrogation", "interrogationID", "interrogationGRP", nil, 2)
-                    Macros.CDefs.Opening()
+                    repeat
+                        Macros.CDefs.Opening()
+                    until getObjectByNid("openingcutscene")
                 end, "delay1")
                 Util.Audio.playSfx("start_jingle", 2)
                 s.clicked = true

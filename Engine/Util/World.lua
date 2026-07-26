@@ -2357,7 +2357,6 @@ function Util.World.gameOver()
         v.source:stop()
         v.source:release()
     end
-    G = nil
     G = Game()
     love.filesystem.remove("runInfo.con")
     Macros.CDefs.Death()
