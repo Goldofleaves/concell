@@ -308,6 +308,7 @@ function love.keypressed(key)
 
 	local grid = getObjectByNid("isoGridWeb")
 	local moveButton = getObjectByNid("MoveButton")
+	local cancelButton = getObjectByNid("CancelButton")
 	if not grid or not PLAYER or not moveButton then
 		return
 	end
@@ -358,6 +359,8 @@ function love.keypressed(key)
 		moveButton:onClick()
 	-- elseif key == "space" and #grid.extra.path == 1 then
 	-- 	moveButton:onClick()
+	elseif (key == "c" and #grid.extra.path > 0) then
+		cancelButton:onClick()
 	elseif key == "f5" then
 		love.window.setFullscreen(not love.window.getFullscreen())
 	end
