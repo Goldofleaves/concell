@@ -456,7 +456,7 @@ function Macros.UIDef.overlay()
         scaleX = 2,
         scaleY = 2,
         drawFunc = function (s)
-            local hours = Util.Math.div(G.flags.saveData.timer, 60)
+            local hours = (Util.Math.div(G.flags.saveData.timer, 60) + 22) % 24
             local minutes = G.flags.saveData.timer % 60
             hours = tostring(hours)
             if #hours == 1 then
