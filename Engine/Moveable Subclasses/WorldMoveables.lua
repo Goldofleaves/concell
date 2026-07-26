@@ -1981,7 +1981,6 @@ function WorldMoveable:onRoomClear()
             updateOrder = 2,
             drawOrder = 10
         })
-        G.flags.saveData.curRoom.maxId = G.flags.saveData.curRoom.maxId + 1
     end
 end
 function WorldMoveable:resolveSkeletonMove()
