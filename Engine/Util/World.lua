@@ -2150,6 +2150,7 @@ function Util.World.generateRoom(
     room.keys = {}
     room.pickups = {}
     room.covers = {}
+    room.hasHeals = Util.Math.chance(1/3)
     local identifier = 1
     if type == "init_room" then
         room.size = { w = 5, h = 5 }
@@ -2255,6 +2256,29 @@ function Util.World.generateRoom(
         identifier = addRuinsEnemies(room, reserved, identifier, index)
         addGrassCovers(room, reserved, index)
         addGroundHealingItem(room, reserved, index)
+        if room.hasHeals then
+            local side = Util.World.getOppositeSide(last_side.side)
+            local t
+            for k, v in pairs(room.doors) do
+                if v.side == side then
+                    t = v.a
+                end
+            end
+            local blocked = {}
+            for _, wall in ipairs(room.walls) do
+                blocked[coordKey(wall.x, wall.y)] = true
+            end
+            local tiles = getReachableTiles(room, t, blocked)
+            tiles[coordKey(PLAYER.TMod.x.base, PLAYER.TMod.y.base)] = nil
+            local randomTile = Util.Math.randomElement(tiles).v
+            identifier = identifier + 1
+            room.pickups[#room.pickups + 1] = {
+                x = randomTile[1],
+                y = randomTile[2],
+                id = identifier,
+                itemKey = Pools.misc.keys
+            }
+        end
         room.maxId = identifier
         assert(getCriticalPaths(room, roomBlockers(room)),
             "World generation produced a room with an unreachable exit")
