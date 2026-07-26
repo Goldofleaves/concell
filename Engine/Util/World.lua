@@ -57,6 +57,10 @@ local function isGrassIndex(index)
     return type(index) == "number" and index >= 6 and index <= 11
 end
 
+local function isRuinsIndex(index)
+    return type(index) == "number" and index >= 12
+end
+
 local TRANSITION_ROOM_CONFIGS = {
     [5] = {
         fromArea = "prison",
@@ -66,7 +70,7 @@ local TRANSITION_ROOM_CONFIGS = {
     [11] = {
         fromArea = "grass",
         toArea = "ruins",
-        enemies = {"hunter", "cellmate"}, -- cause we have no fucking ruins enemies yet
+        enemies = {"hunter", "skeleton"},
     },
 }
 
@@ -193,9 +197,9 @@ function Util.World.hasHunterSightlineFrom(
     turrets,
     range
 )
-    if math.abs(targetX - hunterX) + math.abs(targetY - hunterY)
-        > (range or Macros.hunter.range)
-    then
+    local distance = math.abs(targetX - hunterX)
+        + math.abs(targetY - hunterY)
+    if distance == 1 or distance > (range or Macros.hunter.range) then
         return false
     end
 
@@ -826,7 +830,7 @@ local function getPrisonEnemyCap(room, index)
 end
 
 local function addRoomEnemies(room, reserved, identifier, index)
-    if isGrassIndex(index) then
+    if isGrassIndex(index) or isRuinsIndex(index) then
         return identifier
     end
 
@@ -1076,6 +1080,91 @@ local function addGrassHunters(room, reserved, identifier, index)
             end
         end
     end
+    return identifier
+end
+
+local function addRuinsEnemies(room, reserved, identifier, index)
+    if not isRuinsIndex(index) then
+        return identifier
+    end
+
+    local blocked = {}
+    for _, wall in ipairs(room.walls) do
+        blocked[coordKey(wall.x, wall.y)] = true
+    end
+    for _, gate in ipairs(room.gates or {}) do
+        if gate.locked ~= false then
+            blocked[coordKey(gate.x, gate.y)] = true
+        end
+    end
+    for _, enemy in ipairs(room.enemies) do
+        blocked[coordKey(enemy.pos[1], enemy.pos[2])] = true
+    end
+
+    local connected, critical = getCriticalPaths(room, blocked)
+    if not connected then
+        return identifier
+    end
+
+    local candidates = {}
+    for x = 1, room.size.w - 2 do
+        for y = 1, room.size.h - 2 do
+            local key = coordKey(x, y)
+            if Util.World.isFloor(room, x, y)
+                and not reserved[key]
+                and not blocked[key]
+                and not critical[key]
+            then
+                candidates[#candidates + 1] = {x, y}
+            end
+        end
+    end
+
+    local skeletonCount = room.size.w * room.size.h >= 60 and 3 or 2
+    local skeletonsPlaced = 0
+    while skeletonsPlaced < skeletonCount and #candidates > 0 do
+        local candidateIndex = love.math.random(1, #candidates)
+        local position = table.remove(candidates, candidateIndex)
+        local key = coordKey(position[1], position[2])
+        blocked[key] = true
+        if getCriticalPaths(room, blocked) then
+            room.enemies[#room.enemies + 1] = {
+                name = "skeleton",
+                pos = position,
+                facing = tostring(love.math.random(1, 4)),
+                id = identifier,
+            }
+            reserved[key] = true
+            identifier = identifier + 1
+            skeletonsPlaced = skeletonsPlaced + 1
+        else
+            blocked[key] = nil
+        end
+    end
+
+    if #candidates > 0 and Util.Math.chance(Macros.elite.spawnChance) then
+        while #candidates > 0 do
+            local position = table.remove(
+                candidates,
+                love.math.random(1, #candidates)
+            )
+            local key = coordKey(position[1], position[2])
+            blocked[key] = true
+            if getCriticalPaths(room, blocked) then
+                room.enemies[#room.enemies + 1] = {
+                    name = "elite",
+                    pos = position,
+                    facing = tostring(love.math.random(1, 4)),
+                    id = identifier,
+                }
+                reserved[key] = true
+                identifier = identifier + 1
+                break
+            end
+            blocked[key] = nil
+        end
+    end
+
     return identifier
 end
 
@@ -1617,21 +1706,45 @@ local function randomRoomSize(index)
     if getTransitionRoomConfig(index) then
         return {w = 10, h = 8}, "transition"
     end
+
+    local function orient(shortSide, longSide, layout)
+        if Util.Math.chance(1 / 2) then
+            return {w = shortSide, h = longSide}, layout
+        end
+        return {w = longSide, h = shortSide}, layout
+    end
+
+    if isRuinsIndex(index) then
+        if Util.Math.chance(7 / 25) then
+            return orient(8, love.math.random(11, 12), "maze")
+        end
+        return orient(
+            love.math.random(7, 8),
+            love.math.random(11, 12),
+            nil
+        )
+    end
+
+    if isGrassIndex(index) then
+        if Util.Math.chance(7 / 25) then
+            return orient(8, love.math.random(10, 11), "maze")
+        end
+        return orient(
+            love.math.random(7, 8),
+            love.math.random(9, 11),
+            nil
+        )
+    end
+
     if Util.Math.chance(7 / 25) then
         local longSide = love.math.random(8, 10)
-        if Util.Math.chance(1 / 2) then
-            return { w = 7, h = longSide }, "maze"
-        end
-        return { w = longSide, h = 7 }, "maze"
+        return orient(7, longSide, "maze")
     end
 
     local largerRoom = Util.Math.chance(1 / 3)
     local shortSide = largerRoom and love.math.random(5, 7) or love.math.random(4, 6)
     local longSide = largerRoom and love.math.random(8, 10) or love.math.random(7, 9)
-    if Util.Math.chance(1 / 2) then
-        return { w = shortSide, h = longSide }, nil
-    end
-    return { w = longSide, h = shortSide }, nil
+    return orient(shortSide, longSide, nil)
 end
 
 function Util.World.regenerateRoom(room, index)
@@ -1693,6 +1806,7 @@ function Util.World.regenerateRoom(room, index)
     identifier = addRoomEnemies(replacement, reserved, identifier, index)
     identifier = addGrassTurrets(replacement, reserved, identifier, index)
     identifier = addGrassHunters(replacement, reserved, identifier, index)
+    identifier = addRuinsEnemies(replacement, reserved, identifier, index)
     addGrassCovers(replacement, reserved, index)
     assert(getCriticalPaths(replacement, roomBlockers(replacement)),
         "World regeneration produced a room with an unreachable exit")
@@ -1753,6 +1867,109 @@ function Util.World.debugRegenerateCurrentRoom()
     print("[DEBUG] Regenerated room "..tostring(roomIndex)
         .." as "..tostring(replacement.layout)
         .." ("..replacement.size.w.."x"..replacement.size.h..")")
+    return true
+end
+
+function Util.World.debugJumpToAreaTransition()
+    if not G
+        or not G.flags.saveData.curRoom
+        or not G.flags.saveData.rooms
+        or not PLAYER
+        or G.flags.isMoving
+        or getEventByNid("transition")
+    then
+        return false
+    end
+
+    local currentIndex = G.flags.saveData.curRoomIndex
+    local targetIndex
+    if type(currentIndex) == "string" then
+        targetIndex = 11
+    elseif type(currentIndex) == "number" then
+        if currentIndex <= 5 then
+            targetIndex = 5
+        elseif currentIndex <= 11 then
+            targetIndex = 11
+        elseif currentIndex <= 17 then
+            targetIndex = 17
+        end
+    end
+
+    local targetRoom = targetIndex
+        and G.flags.saveData.rooms[targetIndex]
+    if not targetRoom then
+        return false
+    end
+    if currentIndex == targetIndex then
+        print("[DEBUG] Already in this area's transition room")
+        return true
+    end
+
+    local entrance
+    for _, door in ipairs(targetRoom.doors or {}) do
+        if door.index == targetIndex - 1 then
+            entrance = door
+            break
+        end
+    end
+    entrance = entrance or targetRoom.doors[1]
+    if not entrance or not entrance.a then
+        return false
+    end
+
+    local isoGrid = getObjectByNid("isoGrid")
+    local isoGridWeb = getObjectByNid("isoGridWeb")
+    if isoGrid then isoGrid:remove() end
+    if isoGridWeb then isoGridWeb:remove() end
+
+    local worldMoveables = {}
+    for _, moveable in ipairs(G.I.MOVEABLES) do
+        if moveable.objectType == "WORLDMOVEABLE" then
+            worldMoveables[#worldMoveables + 1] = moveable
+        end
+    end
+    for _, moveable in ipairs(worldMoveables) do
+        moveable:remove()
+    end
+
+    TARGETED_ENEMIES = nil
+    for _, item in ipairs(G.flags.saveData.items) do
+        item.targets = nil
+        item.isBeingUsed = false
+    end
+
+    local facingByEntrance = {
+        tl = "1",
+        tr = "4",
+        dl = "2",
+        dr = "3",
+    }
+    local facing = facingByEntrance[entrance.side]
+        or PLAYER.extra.facing
+    local spawn = entrance.a
+    G.flags.saveData.curRoomIndex = targetIndex
+    G.flags.saveData.curRoom = targetRoom
+    G.flags.saveData.playerPos = {x = spawn.x, y = spawn.y}
+    G.flags.saveData.playerFacing = facing
+
+    PLAYER = WorldMoveable({
+        x = spawn.x,
+        y = spawn.y,
+        type = "player",
+        drawOrder = 31,
+        updateOrder = 1,
+        extra = {facing = facing},
+    })
+    Macros.MDef.isometricGrid(
+        targetRoom.size.w,
+        targetRoom.size.h,
+        Util.World.getArea(targetIndex)
+    )
+    WorldMoveable:initRoomStuff()
+    PLAYER:checkEaseMusic()
+
+    print("[DEBUG] Jumped from room "..tostring(currentIndex)
+        .." to area transition room "..tostring(targetIndex))
     return true
 end
 
@@ -1852,6 +2069,7 @@ function Util.World.generateRoom(
         identifier = addRoomEnemies(room, reserved, identifier, index)
         identifier = addGrassTurrets(room, reserved, identifier, index)
         identifier = addGrassHunters(room, reserved, identifier, index)
+        identifier = addRuinsEnemies(room, reserved, identifier, index)
         addGrassCovers(room, reserved, index)
         assert(getCriticalPaths(room, roomBlockers(room)),
             "World generation produced a room with an unreachable exit")
@@ -1911,7 +2129,7 @@ function Util.World.getEnemy(index)
     if index >= 6 and index <= 11 then
         return "turret"
     end
-    return "cellmate"
+    return "skeleton"
 end
 
 function Util.World.generateDungeon()

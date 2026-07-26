@@ -14,6 +14,17 @@ local ITEM_DROP_EXCLUSIONS = {
     prison_key = true,
 }
 
+local function getEnemyRoomRecord(enemy)
+    if not G or not G.flags.saveData.curRoom then
+        return nil
+    end
+    for _, record in ipairs(G.flags.saveData.curRoom.enemies or {}) do
+        if record.id == enemy.extra.identifier then
+            return record
+        end
+    end
+end
+
 function Util.World.spawnGroundItemPickup(itemKey, x, y, requiresPlayerExit)
     local saveData = G.flags.saveData
     local room = saveData.curRoom
@@ -82,17 +93,50 @@ end
 
 function WorldMoveable:modHP(m, silent)
     if self.properties.type == "enemy" then
+        if self.extra.name == "skeleton"
+            and self.extra.downedTurns
+            and m < 0
+        then
+            return
+        end
         local t = {m}
         CALCULATECONTEXT({ modHP = true, hp = t, hurting = self })
         self.extra.hp = self.extra.hp + t[1]
+        local roomRecord = getEnemyRoomRecord(self)
+        if roomRecord and self.extra.name == "skeleton" then
+            roomRecord.hp = self.extra.hp
+        end
         if t[1] < 0 then
             G.flags.saveData.totalDamage = G.flags.saveData.totalDamage - t[1]
         end
         if self.extra.hp <= 0 then
             Util.Event.screenShake(5 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
             Util.Audio.playSfx("fatalhit", 2)
+            if self.extra.name == "skeleton" then
+                self.extra.hp = 0
+                self.extra.downedTurns = Macros.skeleton.downedTurns
+                self.extra.justDowned = true
+                self.extra.goalVertice = nil
+                self.extra.goalPath = nil
+                if not self.extra.killCredited then
+                    self.extra.killCredited = true
+                    G.flags.saveData.enemiesSlain =
+                        G.flags.saveData.enemiesSlain + 1
+                    spawnEnemyItemDrop(self.TMod.x.base, self.TMod.y.base)
+                end
+                if roomRecord then
+                    roomRecord.hp = 0
+                    roomRecord.downedTurns = self.extra.downedTurns
+                    roomRecord.killCredited = self.extra.killCredited
+                end
+                WorldMoveable:checkEaseMusic()
+                return
+            end
             if self.extra.name == "cellboss" then
                 self:clearCellBossDanger()
+            end
+            if self.extra.name == "elite" then
+                self:clearEliteDanger()
             end
             for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
                 if v.id == self.extra.identifier then
@@ -222,6 +266,7 @@ local TURRET_AIM_ORIGIN_OFFSETS = {
 local RANGED_ENEMY_NAMES = {
     hunter = true,
     officer = true,
+    elite = true,
 }
 
 local function isRangedEnemyName(name)
@@ -403,9 +448,14 @@ function WorldMoveable:draw()
             print(self.extra)
             goto exit
         end
-        local enemyAtlas = Atlases[self.extra.name .. self.extra.facing]
-            and self.extra.name .. self.extra.facing
-            or self.extra.name
+        local enemyAtlas = self.extra.name == "skeleton"
+            and self.extra.downedTurns
+            and "skeletonDowned"
+            or (
+                Atlases[self.extra.name .. self.extra.facing]
+                and self.extra.name .. self.extra.facing
+                or self.extra.name
+            )
         if Atlases[enemyAtlas] and Atlases[enemyAtlas].image then
             love.graphics.draw(
                 Atlases[enemyAtlas].image,
@@ -459,32 +509,34 @@ function WorldMoveable:draw()
             love.graphics.setLineWidth(oldLineWidth)
             love.graphics.setColor(Macros.colors.white)
         end
-        love.graphics.push()
-        love.graphics.translate(0, -14 * Util.UI.getScalingFactor())
-        love.graphics.draw(
-            Atlases.hpSymbol.image,
-            Atlases.hpSymbol.splicedImages[0][0],
-            v.contents[1] - 30 * Util.UI.getScalingFactor(),
-            v.contents[2] - 80 * Util.UI.getScalingFactor(),
-            0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
-        )
-        love.graphics.setColor(Macros.colors.night)
-        love.graphics.rectangle("fill", v.contents[1] - 14 * Util.UI.getScalingFactor(),
-            v.contents[2] - 76 * Util.UI.getScalingFactor(),
-            44 * Util.UI.getScalingFactor(), 14 * Util.UI.getScalingFactor())
-        local delta = 40 * Util.UI.getScalingFactor() * self.extra.hp / Macros.maxHps[self.extra.name]
-        love.graphics.setColor(Macros.colors.red)
-        love.graphics.rectangle("fill", v.contents[1] - 12 * Util.UI.getScalingFactor(),
-            v.contents[2] - 74 * Util.UI.getScalingFactor(),
-            delta, 10 * Util.UI.getScalingFactor())
-        local txt = AdvancedText("|o:night||c:red||s:2,2|" .. self.extra.hp .. "/" .. Macros.maxHps[self.extra.name])
-        txt:draw(v.contents[1] - txt:getTotalWidth() / 2,
-        v.contents[2] - 60 * Util.UI.getScalingFactor())
-        
-        local name = AdvancedText("|o:night||s:2,2|" .. Macros.names[self.extra.name])
-        name:draw(v.contents[1] - name:getTotalWidth() / 2,
-        v.contents[2] - 92 * Util.UI.getScalingFactor())
-        love.graphics.pop()
+        if not (self.extra.name == "skeleton" and self.extra.downedTurns) then
+            love.graphics.push()
+            love.graphics.translate(0, -14 * Util.UI.getScalingFactor())
+            love.graphics.draw(
+                Atlases.hpSymbol.image,
+                Atlases.hpSymbol.splicedImages[0][0],
+                v.contents[1] - 30 * Util.UI.getScalingFactor(),
+                v.contents[2] - 80 * Util.UI.getScalingFactor(),
+                0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+            )
+            love.graphics.setColor(Macros.colors.night)
+            love.graphics.rectangle("fill", v.contents[1] - 14 * Util.UI.getScalingFactor(),
+                v.contents[2] - 76 * Util.UI.getScalingFactor(),
+                44 * Util.UI.getScalingFactor(), 14 * Util.UI.getScalingFactor())
+            local delta = 40 * Util.UI.getScalingFactor() * self.extra.hp / Macros.maxHps[self.extra.name]
+            love.graphics.setColor(Macros.colors.red)
+            love.graphics.rectangle("fill", v.contents[1] - 12 * Util.UI.getScalingFactor(),
+                v.contents[2] - 74 * Util.UI.getScalingFactor(),
+                delta, 10 * Util.UI.getScalingFactor())
+            local txt = AdvancedText("|o:night||c:red||s:2,2|" .. self.extra.hp .. "/" .. Macros.maxHps[self.extra.name])
+            txt:draw(v.contents[1] - txt:getTotalWidth() / 2,
+            v.contents[2] - 60 * Util.UI.getScalingFactor())
+
+            local name = AdvancedText("|o:night||s:2,2|" .. Macros.names[self.extra.name])
+            name:draw(v.contents[1] - name:getTotalWidth() / 2,
+            v.contents[2] - 92 * Util.UI.getScalingFactor())
+            love.graphics.pop()
+        end
         -- Enemy names (SERIOUSLY GUYS, PLS COMMENT YOUR CODE WHY AM I THE ONLY ONE DOING IT)
     end
     if self.properties.type == "player" then
@@ -875,6 +927,132 @@ local function getFacingTowardPoint(fromX, fromY, toX, toY)
     end
 end
 
+function WorldMoveable:clearEliteDanger()
+    for _, marker in ipairs(self.extra.dangerMarkers or {}) do
+        marker:remove()
+    end
+    self.extra.dangerMarkers = nil
+    self.extra.dangerTiles = nil
+end
+
+local function eliteDangerCellIsBlocked(elite, x, y)
+    for _, moveable in ipairs(Util.World.getAllWorldMoveablesWithCoord(
+        {x, y}
+    )) do
+        if moveable ~= elite then
+            local moveableType = moveable.properties.type
+            if moveableType == "cover"
+                or moveableType == "wall"
+                or (moveableType == "gate" and moveable.extra.locked)
+                or (
+                    moveableType == "enemy"
+                    and moveable.extra.name == "turret"
+                )
+            then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+function WorldMoveable:prepareEliteAttack()
+    local startX, startY = self.TMod.x.base, self.TMod.y.base
+    local playerX, playerY = PLAYER.TMod.x.base, PLAYER.TMod.y.base
+    local cells = Util.World.getGridLineCells(
+        startX,
+        startY,
+        playerX,
+        playerY
+    )
+    if #cells == 0 then
+        return false
+    end
+
+    local previous = #cells > 1 and cells[#cells - 1] or {startX, startY}
+    local last = cells[#cells]
+    local stepX = last[1] - previous[1]
+    local stepY = last[2] - previous[2]
+    while #cells < Macros.elite.attackRange do
+        last = {
+            last[1] + stepX,
+            last[2] + stepY,
+        }
+        cells[#cells + 1] = last
+    end
+
+    self:clearEliteDanger()
+    local tiles = {}
+    local markers = {}
+    for index = 1, math.min(#cells, Macros.elite.attackRange) do
+        local x, y = cells[index][1], cells[index][2]
+        if not Util.World.isFloor(G.flags.saveData.curRoom, x, y)
+            or eliteDangerCellIsBlocked(self, x, y)
+        then
+            break
+        end
+        tiles[#tiles + 1] = {x, y}
+        markers[#markers + 1] = WorldMoveable({
+            x = x,
+            y = y,
+            type = "danger",
+            extra = {eliteIdentifier = self.extra.identifier},
+            updateOrder = 2,
+            drawOrder = x + y + 9,
+        })
+    end
+    if #tiles == 0 then
+        return false
+    end
+
+    self.extra.facing = getFacingTowardPoint(
+        startX,
+        startY,
+        playerX,
+        playerY
+    ) or self.extra.facing
+    self.extra.eliteAction = "attack"
+    self.extra.dangerTiles = tiles
+    self.extra.dangerMarkers = markers
+    self:juice()
+    return true
+end
+
+function WorldMoveable:resolveEliteAttack()
+    local tiles = self.extra.dangerTiles or {}
+    self.extra.attackSequence = (self.extra.attackSequence or 0) + 1
+    local sequence = self.extra.attackSequence
+    self:clearEliteDanger()
+    self.extra.eliteAction = nil
+    self.extra.shotsRemaining = Macros.elite.magazine
+
+    for index, position in ipairs(tiles) do
+        local x, y = position[1], position[2]
+        Util.Event.addEvent(Event({
+            duration = 0.4,
+            drawOrder = x + y + 10,
+            drawFunc = function(time)
+                local r, g, b, a = love.graphics.getColor()
+                love.graphics.setColor(Macros.colors.white)
+                local frame = math.min(4, math.floor(time * 4) + 1)
+                drawWorldTileAtlas("tileAttack_"..frame, x, y)
+                love.graphics.setColor(r, g, b, a)
+            end,
+        }), "eliteAttack"..self.id.."_"..sequence.."_"..index)
+    end
+    Util.Audio.playSfx("slam")
+    self:juice(4)
+
+    for _, position in ipairs(tiles) do
+        if position[1] == PLAYER.TMod.x.base
+            and position[2] == PLAYER.TMod.y.base
+        then
+            return Util.World.modHP(-Macros.elite.attackDamage)
+        end
+    end
+    return false
+end
+
 local function addEnemyShotEffect(shooter, target)
     local startX, startY = shooter:getVisualGridPosition()
     local targetX, targetY = target:getVisualGridPosition()
@@ -932,13 +1110,52 @@ local function repositionRangedEnemy(shooter)
     vertices[startX] = vertices[startX] or {}
     vertices[startX][startY] = true
     local candidates = {}
-    for _, position in ipairs(getAllAdjacentVertices(vertices, {startX, startY})) do
-        if rangedEnemyPositionIsClear(shooter, position[1], position[2]) then
-            candidates[#candidates + 1] = position
+    local queue = {{
+        x = startX,
+        y = startY,
+        path = {},
+    }}
+    local queueIndex = 1
+    local seen = {[startX..","..startY] = true}
+    while queueIndex <= #queue do
+        local current = queue[queueIndex]
+        queueIndex = queueIndex + 1
+        if #current.path < (config.moveDistance or 1) then
+            for _, position in ipairs(getAllAdjacentVertices(
+                vertices,
+                {current.x, current.y}
+            )) do
+                local key = position[1]..","..position[2]
+                if not seen[key]
+                    and rangedEnemyPositionIsClear(
+                        shooter,
+                        position[1],
+                        position[2]
+                    )
+                then
+                    seen[key] = true
+                    local path = {}
+                    for index, step in ipairs(current.path) do
+                        path[index] = {step[1], step[2]}
+                    end
+                    path[#path + 1] = {position[1], position[2]}
+                    local candidate = {
+                        x = position[1],
+                        y = position[2],
+                        path = path,
+                    }
+                    candidates[#candidates + 1] = candidate
+                    queue[#queue + 1] = candidate
+                end
+            end
         end
     end
     if #candidates == 0 then
-        candidates[1] = {startX, startY}
+        candidates[1] = {
+            x = startX,
+            y = startY,
+            path = {},
+        }
     end
 
     local turretPositions = {}
@@ -953,7 +1170,7 @@ local function repositionRangedEnemy(shooter)
 
     local best
     for _, position in ipairs(candidates) do
-        local x, y = position[1], position[2]
+        local x, y = position.x, position.y
         local distance = math.abs(playerX - x) + math.abs(playerY - y)
         local hasNextShot = Util.World.hasHunterSightlineFrom(
             G.flags.saveData.curRoom,
@@ -972,6 +1189,7 @@ local function repositionRangedEnemy(shooter)
             best = {
                 x = x,
                 y = y,
+                path = position.path,
                 score = score,
             }
         end
@@ -984,15 +1202,51 @@ local function repositionRangedEnemy(shooter)
         playerY
     ) or shooter.extra.facing
     if best.x ~= startX or best.y ~= startY then
-        shooter:moveToGrid(best.x, best.y)
+        if #best.path > 1 then
+            shooter:moveAlongGridPath(best.path, 0.14)
+        else
+            shooter:moveToGrid(best.x, best.y)
+        end
     end
     shooter:juice()
+end
+
+local function getRangedFriendlyFireTarget(shooter)
+    local cells = Util.World.getGridLineCells(
+        shooter.TMod.x.base,
+        shooter.TMod.y.base,
+        PLAYER.TMod.x.base,
+        PLAYER.TMod.y.base
+    )
+    for index = 1, #cells - 1 do
+        local cell = cells[index]
+        for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType(
+            "enemy"
+        )) do
+            if enemy ~= shooter
+                and enemy.extra.name ~= "turret"
+                and enemy.extra.hp > 0
+                and enemy.TMod.x.base == cell[1]
+                and enemy.TMod.y.base == cell[2]
+            then
+                return enemy
+            end
+        end
+    end
 end
 
 local function resolveRangedEnemyActions(allEnemies)
     for _, shooter in ipairs(allEnemies) do
         if isRangedEnemyName(shooter.extra.name) and shooter.extra.hp > 0 then
             local config = Macros[shooter.extra.name]
+            if shooter.extra.name == "elite"
+                and shooter.extra.eliteAction == "attack"
+            then
+                if shooter:resolveEliteAttack() then
+                    return true
+                end
+                goto continue
+            end
             local canShoot = shooter.extra.shotsRemaining > 0
                 and Util.World.hasHunterSightline(
                     shooter,
@@ -1007,16 +1261,28 @@ local function resolveRangedEnemyActions(allEnemies)
                     PLAYER.TMod.y.base
                 ) or shooter.extra.facing
                 shooter.extra.shotsRemaining = shooter.extra.shotsRemaining - 1
-                addEnemyShotEffect(shooter, PLAYER)
+                local friendlyFireTarget =
+                    getRangedFriendlyFireTarget(shooter)
+                local target = friendlyFireTarget or PLAYER
+                addEnemyShotEffect(shooter, target)
                 shooter:juice()
-                if Util.World.modHP(-config.damage) then
+                if friendlyFireTarget then
+                    friendlyFireTarget:modHP(-config.damage)
+                elseif Util.World.modHP(-config.damage) then
                     return true
                 end
             else
-                repositionRangedEnemy(shooter)
-                shooter.extra.shotsRemaining = config.magazine
+                local preparedAttack = shooter.extra.name == "elite"
+                    and shooter.extra.shotsRemaining <= 0
+                    and Util.Math.chance(config.attackChance)
+                    and shooter:prepareEliteAttack()
+                if not preparedAttack then
+                    repositionRangedEnemy(shooter)
+                    shooter.extra.shotsRemaining = config.magazine
+                end
             end
         end
+        ::continue::
     end
     return false
 end
@@ -1081,6 +1347,144 @@ local function resolveTurretActions(allEnemies)
     return false
 end
 
+function WorldMoveable:advanceSkeletonRevival()
+    if not self.extra.downedTurns then
+        return false
+    end
+    if self.extra.justDowned then
+        self.extra.justDowned = nil
+        return true
+    end
+
+    self.extra.downedTurns = self.extra.downedTurns - 1
+    local roomRecord = getEnemyRoomRecord(self)
+    if self.extra.downedTurns <= 0 then
+        self.extra.downedTurns = nil
+        self.extra.hp = Macros.maxHps.skeleton
+        if roomRecord then
+            roomRecord.hp = self.extra.hp
+            roomRecord.downedTurns = nil
+            roomRecord.killCredited = self.extra.killCredited
+        end
+        self:juice(3)
+        self:checkEaseMusic()
+        return false
+    end
+    if roomRecord then
+        roomRecord.downedTurns = self.extra.downedTurns
+    end
+    return true
+end
+
+function WorldMoveable:planSkeletonMove()
+    if self.extra.downedTurns then
+        return false
+    end
+
+    local currentX, currentY = self.TMod.x.base, self.TMod.y.base
+    local path = {}
+    local visited = {[currentX..","..currentY] = true}
+    for _ = 1, Macros.skeleton.moveDistance do
+        local candidates = {}
+        local bestDistance
+        for _, offset in ipairs({
+            {-1, 0},
+            {1, 0},
+            {0, -1},
+            {0, 1},
+        }) do
+            local x = currentX + offset[1]
+            local y = currentY + offset[2]
+            local key = x..","..y
+            local isPlayer = x == PLAYER.TMod.x.base
+                and y == PLAYER.TMod.y.base
+            if not visited[key]
+                and (
+                    isPlayer
+                    or (
+                        not enemyTileIsBlocked(self, x, y)
+                        and not cellBossGoalIsReserved(self, x, y)
+                    )
+                )
+            then
+                local distance = math.abs(PLAYER.TMod.x.base - x)
+                    + math.abs(PLAYER.TMod.y.base - y)
+                if not bestDistance or distance < bestDistance then
+                    bestDistance = distance
+                    candidates = {{x, y}}
+                elseif distance == bestDistance then
+                    candidates[#candidates + 1] = {x, y}
+                end
+            end
+        end
+        if #candidates == 0 then
+            break
+        end
+        local position = candidates[love.math.random(1, #candidates)]
+        path[#path + 1] = position
+        currentX, currentY = position[1], position[2]
+        visited[currentX..","..currentY] = true
+        if currentX == PLAYER.TMod.x.base
+            and currentY == PLAYER.TMod.y.base
+        then
+            break
+        end
+    end
+
+    if #path == 0 then
+        return false
+    end
+    self.extra.goalPath = path
+    local destination = path[#path]
+    self.extra.goalVertice = {destination[1], destination[2]}
+    return true
+end
+
+function WorldMoveable:resolveSkeletonMove()
+    local movement = {}
+    local hitPlayer = false
+    for _, position in ipairs(self.extra.goalPath or {}) do
+        if position[1] == PLAYER.TMod.x.base
+            and position[2] == PLAYER.TMod.y.base
+        then
+            hitPlayer = true
+            break
+        end
+        if enemyTileIsBlocked(self, position[1], position[2]) then
+            break
+        end
+        movement[#movement + 1] = {position[1], position[2]}
+    end
+    self.extra.goalPath = nil
+    self.extra.goalVertice = nil
+
+    if #movement > 0 then
+        local fromX, fromY = self.TMod.x.base, self.TMod.y.base
+        local destination = movement[#movement]
+        if #movement > 1 then
+            fromX, fromY = movement[#movement - 1][1], movement[#movement - 1][2]
+        end
+        self.extra.facing = Util.World.getDir({
+            {coords = {fromX, fromY}},
+            {coords = destination},
+        })
+        self:moveAlongGridPath(movement, 0.12)
+    elseif hitPlayer then
+        self.extra.facing = getFacingTowardPoint(
+            self.TMod.x.base,
+            self.TMod.y.base,
+            PLAYER.TMod.x.base,
+            PLAYER.TMod.y.base
+        ) or self.extra.facing
+    end
+    self:juice()
+
+    if hitPlayer then
+        return Util.World.modHP(-Macros.skeleton.damage)
+    end
+    return false
+end
+
 function move_all_enemies()
     local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
     if resolveRangedEnemyActions(allEnemies) then
@@ -1090,7 +1494,13 @@ function move_all_enemies()
         return
     end
     for k, v in ipairs(allEnemies) do
-        if v.extra.name == "cellboss" then
+        if v.extra.name == "skeleton" and v:advanceSkeletonRevival() then
+            -- A downed skeleton keeps occupying its tile until it revives.
+        elseif v.extra.name == "skeleton" and v.extra.goalPath then
+            if v:resolveSkeletonMove() then
+                return
+            end
+        elseif v.extra.name == "cellboss" then
             if v:resolveCellBossTurn() then
                 return
             end
@@ -1183,6 +1593,10 @@ function WorldMoveable:decideMove()
         if self.extra.name == "guard" then return nil end
         if self.extra.name == "turret" then return nil end
         if isRangedEnemyName(self.extra.name) then return nil end
+        if self.extra.name == "skeleton" then
+            self:planSkeletonMove()
+            return
+        end
         if self.extra.name == "cellboss" then
             if self.extra.bossAction then
                 return
@@ -1288,9 +1702,11 @@ function WorldMoveable:initRoomStuff()
                 index = v.index,
                 side = v.side,
                 name = v.name,
-                hp = Macros.maxHps[v.name],
+                hp = v.hp or Macros.maxHps[v.name],
                 facing = v.facing,
                 identifier = v.id,
+                downedTurns = v.downedTurns,
+                killCredited = v.killCredited,
                 shotsRemaining = isRangedEnemyName(v.name)
                     and Macros[v.name].magazine
                     or nil,

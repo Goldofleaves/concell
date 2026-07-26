@@ -241,6 +241,14 @@ function love.keypressed(key)
 			print("[DEBUG] Current room cannot be regenerated right now")
 		end
 	end
+	if key == "t"
+		and not G.debug.console
+		and love.keyboard.isDown("lctrl", "rctrl")
+	then
+		if not Util.World.debugJumpToAreaTransition() then
+			print("[DEBUG] Cannot jump to this area's transition room right now")
+		end
+	end
 	if key == "return" and G.debug.console then
 		if string.sub(G.debug.constext,1,1) == "=" then
 			G.debug.constext = "return ".. string.sub(G.debug.constext, 2, #G.debug.constext)
