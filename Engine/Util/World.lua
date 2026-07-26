@@ -53,6 +53,15 @@ function Util.World.isFloor(room, x, y)
     return room.floor[x] and room.floor[x][y] == true
 end
 
+function Util.World.isDoorPosition(room, x, y)
+    for _, door in ipairs((room and room.doors) or {}) do
+        if door.x == x and door.y == y then
+            return true
+        end
+    end
+    return false
+end
+
 local function isGrassIndex(index)
     return type(index) == "number" and index >= 6 and index <= 11
 end
@@ -140,6 +149,9 @@ function Util.World.hasTurretSightlineFrom(
     if not room then
         return false
     end
+    if Util.World.isDoorPosition(room, targetX, targetY) then
+        return false
+    end
 
     local forward = TURRET_FACING_VECTORS[tostring(facing)]
     if not forward then
@@ -210,6 +222,9 @@ function Util.World.hasHunterSightlineFrom(
     turrets,
     range
 )
+    if Util.World.isDoorPosition(room, targetX, targetY) then
+        return false
+    end
     local distance = math.abs(targetX - hunterX)
         + math.abs(targetY - hunterY)
     if distance == 1 or distance > (range or Macros.hunter.range) then
@@ -1045,9 +1060,22 @@ local function addGrassTurrets(room, reserved, identifier, index)
         return a.score > b.score
     end)
 
-    local desired = roomHasEnemy(room, "wizard")
-        and 1
-        or (room.size.w * room.size.h >= 60 and 3 or 2)
+    local floorTiles = 0
+    for x = 0, room.size.w - 1 do
+        for y = 0, room.size.h - 1 do
+            if Util.World.isFloor(room, x, y) then
+                floorTiles = floorTiles + 1
+            end
+        end
+    end
+    local desired
+    if roomHasEnemy(room, "wizard") or floorTiles <= 70 then
+        desired = 1
+    elseif floorTiles <= 80 then
+        desired = 2
+    else
+        desired = 3
+    end
     local chosen = {}
     for _, candidate in ipairs(candidates) do
         if #chosen >= desired then
