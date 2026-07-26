@@ -1943,7 +1943,7 @@ local function randomRoomSize(index)
     return orient(shortSide, longSide, nil)
 end
 
-function Util.World.regenerateRoom(room, index)
+function Util.World.regenerateRoom(room, index, forceAbraham)
     local size, layout = randomRoomSize(index)
     local replacement = {
         size = size,
@@ -1981,13 +1981,13 @@ function Util.World.regenerateRoom(room, index)
     addPrisonGatePuzzle(replacement, reserved, index)
     local bossRoomIndex
     local wizardBossRoomIndex
-    local abrahamRoomIndex
+    local abrahamRoomIndex = forceAbraham and index or nil
     for _, enemy in ipairs(room.enemies or {}) do
         if enemy.name == "cellboss" then
             bossRoomIndex = index
         elseif enemy.name == "wizard" then
             wizardBossRoomIndex = index
-        elseif enemy.name == "abraham" then
+        elseif enemy.name == "abraham" and not forceAbraham then
             abrahamRoomIndex = index
         end
     end
@@ -2028,14 +2028,42 @@ function Util.World.regenerateRoom(room, index)
     return replacement
 end
 
-function Util.World.debugRegenerateCurrentRoom()
+function Util.World.debugRegenerateCurrentRoom(forceAbraham)
     if not G or not G.flags.saveData.curRoom or not PLAYER or G.flags.isMoving then
         return false
     end
 
     local roomIndex = G.flags.saveData.curRoomIndex
+    if forceAbraham and not isRuinsIndex(roomIndex) then
+        return false
+    end
     local oldFacing = PLAYER.extra.facing
-    local replacement = Util.World.regenerateRoom(G.flags.saveData.curRoom, roomIndex)
+    local replacement
+    local attempts = forceAbraham and 20 or 1
+    for _ = 1, attempts do
+        replacement = Util.World.regenerateRoom(
+            G.flags.saveData.curRoom,
+            roomIndex,
+            forceAbraham
+        )
+        if not forceAbraham then
+            break
+        end
+        local foundAbraham = false
+        for _, enemy in ipairs(replacement.enemies or {}) do
+            if enemy.name == "abraham" then
+                foundAbraham = true
+                break
+            end
+        end
+        if foundAbraham then
+            break
+        end
+        replacement = nil
+    end
+    if not replacement then
+        return false
+    end
     local spawn = replacement.doors[1].a
 
     local isoGrid = getObjectByNid("isoGrid")
@@ -2081,7 +2109,8 @@ function Util.World.debugRegenerateCurrentRoom()
 
     print("[DEBUG] Regenerated room "..tostring(roomIndex)
         .." as "..tostring(replacement.layout)
-        .." ("..replacement.size.w.."x"..replacement.size.h..")")
+        .." ("..replacement.size.w.."x"..replacement.size.h..")"
+        ..(forceAbraham and " with Abraham" or ""))
     return true
 end
 
