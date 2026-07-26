@@ -183,7 +183,7 @@ function Macros.UIDef.overlay()
             w = 29/20,
             h = 27/20,
             outlineWidth = 3,
-            drawOrder = 999,
+            drawOrder = 999 + i,
             outlineColor = Macros.colors.transparent,
             inlineColor = Macros.colors.transparent,
             onRightClick = function(self)
@@ -209,9 +209,10 @@ function Macros.UIDef.overlay()
             end,
             drawFunc = function (self)
                 local padding = 10
-                local vec = Util.World.toNormalPos(Vector(self.TMod.x.base, self.TMod.y.base))
                 if self.infoQueue then
-                    self.infoQueue:draw(vec.contents[1] + 29 * Util.UI.getScalingFactor() - self.infoQueue:getWidth()/2, vec.contents[2] - padding * Util.UI.getScalingFactor() - self.infoQueue:getHeight())
+                    local vec = Util.World.toNormalPos(Vector(self.TMod.x.base, self.TMod.y.base))
+                    local minx = Util.World.toNormalPos(Vector(20, 15)).contents[1] - padding * Util.UI.getScalingFactor()- self.infoQueue:getWidth()
+                    self.infoQueue:draw(math.min(minx, vec.contents[1] + 29 * Util.UI.getScalingFactor() - self.infoQueue:getWidth()/2), vec.contents[2] - padding * Util.UI.getScalingFactor() - self.infoQueue:getHeight())
                 end
             end
         })

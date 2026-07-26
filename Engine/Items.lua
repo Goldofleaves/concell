@@ -648,3 +648,93 @@ registerItem({
         end
     end
 })
+registerItem({
+    key = "hemokinesis",
+    sprite = "ItemHemokinesis",
+    config = {
+        modHP = 1,
+        vars = {
+            1,
+        }
+    },
+    text = {
+        "|s:2,2|Hemokinesis",
+        "|s:2,2|Type: Static",
+        "|s:2,2|This item heals {1}",
+        "|s:2,2|hp when an enemy",
+        "|s:2,2|unit is killed.",
+    },
+    calculate = function(context, self)
+        if context.enemyKill then
+            Util.World.modHP(self.config.modHP)
+        end
+    end,
+})
+registerItem({
+    key = "lunchbox",
+    sprite = "ItemLunchbox",
+    config = {
+        modHP = 15,
+        timeCost = 10,
+        vars = {
+            15,
+            10
+        }
+    },
+    text = {
+        "|s:2,2|Lunchbox",
+        "|s:2,2|Type: Usable",
+        "|s:2,2|Cost: {2} Mins",
+        "|s:2,2|This item heals {1}",
+        "|s:2,2|hp when it is used.",
+    },
+    canUse = function()
+        if G.flags.saveData.hp < Macros.maxhp then return "noState" end
+        return false
+    end,
+    onUse = function(self)
+        Util.World.modHP(self.config.modHP)
+        Util.World.modTime(self.config.timeCost)
+        discardItem(nil, self.key)
+    end,
+})
+registerItem({
+    key = "bloodphial",
+    sprite = "ItemBloodphial",
+    config = {
+        modHP = 2,
+        turns = 4,
+        toggled = false,
+        vars = {
+            2,
+            4,
+            "Off"
+        }
+    },
+    text = {
+        "|s:2,2|Blood Phial",
+        "|s:2,2|Type: Usable",
+        "|s:2,2|State: {3}",
+        "|s:2,2|This item heals {1}",
+        "|s:2,2|hp when it you move,",
+        "|s:2,2|lasts for {2} moves.",
+    },
+    canUse = function()
+        return "noState"
+    end,
+    onUse = function(self)
+        self.config.toggled = not self.config.toggled
+        self.config.vars[3] = self.config.toggled and "On" or "Off"
+        Util.Audio.playSfx("blip_hover", 2)
+    end,
+    calculate = function(context, self)
+        if context.player_move and self.config.toggled then
+            self.config.turns = self.config.turns - 1
+            self.config.vars[2] = self.config.vars[2] - 1
+            Util.World.modHP(self.config.modHP)
+        end
+        if self.config.turns == 0 then
+            discardItem(nil, self.key)
+        end
+    end,
+})

@@ -1,5 +1,5 @@
 InfoQueue = Object:extend()
-local padding = 6
+local padding = 10
 local width = 2
 function InfoQueue:new(text, vars)
     local configs = {}

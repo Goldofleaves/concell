@@ -101,56 +101,61 @@ function WorldMoveable:modHP(m, silent)
         end
         local t = {m}
         CALCULATECONTEXT({ modHP = true, hp = t, hurting = self })
-        self.extra.hp = self.extra.hp + t[1]
+        self.extra.hp = math.min(self.extra.hp + t[1], Macros.maxHps[self.extra.name])
         local roomRecord = getEnemyRoomRecord(self)
         if roomRecord and self.extra.name == "skeleton" then
             roomRecord.hp = self.extra.hp
         end
         if t[1] < 0 then
             G.flags.saveData.totalDamage = G.flags.saveData.totalDamage - t[1]
-        end
-        if self.extra.hp <= 0 then
-            Util.Event.screenShake(5 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
-            Util.Audio.playSfx("fatalhit", 2)
-            if self.extra.name == "skeleton" then
-                self.extra.hp = 0
-                self.extra.downedTurns = Macros.skeleton.downedTurns
-                self.extra.justDowned = true
-                self.extra.goalVertice = nil
-                self.extra.goalPath = nil
-                if not self.extra.killCredited then
-                    self.extra.killCredited = true
-                    G.flags.saveData.enemiesSlain =
-                        G.flags.saveData.enemiesSlain + 1
-                    spawnEnemyItemDrop(self.TMod.x.base, self.TMod.y.base)
+            if self.extra.hp <= 0 then
+                CALCULATECONTEXT({ enemyKill = true, enemy = self })
+                Util.Event.screenShake(5 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
+                Util.Audio.playSfx("fatalhit", 2)
+                if self.extra.name == "skeleton" then
+                    self.extra.hp = 0
+                    self.extra.downedTurns = Macros.skeleton.downedTurns
+                    self.extra.justDowned = true
+                    self.extra.goalVertice = nil
+                    self.extra.goalPath = nil
+                    if not self.extra.killCredited then
+                        self.extra.killCredited = true
+                        G.flags.saveData.enemiesSlain =
+                            G.flags.saveData.enemiesSlain + 1
+                        spawnEnemyItemDrop(self.TMod.x.base, self.TMod.y.base)
+                    end
+                    if roomRecord then
+                        roomRecord.hp = 0
+                        roomRecord.downedTurns = self.extra.downedTurns
+                        roomRecord.killCredited = self.extra.killCredited
+                    end
+                    WorldMoveable:checkEaseMusic()
+                    return
                 end
-                if roomRecord then
-                    roomRecord.hp = 0
-                    roomRecord.downedTurns = self.extra.downedTurns
-                    roomRecord.killCredited = self.extra.killCredited
+                if self.extra.name == "cellboss" then
+                    self:clearCellBossDanger()
                 end
+                if self.extra.name == "elite" then
+                    self:clearEliteDanger()
+                end
+                for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
+                    if v.id == self.extra.identifier then
+                        table.remove(G.flags.saveData.curRoom.enemies, k)
+                    end
+                end
+                G.flags.saveData.enemiesSlain = G.flags.saveData.enemiesSlain + 1
+                spawnEnemyItemDrop(self.TMod.x.base, self.TMod.y.base)
                 WorldMoveable:checkEaseMusic()
-                return
-            end
-            if self.extra.name == "cellboss" then
-                self:clearCellBossDanger()
-            end
-            if self.extra.name == "elite" then
-                self:clearEliteDanger()
-            end
-            for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
-                if v.id == self.extra.identifier then
-                    table.remove(G.flags.saveData.curRoom.enemies, k)
+                self:remove()
+            else
+                Util.Event.screenShake(2 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
+                if not silent then
+                    Util.Audio.playSfx("hit", 2)
                 end
             end
-            G.flags.saveData.enemiesSlain = G.flags.saveData.enemiesSlain + 1
-            spawnEnemyItemDrop(self.TMod.x.base, self.TMod.y.base)
-            WorldMoveable:checkEaseMusic()
-            self:remove()
-        else
-            Util.Event.screenShake(2 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
+        elseif t[1] > 0 then
             if not silent then
-                Util.Audio.playSfx("hit", 2)
+                Util.Audio.playSfx("heal")
             end
         end
     end

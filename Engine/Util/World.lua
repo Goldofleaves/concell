@@ -2091,9 +2091,13 @@ end
 function Util.World.modHP(m)
     local t = { m } -- stuff it in a table so it's mutable
     CALCULATECONTEXT({ modHP = true, hp = t, hurting = PLAYER })
-    Util.Audio.playSfx("hit", 2)
-    Util.Event.screenShake(2*Util.UI.getScalingFactor(), 0.3, "globalShake")
-    G.flags.saveData.hp = G.flags.saveData.hp + t[1]
+    if t[1] < 0 then
+        Util.Audio.playSfx("hit", 2)
+        Util.Event.screenShake(2*Util.UI.getScalingFactor(), 0.3, "globalShake")
+    elseif t[1] > 0 then
+        Util.Audio.playSfx("heal")
+    end
+    G.flags.saveData.hp = math.min(Macros.maxhp, G.flags.saveData.hp + t[1])
     if G.flags.saveData.hp <= 0 then
         CALCULATECONTEXT({ death = true, method = "hp" })
         if G.flags.saveData.hp <= 0 then
