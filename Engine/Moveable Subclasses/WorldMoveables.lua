@@ -343,7 +343,7 @@ function WorldMoveable:draw()
     love.graphics.setColor(lookup[self.properties.type].color)
     if (self.properties.type == "enemy" or self.properties.type == "gate") and TARGETED_ENEMIES then
         for _, t in ipairs(TARGETED_ENEMIES) do
-            if t == self then
+            if t == self and self.extra.name ~= "turret" then
                 love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white,0.67))
                 local v = Util.World.toIsoPos(Vector(visualX, visualY))
                 love.graphics.draw(
@@ -570,6 +570,22 @@ function WorldMoveable:draw()
             v.contents[2] - 80 * Util.UI.getScalingFactor(),
             0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
+    end
+    if (self.properties.type == "enemy" or self.properties.type == "gate") and TARGETED_ENEMIES then
+        for _, t in ipairs(TARGETED_ENEMIES) do
+            if t == self and self.extra.name == "turret" then
+                love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white, 0.67))
+                local v = Util.World.toIsoPos(Vector(visualX, visualY))
+                love.graphics.draw(
+                    Atlases.Target.image,
+                    Atlases.Target.splicedImages[0][0],
+                    v.contents[1] - 40 * Util.UI.getScalingFactor(),
+                    v.contents[2] - 80 * Util.UI.getScalingFactor(),
+                    0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+                )
+                break
+            end
+        end
     end
     ::exit::
     love.graphics.setColor(r,g,b,a)
