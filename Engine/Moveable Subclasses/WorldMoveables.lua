@@ -343,7 +343,7 @@ function WorldMoveable:draw()
     love.graphics.setColor(lookup[self.properties.type].color)
     if (self.properties.type == "enemy" or self.properties.type == "gate") and TARGETED_ENEMIES then
         for _, t in ipairs(TARGETED_ENEMIES) do
-            if t == self then
+            if t == self and self.extra.name ~= "turret" then
                 love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white,0.67))
                 local v = Util.World.toIsoPos(Vector(visualX, visualY))
                 love.graphics.draw(
@@ -570,6 +570,22 @@ function WorldMoveable:draw()
             v.contents[2] - 80 * Util.UI.getScalingFactor(),
             0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
+    end
+    if (self.properties.type == "enemy" or self.properties.type == "gate") and TARGETED_ENEMIES then
+        for _, t in ipairs(TARGETED_ENEMIES) do
+            if t == self and self.extra.name == "turret" then
+                love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white, 0.67))
+                local v = Util.World.toIsoPos(Vector(visualX, visualY))
+                love.graphics.draw(
+                    Atlases.Target.image,
+                    Atlases.Target.splicedImages[0][0],
+                    v.contents[1] - 40 * Util.UI.getScalingFactor(),
+                    v.contents[2] - 80 * Util.UI.getScalingFactor(),
+                    0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+                )
+                break
+            end
+        end
     end
     ::exit::
     love.graphics.setColor(r,g,b,a)
@@ -2074,65 +2090,67 @@ function move_all_enemies()
     end
 end
 function WorldMoveable:switchRoom()
-    if self.extra.index == 18 then
-        Util.World.gameWin()
-        return
-    end
-    if self.properties.type == "door" then
-        Util.Event.transition(2, function()
-            local old_facing = PLAYER.extra.facing
-            local oldRoomIndex = G.flags.saveData.curRoomIndex
-            local targetRoomIndex = self.extra.index
-            local targetRoom = G.flags.saveData.rooms[targetRoomIndex]
-
-            local entrance
-            for _, door in ipairs(targetRoom.doors) do
-                if door.index == oldRoomIndex then
-                    entrance = door
-                    break
+    if not getEventByNid("end1") then
+        if self.extra.index == 18 then
+            Util.World.gameWin()
+            return
+        end
+        if self.properties.type == "door" then
+            Util.Event.transition(2, function()
+                local old_facing = PLAYER.extra.facing
+                local oldRoomIndex = G.flags.saveData.curRoomIndex
+                local targetRoomIndex = self.extra.index
+                local targetRoom = G.flags.saveData.rooms[targetRoomIndex]
+            
+                local entrance
+                for _, door in ipairs(targetRoom.doors) do
+                    if door.index == oldRoomIndex then
+                        entrance = door
+                        break
+                    end
                 end
-            end
-
-            local spawn = entrance.a
-            G.flags.saveData.curRoomIndex = targetRoomIndex
-            G.flags.saveData.curRoom = targetRoom
-
-            getObjectByNid("isoGrid"):remove()
-            getObjectByNid("isoGridWeb"):remove()
-            Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h,
-            Util.World.getArea(self.extra.index))
-            local list = {}
-            for k, v in ipairs(G.I.MOVEABLES) do
-                if v.objectType == "WORLDMOVEABLE" then
-                    table.insert(list, v)
+            
+                local spawn = entrance.a
+                G.flags.saveData.curRoomIndex = targetRoomIndex
+                G.flags.saveData.curRoom = targetRoom
+            
+                getObjectByNid("isoGrid"):remove()
+                getObjectByNid("isoGridWeb"):remove()
+                Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h,
+                Util.World.getArea(self.extra.index))
+                local list = {}
+                for k, v in ipairs(G.I.MOVEABLES) do
+                    if v.objectType == "WORLDMOVEABLE" then
+                        table.insert(list, v)
+                    end
                 end
-            end
-            for k, v in ipairs(list) do
-                v:remove()
-            end
-            local convert = function(s)
-                local array = {
-                    tl = '1',
-                    tr = '4',
-                    dl = '2',
-                    dr = '3'
-                }
-                return array[s]
-            end
-            PLAYER = WorldMoveable({
-                x = spawn.x,
-                y = spawn.y,
-                type = "player",
-                drawOrder = 31,
-                updateOrder = 1,
-                extra = {facing = old_facing}
-            })
-            WorldMoveable:initRoomStuff()
-            G.flags.saveData.playerPos = { x = spawn.x, y = spawn.y }
-            G.flags.saveData.playerFacing = convert(entrance.side)
-            self:checkEaseMusic()
-            Util.World.saveGame()
-        end, "delay2")
+                for k, v in ipairs(list) do
+                    v:remove()
+                end
+                local convert = function(s)
+                    local array = {
+                        tl = '1',
+                        tr = '4',
+                        dl = '2',
+                        dr = '3'
+                    }
+                    return array[s]
+                end
+                PLAYER = WorldMoveable({
+                    x = spawn.x,
+                    y = spawn.y,
+                    type = "player",
+                    drawOrder = 31,
+                    updateOrder = 1,
+                    extra = {facing = old_facing}
+                })
+                WorldMoveable:initRoomStuff()
+                G.flags.saveData.playerPos = { x = spawn.x, y = spawn.y }
+                G.flags.saveData.playerFacing = convert(entrance.side)
+                self:checkEaseMusic()
+                Util.World.saveGame()
+            end, "delay2")
+        end
     end
 end
 function WorldMoveable:decideMove()

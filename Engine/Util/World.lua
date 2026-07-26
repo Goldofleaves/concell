@@ -53,6 +53,15 @@ function Util.World.isFloor(room, x, y)
     return room.floor[x] and room.floor[x][y] == true
 end
 
+function Util.World.isDoorPosition(room, x, y)
+    for _, door in ipairs((room and room.doors) or {}) do
+        if door.x == x and door.y == y then
+            return true
+        end
+    end
+    return false
+end
+
 local function isGrassIndex(index)
     return type(index) == "number" and index >= 6 and index <= 11
 end
@@ -140,6 +149,9 @@ function Util.World.hasTurretSightlineFrom(
     if not room then
         return false
     end
+    if Util.World.isDoorPosition(room, targetX, targetY) then
+        return false
+    end
 
     local forward = TURRET_FACING_VECTORS[tostring(facing)]
     if not forward then
@@ -210,6 +222,9 @@ function Util.World.hasHunterSightlineFrom(
     turrets,
     range
 )
+    if Util.World.isDoorPosition(room, targetX, targetY) then
+        return false
+    end
     local distance = math.abs(targetX - hunterX)
         + math.abs(targetY - hunterY)
     if distance == 1 or distance > (range or Macros.hunter.range) then
@@ -1045,9 +1060,22 @@ local function addGrassTurrets(room, reserved, identifier, index)
         return a.score > b.score
     end)
 
-    local desired = roomHasEnemy(room, "wizard")
-        and 1
-        or (room.size.w * room.size.h >= 60 and 3 or 2)
+    local floorTiles = 0
+    for x = 0, room.size.w - 1 do
+        for y = 0, room.size.h - 1 do
+            if Util.World.isFloor(room, x, y) then
+                floorTiles = floorTiles + 1
+            end
+        end
+    end
+    local desired
+    if roomHasEnemy(room, "wizard") or floorTiles <= 70 then
+        desired = 1
+    elseif floorTiles <= 80 then
+        desired = 2
+    else
+        desired = 3
+    end
     local chosen = {}
     for _, candidate in ipairs(candidates) do
         if #chosen >= desired then
@@ -2651,6 +2679,7 @@ function Util.World.gameOver()
 end
 function Util.World.gameWin()
     if not getEventByNid("end1") then
+        local ref1, ref2 = G.flags.saveData.timer, G.flags.saveData.timemod
         for k, v in ipairs(G.audio.music) do
             v.source:stop()
             v.source:release()
@@ -2667,6 +2696,9 @@ function Util.World.gameWin()
                 drawOrder = 1e33,
                 duration = 3,
                 nid = "end1",
+                easeFunc = function (t)
+                    G.flags.saveData.timer = math.floor(Util.Math.lerp(ref1, Macros.maxtime + ref2, 1-(1-t)^2))
+                end,
                 drawFunc = function (t)
                     love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.white, t))
                     love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
