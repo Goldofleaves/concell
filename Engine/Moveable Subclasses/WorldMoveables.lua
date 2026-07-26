@@ -425,7 +425,7 @@ function WorldMoveable:draw()
             or (
                 self.extra.itemKey == "excalibur"
                 and "excalibur_throne"
-                or "hp_package"
+                or (type(self.extra.itemKey) == "table" and "hp_package" or "regular_package")
             )
         local atlas = Atlases[atlasKey]
         local scale = Util.UI.getScalingFactor()
