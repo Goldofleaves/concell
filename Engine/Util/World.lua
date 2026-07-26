@@ -2413,7 +2413,6 @@ function Util.World.gameWin()
                             end
                         }
                     ), "endOfGame")
-                
             end
             }
         ),"endOfGame")

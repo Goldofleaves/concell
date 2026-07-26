@@ -269,6 +269,9 @@ function love.keypressed(key)
 	if key == "g" then
 		Util.World.gameWin()
 	end
+	if key == "u" then
+		Util.World.gameOver()
+	end
 	if key == "r"
 		and not G.debug.console
 		and love.keyboard.isDown("lctrl", "rctrl")
