@@ -39,6 +39,9 @@ function WorldMoveable:modHP(m, silent)
         if self.extra.hp <= 0 then
             Util.Event.screenShake(5 * Util.UI.getScalingFactor(), 0.5, "localShake" .. self.id)
             Util.Audio.playSfx("fatalhit", 2)
+            if self.extra.name == "cellboss" then
+                self:clearCellBossDanger()
+            end
             for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
                 if v.id == self.extra.identifier then
                     table.remove(G.flags.saveData.curRoom.enemies, k)
@@ -102,6 +105,60 @@ function WorldMoveable:moveToGrid(x, y, duration)
     }
 end
 
+function WorldMoveable:moveAlongGridPath(path, durationPerTile)
+    if not path or #path == 0 then
+        return
+    end
+
+    local startX, startY = self:getVisualGridPosition()
+    local points = {{startX, startY}}
+    for _, position in ipairs(path) do
+        points[#points + 1] = {position[1], position[2]}
+    end
+
+    local eases = {}
+    for index = 1, #points - 1 do
+        eases[index] = Util.EaseSplines.createEase(
+            {x = points[index][1], y = points[index][2]},
+            {x = points[index + 1][1], y = points[index + 1][2]},
+            nil,
+            {preset = "eoc"}
+        )
+    end
+
+    local destination = path[#path]
+    self.TMod.x.base = destination[1]
+    self.TMod.y.base = destination[2]
+    self.extra.visualGridX = startX
+    self.extra.visualGridY = startY
+    self.extra.gridMove = {
+        elapsed = 0,
+        duration = math.max(0.01, (durationPerTile or 0.14) * #path),
+        eases = eases,
+    }
+end
+
+local function drawWorldTileAtlas(atlasKey, x, y)
+    local position = Util.World.toIsoPos(Vector(x, y))
+    love.graphics.draw(
+        Atlases[atlasKey].image,
+        Atlases[atlasKey].splicedImages[0][0],
+        position.contents[1] - 40 * Util.UI.getScalingFactor(),
+        position.contents[2] - 80 * Util.UI.getScalingFactor(),
+        0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+    )
+end
+
+local function drawPixelLockedLine(fromX, fromY, toX, toY)
+    love.graphics.setLineWidth(2)
+    love.graphics.line(
+        math.floor(fromX + 0.5),
+        math.floor(fromY + 0.5),
+        math.floor(toX + 0.5),
+        math.floor(toY + 0.5)
+    )
+end
+
 function WorldMoveable:draw()
     Moveable.draw(self)
     local lookup = {
@@ -126,6 +183,14 @@ function WorldMoveable:draw()
             radius = 7 * self.properties.mult
         },
         pickup = {
+            color = Macros.colors.transparent,
+            radius = 5 * self.properties.mult
+        },
+        cover = {
+            color = Macros.colors.transparent,
+            radius = 7 * self.properties.mult
+        },
+        danger = {
             color = Macros.colors.transparent,
             radius = 5 * self.properties.mult
         },
@@ -221,6 +286,22 @@ function WorldMoveable:draw()
             0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
     end
+    if self.properties.type == "cover" then
+        love.graphics.setColor(Macros.colors.white)
+        local v = Util.World.toIsoPos(Vector(visualX, visualY))
+        love.graphics.draw(
+            Atlases[self.extra.name].image,
+            Atlases[self.extra.name].splicedImages[0][0],
+            v.contents[1] - 40 * Util.UI.getScalingFactor(),
+            v.contents[2] - 80 * Util.UI.getScalingFactor(),
+            0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
+        )
+    end
+    if self.properties.type == "danger" then
+        love.graphics.setColor(Macros.colors.white)
+        local frame = math.floor(love.timer.getTime() * 5) % 2 + 1
+        drawWorldTileAtlas("danger_"..frame, visualX, visualY)
+    end
     if self.properties.type == "enemy" then
         love.graphics.setColor(Macros.colors.white)
         local v = Util.World.toIsoPos(Vector(visualX, visualY))
@@ -228,14 +309,60 @@ function WorldMoveable:draw()
             print(self.extra)
             goto exit
         end
-        if self.extra.name and Atlases[self.extra.name .. self.extra.facing] and Atlases[self.extra.name .. self.extra.facing].image then
+        local enemyAtlas = Atlases[self.extra.name .. self.extra.facing]
+            and self.extra.name .. self.extra.facing
+            or self.extra.name
+        if Atlases[enemyAtlas] and Atlases[enemyAtlas].image then
             love.graphics.draw(
-                Atlases[self.extra.name..self.extra.facing].image,
-                Atlases[self.extra.name..self.extra.facing].splicedImages[0][0],
+                Atlases[enemyAtlas].image,
+                Atlases[enemyAtlas].splicedImages[0][0],
                 v.contents[1] - 40 * Util.UI.getScalingFactor(),
                 v.contents[2] - 80 * Util.UI.getScalingFactor(),
                 0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
             )
+        end
+        if self.extra.name == "turret"
+            and PLAYER
+            and Util.World.hasTurretSightline(
+                self,
+                PLAYER.TMod.x.base,
+                PLAYER.TMod.y.base
+            )
+        then
+            local playerX, playerY = PLAYER:getVisualGridPosition()
+            local playerVector = Util.World.toIsoPos(Vector(playerX, playerY))
+            local oldLineWidth = love.graphics.getLineWidth()
+            love.graphics.setColor(Macros.colors.red)
+            drawPixelLockedLine(
+                v.contents[1],
+                v.contents[2] - 30 * Util.UI.getScalingFactor(),
+                playerVector.contents[1],
+                playerVector.contents[2] - 30 * Util.UI.getScalingFactor()
+            )
+            love.graphics.setLineWidth(oldLineWidth)
+            love.graphics.setColor(Macros.colors.white)
+        end
+        if self.extra.name == "hunter"
+            and self.extra.shotsRemaining > 0
+            and PLAYER
+            and Util.World.hasHunterSightline(
+                self,
+                PLAYER.TMod.x.base,
+                PLAYER.TMod.y.base
+            )
+        then
+            local playerX, playerY = PLAYER:getVisualGridPosition()
+            local playerVector = Util.World.toIsoPos(Vector(playerX, playerY))
+            local oldLineWidth = love.graphics.getLineWidth()
+            love.graphics.setColor(Macros.colors.red)
+            drawPixelLockedLine(
+                v.contents[1],
+                v.contents[2] - 30 * Util.UI.getScalingFactor(),
+                playerVector.contents[1],
+                playerVector.contents[2] - 30 * Util.UI.getScalingFactor()
+            )
+            love.graphics.setLineWidth(oldLineWidth)
+            love.graphics.setColor(Macros.colors.white)
         end
         love.graphics.push()
         love.graphics.translate(0, -14 * Util.UI.getScalingFactor())
@@ -284,7 +411,19 @@ function WorldMoveable:update(dt)
     if self.extra.gridMove then
         local movement = self.extra.gridMove
         movement.elapsed = math.min(movement.elapsed + dt, movement.duration)
-        local position = movement.ease(movement.elapsed / movement.duration)
+        local progress = movement.elapsed / movement.duration
+        local position
+        if movement.eases then
+            local segmentProgress = progress * #movement.eases
+            local segment = math.min(#movement.eases, math.floor(segmentProgress) + 1)
+            local segmentTime = segmentProgress - segment + 1
+            if movement.elapsed >= movement.duration then
+                segmentTime = 1
+            end
+            position = movement.eases[segment](segmentTime)
+        else
+            position = movement.ease(progress)
+        end
         self.extra.visualGridX = position.x
         self.extra.visualGridY = position.y
         if movement.elapsed >= movement.duration then
@@ -295,7 +434,11 @@ function WorldMoveable:update(dt)
     end
 
     local visualX, visualY = self:getVisualGridPosition()
-    self.drawOrder = visualX + visualY + 12 + (self.properties.type == "door" and -.5 or 0)
+    local layerOffset = self.properties.type == "danger" and 9
+        or self.properties.type == "cover" and 11.5
+        or 12
+    self.drawOrder = visualX + visualY + layerOffset
+        + (self.properties.type == "door" and -.5 or 0)
     if self.properties.type == "pickup"
         and not self.extra.collected
         and PLAYER
@@ -333,16 +476,518 @@ function WorldMoveable:unlock()
     self:juice()
     return true
 end
+
+function WorldMoveable:clearCellBossDanger()
+    for _, marker in ipairs(self.extra.dangerMarkers or {}) do
+        marker:remove()
+    end
+    self.extra.dangerMarkers = nil
+    self.extra.dangerTiles = nil
+end
+
+local CELL_BOSS_FACING_VECTORS = {
+    ["1"] = {-1, 0},
+    ["2"] = {0, 1},
+    ["3"] = {1, 0},
+    ["4"] = {0, -1},
+}
+
+local function faceCellBossTowardPlayer(boss)
+    local bossX, bossY = boss.TMod.x.base, boss.TMod.y.base
+    local deltaX = PLAYER.TMod.x.base - bossX
+    local deltaY = PLAYER.TMod.y.base - bossY
+    local target
+    if math.abs(deltaX) >= math.abs(deltaY) and deltaX ~= 0 then
+        target = {bossX + math.sign(deltaX), bossY}
+    elseif deltaY ~= 0 then
+        target = {bossX, bossY + math.sign(deltaY)}
+    end
+    if target then
+        boss.extra.facing = Util.World.getDir({
+            {coords = {bossX, bossY}},
+            {coords = target},
+        })
+    end
+end
+
+function WorldMoveable:prepareCellBossAttack()
+    faceCellBossTowardPlayer(self)
+    local forward = CELL_BOSS_FACING_VECTORS[self.extra.facing]
+    if not forward then
+        return false
+    end
+
+    self:clearCellBossDanger()
+    local perpendicular = {-forward[2], forward[1]}
+    local playerOffsetX = PLAYER.TMod.x.base - self.TMod.x.base
+    local playerOffsetY = PLAYER.TMod.y.base - self.TMod.y.base
+    local playerLateral = playerOffsetX * perpendicular[1]
+        + playerOffsetY * perpendicular[2]
+    local lateralStart = playerLateral < 0 and -1 or 0
+    local tiles = {}
+    local markers = {}
+
+    for depth = 1, 3 do
+        for lateral = lateralStart, lateralStart + 1 do
+            local x = self.TMod.x.base + forward[1] * depth
+                + perpendicular[1] * lateral
+            local y = self.TMod.y.base + forward[2] * depth
+                + perpendicular[2] * lateral
+            if Util.World.isFloor(G.flags.saveData.curRoom, x, y) then
+                tiles[#tiles + 1] = {x, y}
+                markers[#markers + 1] = WorldMoveable({
+                    x = x,
+                    y = y,
+                    type = "danger",
+                    extra = {bossIdentifier = self.extra.identifier},
+                    updateOrder = 2,
+                    drawOrder = x + y + 9,
+                })
+            end
+        end
+    end
+
+    if #tiles == 0 then
+        return false
+    end
+    self.extra.goalVertice = nil
+    self.extra.goalPath = nil
+    self.extra.bossAction = "attack"
+    self.extra.dangerTiles = tiles
+    self.extra.dangerMarkers = markers
+    return true
+end
+
+local function cellBossCoordKey(x, y)
+    return x..","..y
+end
+
+local function enemyTileIsBlocked(enemy, x, y)
+    if not Util.World.isFloor(G.flags.saveData.curRoom, x, y) then
+        return true
+    end
+    for _, moveable in ipairs(Util.World.getAllWorldMoveablesWithCoord({x, y})) do
+        if moveable ~= enemy then
+            local moveableType = moveable.properties.type
+            if moveableType == "wall"
+                or moveableType == "enemy"
+                or moveableType == "door"
+                or (moveableType == "gate" and moveable.extra.locked)
+            then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function cellBossGoalIsReserved(boss, x, y)
+    for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
+        if enemy ~= boss
+            and enemy.extra.goalVertice
+            and enemy.extra.goalVertice[1] == x
+            and enemy.extra.goalVertice[2] == y
+        then
+            return true
+        end
+    end
+    return false
+end
+
+function WorldMoveable:planCellBossMove()
+    local width = G.flags.saveData.curRoom.size.w
+    local height = G.flags.saveData.curRoom.size.h
+    local startX, startY = self.TMod.x.base, self.TMod.y.base
+    local targetX, targetY = PLAYER.TMod.x.base, PLAYER.TMod.y.base
+    local vertices = getAllValidVertices(
+        width,
+        height,
+        {"wall", "enemy", "door"}
+    )
+    vertices[startX] = vertices[startX] or {}
+    vertices[startX][startY] = true
+    for _, door in ipairs(Util.World.getAllWorldMoveablesWithType("door")) do
+        if vertices[door.TMod.x.base] then
+            vertices[door.TMod.x.base][door.TMod.y.base] = nil
+        end
+    end
+
+    local startKey = cellBossCoordKey(startX, startY)
+    local targetKey = cellBossCoordKey(targetX, targetY)
+    local queue = {{startX, startY}}
+    local queueIndex = 1
+    local previous = {[startKey] = startKey}
+    local positions = {[startKey] = {startX, startY}}
+
+    while queueIndex <= #queue and not previous[targetKey] do
+        local current = queue[queueIndex]
+        queueIndex = queueIndex + 1
+        for _, adjacent in ipairs(getAllAdjacentVertices(vertices, current)) do
+            local key = cellBossCoordKey(adjacent[1], adjacent[2])
+            if not previous[key] then
+                previous[key] = cellBossCoordKey(current[1], current[2])
+                positions[key] = {adjacent[1], adjacent[2]}
+                queue[#queue + 1] = positions[key]
+            end
+        end
+    end
+    if not previous[targetKey] then
+        return false
+    end
+
+    local path = {}
+    local key = targetKey
+    while key ~= startKey do
+        table.insert(path, 1, positions[key])
+        key = previous[key]
+    end
+
+    local travel = math.min(
+        love.math.random(Macros.cellBoss.minMove, Macros.cellBoss.maxMove),
+        #path - 1
+    )
+    for index = 1, travel do
+        if cellBossGoalIsReserved(self, path[index][1], path[index][2]) then
+            travel = index - 1
+            break
+        end
+    end
+    if travel < 1 then
+        return false
+    end
+
+    self.extra.goalPath = {}
+    for index = 1, travel do
+        self.extra.goalPath[index] = {path[index][1], path[index][2]}
+    end
+    local destination = self.extra.goalPath[#self.extra.goalPath]
+    self.extra.goalVertice = {destination[1], destination[2]}
+    self.extra.bossAction = "move"
+    return true
+end
+
+local function cellBossTileIsBlocked(boss, x, y)
+    return enemyTileIsBlocked(boss, x, y)
+end
+
+function WorldMoveable:resolveCellBossMove()
+    local path = {}
+    for _, position in ipairs(self.extra.goalPath or {}) do
+        if position[1] == PLAYER.TMod.x.base
+            and position[2] == PLAYER.TMod.y.base
+        then
+            break
+        end
+        if cellBossTileIsBlocked(self, position[1], position[2]) then
+            break
+        end
+        path[#path + 1] = {position[1], position[2]}
+    end
+
+    self.extra.goalPath = nil
+    self.extra.goalVertice = nil
+    self.extra.bossAction = nil
+    if #path == 0 then
+        return
+    end
+
+    local fromX, fromY = self.TMod.x.base, self.TMod.y.base
+    if #path > 1 then
+        fromX, fromY = path[#path - 1][1], path[#path - 1][2]
+    end
+    local destination = path[#path]
+    self.extra.facing = Util.World.getDir({
+        {coords = {fromX, fromY}},
+        {coords = destination},
+    })
+    self:moveAlongGridPath(path, 0.14)
+    self:juice()
+end
+
+function WorldMoveable:resolveCellBossAttack()
+    local tiles = self.extra.dangerTiles or {}
+    self.extra.attackSequence = (self.extra.attackSequence or 0) + 1
+    local sequence = self.extra.attackSequence
+    self:clearCellBossDanger()
+    self.extra.goalVertice = nil
+    self.extra.goalPath = nil
+    self.extra.bossAction = nil
+
+    for index, position in ipairs(tiles) do
+        local x, y = position[1], position[2]
+        Util.Event.addEvent(Event({
+            duration = 0.4,
+            drawOrder = x + y + 10,
+            drawFunc = function(time)
+                local r, g, b, a = love.graphics.getColor()
+                love.graphics.setColor(Macros.colors.white)
+                local frame = math.min(4, math.floor(time * 4) + 1)
+                drawWorldTileAtlas("tileAttack_"..frame, x, y)
+                love.graphics.setColor(r, g, b, a)
+            end,
+        }), "cellBossAttack"..self.id.."_"..sequence.."_"..index)
+    end
+    Util.Audio.playSfx("slam")
+    self:juice(4)
+
+    for _, position in ipairs(tiles) do
+        if position[1] == PLAYER.TMod.x.base
+            and position[2] == PLAYER.TMod.y.base
+        then
+            return Util.World.modHP(-Macros.cellBoss.damage)
+        end
+    end
+    return false
+end
+
+function WorldMoveable:resolveCellBossTurn()
+    if self.extra.bossAction == "attack" then
+        return self:resolveCellBossAttack()
+    elseif self.extra.bossAction == "move" then
+        self:resolveCellBossMove()
+    end
+    return false
+end
+
+local function getFacingTowardPoint(fromX, fromY, toX, toY)
+    local deltaX = toX - fromX
+    local deltaY = toY - fromY
+    if math.abs(deltaX) >= math.abs(deltaY) and deltaX ~= 0 then
+        return deltaX < 0 and "1" or "3"
+    elseif deltaY ~= 0 then
+        return deltaY < 0 and "4" or "2"
+    end
+end
+
+local function addEnemyShotEffect(shooter, target)
+    local startX, startY = shooter:getVisualGridPosition()
+    local targetX, targetY = target:getVisualGridPosition()
+    Util.Event.addEvent(Event({
+        duration = 0.16,
+        drawOrder = 100,
+        drawFunc = function(time)
+            local r, g, b, a = love.graphics.getColor()
+            local oldLineWidth = love.graphics.getLineWidth()
+            local start = Util.World.toIsoPos(Vector(startX, startY))
+            local finish = Util.World.toIsoPos(Vector(targetX, targetY))
+            love.graphics.setColor(Util.Color.SetOpacity(
+                Macros.colors.red,
+                1 - time
+            ))
+            drawPixelLockedLine(
+                start.contents[1],
+                start.contents[2] - 30 * Util.UI.getScalingFactor(),
+                finish.contents[1],
+                finish.contents[2] - 30 * Util.UI.getScalingFactor()
+            )
+            love.graphics.setLineWidth(oldLineWidth)
+            love.graphics.setColor(r, g, b, a)
+        end,
+    }), "enemyShot"..shooter.id)
+end
+
+local function hunterPositionIsClear(hunter, x, y)
+    if enemyTileIsBlocked(hunter, x, y)
+        or (x == PLAYER.TMod.x.base and y == PLAYER.TMod.y.base)
+    then
+        return false
+    end
+    for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
+        if enemy ~= hunter
+            and enemy.extra.goalVertice
+            and enemy.extra.goalVertice[1] == x
+            and enemy.extra.goalVertice[2] == y
+        then
+            return false
+        end
+    end
+    return true
+end
+
+local function repositionHunter(hunter)
+    local startX, startY = hunter.TMod.x.base, hunter.TMod.y.base
+    local playerX, playerY = PLAYER.TMod.x.base, PLAYER.TMod.y.base
+    local vertices = getAllValidVertices(
+        G.flags.saveData.curRoom.size.w,
+        G.flags.saveData.curRoom.size.h,
+        {"wall", "enemy", "door"}
+    )
+    vertices[startX] = vertices[startX] or {}
+    vertices[startX][startY] = true
+    local candidates = {}
+    for _, position in ipairs(getAllAdjacentVertices(vertices, {startX, startY})) do
+        if hunterPositionIsClear(hunter, position[1], position[2]) then
+            candidates[#candidates + 1] = position
+        end
+    end
+    if #candidates == 0 then
+        candidates[1] = {startX, startY}
+    end
+
+    local turretPositions = {}
+    for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
+        if enemy.extra.name == "turret" then
+            turretPositions[#turretPositions + 1] = {
+                enemy.TMod.x.base,
+                enemy.TMod.y.base,
+            }
+        end
+    end
+
+    local best
+    for _, position in ipairs(candidates) do
+        local x, y = position[1], position[2]
+        local distance = math.abs(playerX - x) + math.abs(playerY - y)
+        local hasNextShot = Util.World.hasHunterSightlineFrom(
+            G.flags.saveData.curRoom,
+            x,
+            y,
+            playerX,
+            playerY,
+            turretPositions
+        )
+        local score = -math.abs(distance - Macros.hunter.idealDistance) * 10
+            - math.max(0, Macros.hunter.idealDistance - distance) * 4
+            + (hasNextShot and 6 or 0)
+            + love.math.random()
+        if not best or score > best.score then
+            best = {
+                x = x,
+                y = y,
+                score = score,
+            }
+        end
+    end
+
+    hunter.extra.facing = getFacingTowardPoint(
+        best.x,
+        best.y,
+        playerX,
+        playerY
+    ) or hunter.extra.facing
+    if best.x ~= startX or best.y ~= startY then
+        hunter:moveToGrid(best.x, best.y)
+    end
+    hunter:juice()
+end
+
+local function resolveHunterActions(allEnemies)
+    for _, hunter in ipairs(allEnemies) do
+        if hunter.extra.name == "hunter" and hunter.extra.hp > 0 then
+            local canShoot = hunter.extra.shotsRemaining > 0
+                and Util.World.hasHunterSightline(
+                    hunter,
+                    PLAYER.TMod.x.base,
+                    PLAYER.TMod.y.base
+                )
+            if canShoot then
+                hunter.extra.facing = getFacingTowardPoint(
+                    hunter.TMod.x.base,
+                    hunter.TMod.y.base,
+                    PLAYER.TMod.x.base,
+                    PLAYER.TMod.y.base
+                ) or hunter.extra.facing
+                hunter.extra.shotsRemaining = hunter.extra.shotsRemaining - 1
+                addEnemyShotEffect(hunter, PLAYER)
+                hunter:juice()
+                if Util.World.modHP(-Macros.hunter.damage) then
+                    return true
+                end
+            else
+                repositionHunter(hunter)
+                hunter.extra.shotsRemaining = Macros.hunter.magazine
+            end
+        end
+    end
+    return false
+end
+
+local function turnTurretTowardPlayer(turret)
+    turret.extra.facing = getFacingTowardPoint(
+        turret.TMod.x.base,
+        turret.TMod.y.base,
+        PLAYER.TMod.x.base,
+        PLAYER.TMod.y.base
+    ) or turret.extra.facing
+    turret:juice()
+end
+
+local function getHunterBetweenTurretAndPlayer(turret)
+    local cells = Util.World.getGridLineCells(
+        turret.TMod.x.base,
+        turret.TMod.y.base,
+        PLAYER.TMod.x.base,
+        PLAYER.TMod.y.base
+    )
+    for index = 1, #cells - 1 do
+        local cell = cells[index]
+        for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
+            if enemy.extra.name == "hunter"
+                and enemy.extra.hp > 0
+                and enemy.TMod.x.base == cell[1]
+                and enemy.TMod.y.base == cell[2]
+            then
+                return enemy
+            end
+        end
+    end
+end
+
+local function resolveTurretActions(allEnemies)
+    for _, enemy in ipairs(allEnemies) do
+        if enemy.extra.name == "turret" and enemy.extra.hp > 0 then
+            if Util.World.hasTurretSightline(
+                enemy,
+                PLAYER.TMod.x.base,
+                PLAYER.TMod.y.base
+            )
+            then
+                local friendlyFireTarget = getHunterBetweenTurretAndPlayer(
+                    enemy
+                )
+                if friendlyFireTarget then
+                    addEnemyShotEffect(enemy, friendlyFireTarget)
+                    friendlyFireTarget:modHP(-2)
+                else
+                    addEnemyShotEffect(enemy, PLAYER)
+                    if Util.World.modHP(-2) then
+                        return true
+                    end
+                end
+            else
+                turnTurretTowardPlayer(enemy)
+            end
+        end
+    end
+    return false
+end
+
 function move_all_enemies()
     local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
+    if resolveHunterActions(allEnemies) then
+        return
+    end
+    if resolveTurretActions(allEnemies) then
+        return
+    end
     for k, v in ipairs(allEnemies) do
-        if v.extra.goalVertice then
-            if v.extra.goalVertice[1] ~= PLAYER.TMod.x.base or v.extra.goalVertice[2] ~= PLAYER.TMod.y.base then
-                v.extra.facing = Util.World.getDir({{coords = {v.TMod.x.base, v.TMod.y.base}}, {coords = v.extra.goalVertice}})
-                v:moveToGrid(v.extra.goalVertice[1], v.extra.goalVertice[2])
-            else
+        if v.extra.name == "cellboss" then
+            if v:resolveCellBossTurn() then
+                return
+            end
+        elseif v.extra.goalVertice then
+            local goalX, goalY = v.extra.goalVertice[1], v.extra.goalVertice[2]
+            if goalX == PLAYER.TMod.x.base and goalY == PLAYER.TMod.y.base then
                 local ret = Util.World.modHP(-2)
                 if ret then return end
+            elseif not enemyTileIsBlocked(v, goalX, goalY) then
+                v.extra.facing = Util.World.getDir({
+                    {coords = {v.TMod.x.base, v.TMod.y.base}},
+                    {coords = {goalX, goalY}},
+                })
+                v:moveToGrid(goalX, goalY)
+            else
+                v.extra.goalVertice = nil
             end
             v.extra.goalVertice = nil
             v:juice()
@@ -418,6 +1063,20 @@ function WorldMoveable:decideMove()
     if self.properties.type == "enemy" then
         if self.extra.name == "guard" then return nil end
         if self.extra.name == "turret" then return nil end
+        if self.extra.name == "hunter" then return nil end
+        if self.extra.name == "cellboss" then
+            if self.extra.bossAction then
+                return
+            end
+            if Util.Math.chance(1 / 2) and self:planCellBossMove() then
+                return
+            end
+            if self:prepareCellBossAttack() then
+                return
+            end
+            self:planCellBossMove()
+            return
+        end
         local vertices = getAllValidVertices(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h, {"wall", "enemy", "door"})
         local adjacents = getAllAdjacentVertices(vertices, {self.TMod.x.base,self.TMod.y.base})
         table.sort(adjacents, function (a, b)
@@ -425,8 +1084,8 @@ function WorldMoveable:decideMove()
             local va, vb = Vector(a[1], a[2]):sub(v, true), Vector(b[1], b[2]):sub(v, true)
             return va:abs() < vb:abs()
         end)
-        while #adjacents > 1 do
-            adjacent = adjacents[1]
+        while #adjacents > 0 do
+            local adjacent = adjacents[1]
             table.remove(adjacents, 1)
             local allEnemies = Util.World.getAllWorldMoveablesWithType("enemy")
             local hassamevertice = false
@@ -436,7 +1095,9 @@ function WorldMoveable:decideMove()
                     break
                 end
             end
-            if not hassamevertice then
+            if not hassamevertice
+                and not enemyTileIsBlocked(self, adjacent[1], adjacent[2])
+            then
                 self.extra.goalVertice = {adjacent[1], adjacent[2]}
                 return
             end
@@ -471,6 +1132,18 @@ function WorldMoveable:initRoomStuff()
             drawOrder = 10
         })
     end
+    for _, v in ipairs(G.flags.saveData.curRoom.covers or {}) do
+        WorldMoveable({
+            x = v.x,
+            y = v.y,
+            type = "cover",
+            extra = {
+                name = v.name,
+            },
+            updateOrder = 2,
+            drawOrder = 11
+        })
+    end
     for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
         local j = WorldMoveable({
             x = v.pos[1],
@@ -482,7 +1155,10 @@ function WorldMoveable:initRoomStuff()
                 name = v.name,
                 hp = Macros.maxHps[v.name],
                 facing = v.facing,
-                identifier = v.id
+                identifier = v.id,
+                shotsRemaining = v.name == "hunter"
+                    and Macros.hunter.magazine
+                    or nil,
             },
             updateOrder = 2,
             drawOrder = 10

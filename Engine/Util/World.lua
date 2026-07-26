@@ -53,6 +53,185 @@ function Util.World.isFloor(room, x, y)
     return room.floor[x] and room.floor[x][y] == true
 end
 
+local function isGrassIndex(index)
+    return type(index) == "number" and index >= 6 and index <= 11
+end
+
+local TURRET_FACING_VECTORS = {
+    ["1"] = {-1, 0},
+    ["2"] = {0, 1},
+    ["3"] = {1, 0},
+    ["4"] = {0, -1},
+}
+
+local function roomBlocksSight(room, x, y)
+    for _, cover in ipairs(room.covers or {}) do
+        if cover.x == x and cover.y == y then
+            return true
+        end
+    end
+    for _, wall in ipairs(room.walls or {}) do
+        if wall.x == x and wall.y == y then
+            return true
+        end
+    end
+    for _, gate in ipairs(room.gates or {}) do
+        if gate.locked ~= false and gate.x == x and gate.y == y then
+            return true
+        end
+    end
+    return false
+end
+
+function Util.World.getGridLineCells(fromX, fromY, toX, toY)
+    local cells = {}
+    local x, y = fromX, fromY
+    local distanceX = math.abs(toX - fromX)
+    local distanceY = math.abs(toY - fromY)
+    local stepX = fromX < toX and 1 or -1
+    local stepY = fromY < toY and 1 or -1
+    local errorValue = distanceX - distanceY
+    while x ~= toX or y ~= toY do
+        local doubledError = 2 * errorValue
+        if doubledError > -distanceY then
+            errorValue = errorValue - distanceY
+            x = x + stepX
+        end
+        if doubledError < distanceX then
+            errorValue = errorValue + distanceX
+            y = y + stepY
+        end
+        cells[#cells + 1] = {x, y}
+    end
+    return cells
+end
+
+function Util.World.hasTurretSightlineFrom(
+    room,
+    turretX,
+    turretY,
+    facing,
+    targetX,
+    targetY
+)
+    if not room then
+        return false
+    end
+
+    local forward = TURRET_FACING_VECTORS[tostring(facing)]
+    if not forward then
+        return false
+    end
+    if turretX == targetX and turretY == targetY then
+        return false
+    end
+    local deltaX = targetX - turretX
+    local deltaY = targetY - turretY
+    if math.abs(deltaX) + math.abs(deltaY) == 1 then
+        return false
+    end
+    local forwardDistance = deltaX * forward[1] + deltaY * forward[2]
+    local lateralDistance = math.abs(
+        deltaX * -forward[2] + deltaY * forward[1]
+    )
+    if forwardDistance <= 0 or lateralDistance > forwardDistance then
+        return false
+    end
+
+    for _, cell in ipairs(Util.World.getGridLineCells(
+        turretX,
+        turretY,
+        targetX,
+        targetY
+    )) do
+        if roomBlocksSight(room, cell[1], cell[2]) then
+            return false
+        end
+    end
+    return true
+end
+
+function Util.World.hasTurretSightline(turret, targetX, targetY)
+    if not turret or not turret.TMod or not G.flags.saveData.curRoom then
+        return false
+    end
+    return Util.World.hasTurretSightlineFrom(
+        G.flags.saveData.curRoom,
+        turret.TMod.x.base,
+        turret.TMod.y.base,
+        turret.extra.facing,
+        targetX,
+        targetY
+    )
+end
+
+function Util.World.hasHunterSightlineFrom(
+    room,
+    hunterX,
+    hunterY,
+    targetX,
+    targetY,
+    turrets
+)
+    if math.abs(targetX - hunterX) + math.abs(targetY - hunterY)
+        > Macros.hunter.range
+    then
+        return false
+    end
+
+    for _, cell in ipairs(Util.World.getGridLineCells(
+        hunterX,
+        hunterY,
+        targetX,
+        targetY
+    )) do
+        if roomBlocksSight(room, cell[1], cell[2]) then
+            return false
+        end
+        for _, turret in ipairs(turrets or {}) do
+            if turret[1] == cell[1] and turret[2] == cell[2] then
+                return false
+            end
+        end
+    end
+    return true
+end
+
+function Util.World.hasHunterSightline(hunter, targetX, targetY)
+    if not hunter or not hunter.TMod or not G.flags.saveData.curRoom then
+        return false
+    end
+    local turrets = {}
+    for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
+        if enemy ~= hunter and enemy.extra.name == "turret" then
+            turrets[#turrets + 1] = {
+                enemy.TMod.x.base,
+                enemy.TMod.y.base,
+            }
+        end
+    end
+    return Util.World.hasHunterSightlineFrom(
+        G.flags.saveData.curRoom,
+        hunter.TMod.x.base,
+        hunter.TMod.y.base,
+        targetX,
+        targetY,
+        turrets
+    )
+end
+
+function Util.World.isPositionInTurretSightline(x, y)
+    for _, enemy in ipairs(Util.World.getAllWorldMoveablesWithType("enemy")) do
+        if enemy.extra.name == "turret"
+            and enemy.extra.hp > 0
+            and Util.World.hasTurretSightline(enemy, x, y)
+        then
+            return true
+        end
+    end
+    return false
+end
+
 local function generateAuxDoor(side, w, h, index)
     local aux = {}
     local r = love.math.random(1, h - 2)
@@ -385,8 +564,11 @@ local function carveCompactShape(room, reserved)
     end
 end
 
-local function generateFloorShape(room, reserved)
-    if room.layout == "maze" then
+local function generateFloorShape(room, reserved, index)
+    if isGrassIndex(index) then
+        room.layout = "open"
+        fillFloor(room)
+    elseif room.layout == "maze" then
         carveMazeShape(room)
     elseif Util.Math.chance(3 / 5) then
         room.layout = "branched"
@@ -408,8 +590,8 @@ local function generateFloorShape(room, reserved)
     end
 end
 
-local function addReachableBarrier(room, reserved, identifier)
-    if room.layout == "maze" then
+local function addReachableBarrier(room, reserved, identifier, index)
+    if room.layout == "maze" or isGrassIndex(index) then
         return identifier
     end
     for _ = 1, 24 do
@@ -588,6 +770,10 @@ local function addPrisonGatePuzzle(room, reserved, index)
 end
 
 local function addRoomEnemies(room, reserved, identifier, index)
+    if isGrassIndex(index) then
+        return identifier
+    end
+
     local blocked = {}
     for _, wall in ipairs(room.walls) do
         blocked[coordKey(wall.x, wall.y)] = true
@@ -627,6 +813,563 @@ local function addRoomEnemies(room, reserved, identifier, index)
         identifier = identifier + 1
     end
     return identifier
+end
+
+local function addGrassTurrets(room, reserved, identifier, index)
+    if not isGrassIndex(index) then
+        return identifier
+    end
+
+    local blocked = {}
+    for _, wall in ipairs(room.walls) do
+        blocked[coordKey(wall.x, wall.y)] = true
+    end
+    for _, gate in ipairs(room.gates or {}) do
+        if gate.locked ~= false then
+            blocked[coordKey(gate.x, gate.y)] = true
+        end
+    end
+
+    local connected, critical = getCriticalPaths(room, blocked)
+    if not connected then
+        return identifier
+    end
+
+    local candidates = {}
+    for x = 1, room.size.w - 2 do
+        for y = 1, room.size.h - 2 do
+            local key = coordKey(x, y)
+            if Util.World.isFloor(room, x, y)
+                and not blocked[key]
+                and not reserved[key]
+                and not critical[key]
+            then
+                for facing, _ in pairs(TURRET_FACING_VECTORS) do
+                    local visibleTiles = 0
+                    local trafficHits = 0
+                    for targetX = 0, room.size.w - 1 do
+                        for targetY = 0, room.size.h - 1 do
+                            if Util.World.isFloor(room, targetX, targetY)
+                                and Util.World.hasTurretSightlineFrom(
+                                    room,
+                                    x,
+                                    y,
+                                    facing,
+                                    targetX,
+                                    targetY
+                                )
+                            then
+                                visibleTiles = visibleTiles + 1
+                                if critical[coordKey(targetX, targetY)] then
+                                    trafficHits = trafficHits + 1
+                                end
+                            end
+                        end
+                    end
+                    if visibleTiles >= 5 and trafficHits > 0 then
+                        local edgeDistance = math.min(
+                            x,
+                            y,
+                            room.size.w - 1 - x,
+                            room.size.h - 1 - y
+                        )
+                        candidates[#candidates + 1] = {
+                            x = x,
+                            y = y,
+                            facing = facing,
+                            score = trafficHits * 10 + visibleTiles
+                                - edgeDistance + love.math.random(),
+                        }
+                    end
+                end
+            end
+        end
+    end
+    table.sort(candidates, function(a, b)
+        return a.score > b.score
+    end)
+
+    local desired = room.size.w * room.size.h >= 60 and 3 or 2
+    local chosen = {}
+    for _, candidate in ipairs(candidates) do
+        if #chosen >= desired then
+            break
+        end
+        local farEnough = true
+        for _, turret in ipairs(chosen) do
+            if math.abs(turret.x - candidate.x)
+                + math.abs(turret.y - candidate.y) < 3
+            then
+                farEnough = false
+                break
+            end
+        end
+
+        local key = coordKey(candidate.x, candidate.y)
+        if farEnough and not blocked[key] then
+            blocked[key] = true
+            if getCriticalPaths(room, blocked) then
+                local turret = {
+                    name = "turret",
+                    pos = {candidate.x, candidate.y},
+                    facing = candidate.facing,
+                    id = identifier,
+                }
+                room.enemies[#room.enemies + 1] = turret
+                chosen[#chosen + 1] = {
+                    x = candidate.x,
+                    y = candidate.y,
+                }
+                reserved[key] = true
+                identifier = identifier + 1
+            else
+                blocked[key] = nil
+            end
+        end
+    end
+    return identifier
+end
+
+local function addGrassHunters(room, reserved, identifier, index)
+    if not isGrassIndex(index) then
+        return identifier
+    end
+
+    local blocked = {}
+    for _, wall in ipairs(room.walls) do
+        blocked[coordKey(wall.x, wall.y)] = true
+    end
+    for _, enemy in ipairs(room.enemies) do
+        blocked[coordKey(enemy.pos[1], enemy.pos[2])] = true
+    end
+    local connected, critical = getCriticalPaths(room, blocked)
+    if not connected then
+        return identifier
+    end
+
+    local candidates = {}
+    for x = 1, room.size.w - 2 do
+        for y = 1, room.size.h - 2 do
+            local key = coordKey(x, y)
+            if Util.World.isFloor(room, x, y)
+                and not reserved[key]
+                and not blocked[key]
+                and not critical[key]
+            then
+                local turretLaneScore = 0
+                for _, enemy in ipairs(room.enemies) do
+                    if enemy.name == "turret"
+                        and Util.World.hasTurretSightlineFrom(
+                            room,
+                            enemy.pos[1],
+                            enemy.pos[2],
+                            enemy.facing,
+                            x,
+                            y
+                        )
+                    then
+                        turretLaneScore = turretLaneScore + 4
+                    end
+                end
+                candidates[#candidates + 1] = {
+                    x = x,
+                    y = y,
+                    score = turretLaneScore + love.math.random(),
+                }
+            end
+        end
+    end
+    table.sort(candidates, function(a, b)
+        return a.score > b.score
+    end)
+
+    local desired = room.size.w * room.size.h >= 60 and 2 or 1
+    local chosen = {}
+    for _, candidate in ipairs(candidates) do
+        if #chosen >= desired then
+            break
+        end
+        local farEnough = true
+        for _, hunter in ipairs(chosen) do
+            if math.abs(hunter.x - candidate.x)
+                + math.abs(hunter.y - candidate.y) < 3
+            then
+                farEnough = false
+                break
+            end
+        end
+        local key = coordKey(candidate.x, candidate.y)
+        if farEnough and not blocked[key] then
+            blocked[key] = true
+            if getCriticalPaths(room, blocked) then
+                room.enemies[#room.enemies + 1] = {
+                    name = "hunter",
+                    pos = {candidate.x, candidate.y},
+                    facing = tostring(love.math.random(1, 4)),
+                    id = identifier,
+                }
+                chosen[#chosen + 1] = candidate
+                reserved[key] = true
+                identifier = identifier + 1
+            else
+                blocked[key] = nil
+            end
+        end
+    end
+    return identifier
+end
+
+local function addPrisonCellBoss(room, reserved, identifier, index)
+    if type(index) ~= "number"
+        or index < 2
+        or index > 5
+        or not Util.Math.chance(Macros.cellBoss.spawnChance)
+    then
+        return identifier
+    end
+
+    local blocked = {}
+    for _, wall in ipairs(room.walls) do
+        blocked[coordKey(wall.x, wall.y)] = true
+    end
+    for _, enemy in ipairs(room.enemies) do
+        blocked[coordKey(enemy.pos[1], enemy.pos[2])] = true
+    end
+    for _, gate in ipairs(room.gates or {}) do
+        if gate.locked ~= false then
+            blocked[coordKey(gate.x, gate.y)] = true
+        end
+    end
+
+    local connected, critical = getCriticalPaths(room, blocked)
+    if not connected then
+        return identifier
+    end
+
+    local candidates = {}
+    for x = 1, room.size.w - 2 do
+        for y = 1, room.size.h - 2 do
+            local key = coordKey(x, y)
+            if Util.World.isFloor(room, x, y)
+                and not reserved[key]
+                and not blocked[key]
+                and not critical[key]
+            then
+                candidates[#candidates + 1] = { x, y }
+            end
+        end
+    end
+    if #candidates == 0 then
+        return identifier
+    end
+
+    room.enemies[#room.enemies + 1] = {
+        name = "cellboss",
+        pos = table.remove(candidates, love.math.random(1, #candidates)),
+        facing = tostring(love.math.random(1, 4)),
+        id = identifier,
+    }
+    return identifier + 1
+end
+
+local function coverTileIsClear(room, reserved, occupied, x, y)
+    if not Util.World.isFloor(room, x, y)
+        or occupied[coordKey(x, y)]
+    then
+        return false
+    end
+    for _, door in ipairs(room.doors or {}) do
+        if door.a and door.a.x == x and door.a.y == y then
+            return false
+        end
+    end
+    for _, enemy in ipairs(room.enemies) do
+        if enemy.name == "turret"
+            and math.abs(enemy.pos[1] - x)
+                + math.abs(enemy.pos[2] - y) <= 1
+        then
+            return false
+        end
+    end
+    return true
+end
+
+local COVER_FACING_AGAINST_TURRET = {
+    ["1"] = 3,
+    ["2"] = 4,
+    ["3"] = 1,
+    ["4"] = 2,
+}
+
+local function scoreCoverChain(room, turret, tiles, critical)
+    local visibleBefore = {}
+    for x = 0, room.size.w - 1 do
+        for y = 0, room.size.h - 1 do
+            if Util.World.isFloor(room, x, y)
+                and Util.World.hasTurretSightlineFrom(
+                    room,
+                    turret.pos[1],
+                    turret.pos[2],
+                    turret.facing,
+                    x,
+                    y
+                )
+            then
+                visibleBefore[#visibleBefore + 1] = {x, y}
+            end
+        end
+    end
+
+    local oldCoverCount = #room.covers
+    for _, tile in ipairs(tiles) do
+        room.covers[#room.covers + 1] = {
+            x = tile[1],
+            y = tile[2],
+            name = "cover2",
+        }
+    end
+
+    local protectedTiles = 0
+    local protectedTraffic = 0
+    for _, position in ipairs(visibleBefore) do
+        if not Util.World.hasTurretSightlineFrom(
+            room,
+            turret.pos[1],
+            turret.pos[2],
+            turret.facing,
+            position[1],
+            position[2]
+        ) then
+            protectedTiles = protectedTiles + 1
+            if critical[coordKey(position[1], position[2])] then
+                protectedTraffic = protectedTraffic + 1
+            end
+        end
+    end
+    for index = #room.covers, oldCoverCount + 1, -1 do
+        table.remove(room.covers, index)
+    end
+
+    if protectedTiles < 2 then
+        return 0
+    end
+    return protectedTraffic * 12 + protectedTiles * 2 + #tiles
+end
+
+local function addGrassCovers(room, reserved, index)
+    room.covers = {}
+    if not isGrassIndex(index) then
+        return
+    end
+
+    local occupied = {}
+    for _, wall in ipairs(room.walls) do
+        occupied[coordKey(wall.x, wall.y)] = true
+    end
+    for _, enemy in ipairs(room.enemies) do
+        occupied[coordKey(enemy.pos[1], enemy.pos[2])] = true
+    end
+    local connected, critical = getCriticalPaths(room, occupied)
+    if not connected then
+        return
+    end
+
+    local candidates = {}
+    for _, turret in ipairs(room.enemies) do
+        if turret.name == "turret" then
+            local forward = TURRET_FACING_VECTORS[turret.facing]
+            local perpendicular = {-forward[2], forward[1]}
+            local maximumDepth = math.max(room.size.w, room.size.h) - 2
+            for depth = 2, maximumDepth do
+                for length = 3, math.min(5, math.max(room.size.w, room.size.h) - 2) do
+                    local lateralStart = -math.floor(length / 2)
+                    local tiles = {}
+                    local valid = true
+                    for offset = 0, length - 1 do
+                        local lateral = lateralStart + offset
+                        local x = turret.pos[1] + forward[1] * depth
+                            + perpendicular[1] * lateral
+                        local y = turret.pos[2] + forward[2] * depth
+                            + perpendicular[2] * lateral
+                        if not coverTileIsClear(
+                            room,
+                            reserved,
+                            occupied,
+                            x,
+                            y
+                        ) then
+                            valid = false
+                            break
+                        end
+                        tiles[#tiles + 1] = {x, y}
+                    end
+                    if valid then
+                        local score = scoreCoverChain(
+                            room,
+                            turret,
+                            tiles,
+                            critical
+                        )
+                        if score > 0 then
+                            candidates[#candidates + 1] = {
+                                turret = turret,
+                                tiles = tiles,
+                                orientation = COVER_FACING_AGAINST_TURRET[
+                                    turret.facing
+                                ],
+                                score = score - depth * 0.25
+                                    + love.math.random(),
+                            }
+                        end
+                    end
+                end
+            end
+        end
+    end
+    table.sort(candidates, function(a, b)
+        return a.score > b.score
+    end)
+
+    local coveredTurrets = {}
+    local selectedCover = {}
+    local selectedChains = 0
+    local desiredChains = room.size.w * room.size.h >= 60 and 2 or 1
+    for _, candidate in ipairs(candidates) do
+        if selectedChains >= desiredChains then
+            break
+        end
+        if not coveredTurrets[candidate.turret.id] then
+            local valid = true
+            for _, tile in ipairs(candidate.tiles) do
+                if not coverTileIsClear(
+                    room,
+                    reserved,
+                    occupied,
+                    tile[1],
+                    tile[2]
+                ) then
+                    valid = false
+                    break
+                end
+                for _, offset in ipairs({
+                    {-1, 0},
+                    {1, 0},
+                    {0, -1},
+                    {0, 1},
+                }) do
+                    if selectedCover[
+                        coordKey(tile[1] + offset[1], tile[2] + offset[2])
+                    ] then
+                        valid = false
+                        break
+                    end
+                end
+                if not valid then
+                    break
+                end
+            end
+            if valid
+                and scoreCoverChain(
+                    room,
+                    candidate.turret,
+                    candidate.tiles,
+                    critical
+                ) > 0
+            then
+                for _, tile in ipairs(candidate.tiles) do
+                    room.covers[#room.covers + 1] = {
+                        x = tile[1],
+                        y = tile[2],
+                        name = "cover"..candidate.orientation,
+                    }
+                    occupied[coordKey(tile[1], tile[2])] = true
+                    selectedCover[coordKey(tile[1], tile[2])] = true
+                end
+                coveredTurrets[candidate.turret.id] = true
+                selectedChains = selectedChains + 1
+            end
+        end
+    end
+
+    if selectedChains == 0 then
+        local fallbackCandidates = {}
+        for _, axis in ipairs({"x", "y"}) do
+            for x = 0, room.size.w - 1 do
+                for y = 0, room.size.h - 1 do
+                    local tiles = {}
+                    local valid = true
+                    for offset = 0, 2 do
+                        local tileX = x + (axis == "x" and offset or 0)
+                        local tileY = y + (axis == "y" and offset or 0)
+                        if not coverTileIsClear(
+                            room,
+                            reserved,
+                            occupied,
+                            tileX,
+                            tileY
+                        ) then
+                            valid = false
+                            break
+                        end
+                        tiles[#tiles + 1] = {tileX, tileY}
+                    end
+                    if valid then
+                        local centerX = tiles[2][1]
+                        local centerY = tiles[2][2]
+                        local nearestTurret
+                        local nearestDistance = math.huge
+                        for _, enemy in ipairs(room.enemies) do
+                            if enemy.name == "turret" then
+                                local distance = math.abs(enemy.pos[1] - centerX)
+                                    + math.abs(enemy.pos[2] - centerY)
+                                if distance < nearestDistance then
+                                    nearestDistance = distance
+                                    nearestTurret = enemy
+                                end
+                            end
+                        end
+                        local traffic = 0
+                        for _, tile in ipairs(tiles) do
+                            if critical[coordKey(tile[1], tile[2])] then
+                                traffic = traffic + 1
+                            end
+                        end
+                        local orientation
+                        if axis == "x" then
+                            orientation = nearestTurret
+                                and nearestTurret.pos[2] < centerY and 4
+                                or 2
+                        else
+                            orientation = nearestTurret
+                                and nearestTurret.pos[1] < centerX and 1
+                                or 3
+                        end
+                        fallbackCandidates[#fallbackCandidates + 1] = {
+                            tiles = tiles,
+                            orientation = orientation,
+                            score = traffic * 10
+                                - math.abs(centerX - room.size.w / 2)
+                                - math.abs(centerY - room.size.h / 2)
+                                + love.math.random(),
+                        }
+                    end
+                end
+            end
+        end
+        table.sort(fallbackCandidates, function(a, b)
+            return a.score > b.score
+        end)
+        local fallback = fallbackCandidates[1]
+        if fallback then
+            for _, tile in ipairs(fallback.tiles) do
+                room.covers[#room.covers + 1] = {
+                    x = tile[1],
+                    y = tile[2],
+                    name = "cover"..fallback.orientation,
+                }
+            end
+        end
+    end
 end
 
 local function roomBlockers(room)
@@ -687,6 +1430,7 @@ function Util.World.regenerateRoom(room, index)
         walls = {},
         gates = {},
         keys = {},
+        covers = {},
     }
 
     for _, door in ipairs(room.doors) do
@@ -699,10 +1443,16 @@ function Util.World.regenerateRoom(room, index)
     end
 
     local reserved = reserveDoorApproaches(replacement)
-    generateFloorShape(replacement, reserved)
-    local identifier = addReachableBarrier(replacement, reserved, 1)
+    generateFloorShape(replacement, reserved, index)
+    local identifier = addReachableBarrier(replacement, reserved, 1, index)
     addPrisonGatePuzzle(replacement, reserved, index)
-    addRoomEnemies(replacement, reserved, identifier, index)
+    identifier = addRoomEnemies(replacement, reserved, identifier, index)
+    identifier = addGrassTurrets(replacement, reserved, identifier, index)
+    identifier = addGrassHunters(replacement, reserved, identifier, index)
+    addPrisonCellBoss(replacement, reserved, identifier, index)
+    addGrassCovers(replacement, reserved, index)
+    assert(getCriticalPaths(replacement, roomBlockers(replacement)),
+        "World regeneration produced a room with an unreachable exit")
     return replacement
 end
 
@@ -771,6 +1521,7 @@ function Util.World.generateRoom(type, last_side, indices, getprev, index)
     room.walls = {}
     room.gates = {}
     room.keys = {}
+    room.covers = {}
     local identifier = 1
     if type == "init_room" then
         room.size = { w = 5, h = 5 }
@@ -820,10 +1571,14 @@ function Util.World.generateRoom(type, last_side, indices, getprev, index)
         end
 
         local reserved = reserveDoorApproaches(room)
-        generateFloorShape(room, reserved)
-        identifier = addReachableBarrier(room, reserved, identifier)
+        generateFloorShape(room, reserved, index)
+        identifier = addReachableBarrier(room, reserved, identifier, index)
         addPrisonGatePuzzle(room, reserved, index)
-        addRoomEnemies(room, reserved, identifier, index)
+        identifier = addRoomEnemies(room, reserved, identifier, index)
+        identifier = addGrassTurrets(room, reserved, identifier, index)
+        identifier = addGrassHunters(room, reserved, identifier, index)
+        addPrisonCellBoss(room, reserved, identifier, index)
+        addGrassCovers(room, reserved, index)
         assert(getCriticalPaths(room, roomBlockers(room)),
             "World generation produced a room with an unreachable exit")
     end
@@ -881,9 +1636,6 @@ function Util.World.getEnemy(index)
     end
     if index <= 5 then
         return "cellmate"
-    end
-    if index == 6 then
-        return Util.Math.chance(1/2) and "cellmate" or "turret"
     end
     if index >= 6 and index <= 11 then
         return "turret"

@@ -41,7 +41,9 @@ Macros = {
 		-- prison
 		guard = 1,
 		cellmate = 5,
+		cellboss = 40,
 		turret = 11,
+		hunter = 8,
 
 		-- field
 
@@ -51,19 +53,23 @@ Macros = {
 	names = {
 		guard = "Guard",
 		cellmate = "Cellmate",
+		cellboss = "CellBoss",
 		turret = "Turret",
+		hunter = "Vampire Hunter",
+	},
+	cellBoss = {
+		spawnChance = 1 / 8,
+		damage = 15,
+		minMove = 1,
+		maxMove = 4,
+	},
+	hunter = {
+		damage = 3,
+		magazine = 2,
+		range = 4,
+		idealDistance = 4,
 	},
 	calculates = {
-		turret = function(context, e)
-			if context.player_move and (Util.Math.precisionCheck(context.pos.x, e.TMod.x.base, 0.1) or Util.Math.precisionCheck(context.pos.y, e.TMod.y.base, 0.1)) then
-				Util.Event.delayFunc(0.15, function()
-					Util.World.modHP(-2)
-				end, "moveDelay")
-				Util.Event.delayFunc(0.15, function()
-				end, "moveDelay")
-			end
-		end,
-
 		-- Guardian: moves around on a set axis, if player moves while near it, takes damage
 		-- THIS IS UNFINISHED PLEASE FINISH
 		guardian = function(context, e)

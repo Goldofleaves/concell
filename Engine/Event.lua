@@ -67,7 +67,6 @@ end
 function Util.Event.transition(t, f, q, c, endFunc)
 	if not getEventByNid("transition") then
 		f = f or function() end
-		Util.Event.delayFunc(t / 2, f, q)
 		endFunc = endFunc or function() end
 		c = c or Macros.colors.lightBlack
 		Util.Event.addEvent(Event(
@@ -81,9 +80,14 @@ function Util.Event.transition(t, f, q, c, endFunc)
 							function(x)
 								return x
 							end, { preset = "eioc", param = 1.75 })(time)
+					if time >= 0.5 and not s.extra.didSwap then
+						s.extra.didSwap = true
+						f()
+					end
 				end,
 				extra = {
-					y = G.drawinfo.supergridSize.y + 1
+					y = G.drawinfo.supergridSize.y + 1,
+					didSwap = false,
 				},
 				drawFunc = function(time, s)
 					local df = function()
@@ -103,6 +107,10 @@ function Util.Event.transition(t, f, q, c, endFunc)
 					df()
 				end,
 				endFunc = function(s)
+					if not s.extra.didSwap then
+						s.extra.didSwap = true
+						f()
+					end
 					endFunc()
 				end
 			}

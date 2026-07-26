@@ -272,12 +272,23 @@ function Macros.MDef.isometricGrid(w, h, area)
                 end
             end
             love.graphics.setLineWidth(2.5 * Util.UI.getScalingFactor())
-            love.graphics.setColor(Macros.colors.darkRed)
+            local function isDangerousPathPoint(point)
+                return Util.World.isPositionInTurretSightline(
+                    Util.Math.round(point.coords[1] - 0.2),
+                    Util.Math.round(point.coords[2] - 0.2)
+                )
+            end
             for i = 1, #s.extra.path - 1 do
+                local dangerous = isDangerousPathPoint(s.extra.path[i])
+                    or isDangerousPathPoint(s.extra.path[i + 1])
+                love.graphics.setColor(dangerous
+                    and Macros.colors.darkRed
+                    or Macros.colors.darkGreen)
                 local grp = { Util.World.toIsoPos(s.extra.path[i].point), Util.World.toIsoPos(s.extra.path[i + 1].point) }
                 love.graphics.line(grp[1].contents[1], grp[1].contents[2], grp[2].contents[1], grp[2].contents[2])
             end
             if s.extra.held then
+                love.graphics.setColor(Macros.colors.white)
                 local grp = { Util.World.toIsoPos(s.extra.path[#s.extra.path].point), Vector(love.mouse.getX(),
                 love.mouse.getY()) }
                 if grp[1]:sub(grp[2], true):abs() < 100 * Util.UI.getScalingFactor() then
@@ -285,13 +296,14 @@ function Macros.MDef.isometricGrid(w, h, area)
                 end
             end
             love.graphics.setLineWidth(1.5 * Util.UI.getScalingFactor())
-            love.graphics.setColor(Macros.colors.red)
-            for i = 1, #s.extra.path - 1 do
-                local grp = { Util.World.toIsoPos(s.extra.path[i].point), Util.World.toIsoPos(s.extra.path[i + 1].point) }
-                love.graphics.circle("fill", grp[1].contents[1], grp[1].contents[2], 4 * Util.UI.getScalingFactor())
+            for _, point in ipairs(s.extra.path) do
+                love.graphics.setColor(isDangerousPathPoint(point)
+                    and Macros.colors.red
+                    or Macros.colors.green)
+                local vector = Util.World.toIsoPos(point.point)
+                love.graphics.circle("fill", vector.contents[1], vector.contents[2],
+                    4 * Util.UI.getScalingFactor())
             end
-            love.graphics.circle("fill", Util.World.toIsoPos(s.extra.path[#s.extra.path].point).contents[1],
-                Util.World.toIsoPos(s.extra.path[#s.extra.path].point).contents[2], 4 * Util.UI.getScalingFactor())
         end
     }
     local m1 = Moveable(t1)
