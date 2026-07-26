@@ -441,6 +441,7 @@ registerItem({
             for _, enemy in ipairs(self.targets) do
                 enemy:modHP(self.config.damage)
             end
+            move_all_enemies()
             Util.World.modTime(self.config.timeCost)
         end
     end

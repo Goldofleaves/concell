@@ -88,6 +88,7 @@ function WorldMoveable:checkEaseMusic()
     elseif not should_be_in_combat and IN_COMBAT then
         IN_COMBAT = false
         Util.Audio.musicPop("battleID")
+        WorldMoveable:onRoomClear()
     end
 end
 
@@ -424,7 +425,7 @@ function WorldMoveable:draw()
             or (
                 self.extra.itemKey == "excalibur"
                 and "excalibur_throne"
-                or "hp_package"
+                or (type(self.extra.itemKey) == "table" and "hp_package" or "regular_package")
             )
         local atlas = Atlases[atlasKey]
         local scale = Util.UI.getScalingFactor()
@@ -1956,7 +1957,32 @@ function WorldMoveable:planSkeletonMove()
     self.extra.goalVertice = {destination[1], destination[2]}
     return true
 end
-
+function WorldMoveable:onRoomClear()
+    if not G.flags.saveData.curRoom.hasHeals then
+        G.flags.saveData.curRoom.hasHeals = true
+        local blocked = {}
+        for _, wall in ipairs(G.flags.saveData.curRoom.walls) do
+            blocked[coordKey(wall.x, wall.y)] = true
+        end
+        local tiles = getReachableTiles(G.flags.saveData.curRoom, { x = PLAYER.TMod.x.base, y = PLAYER.TMod.y.base },
+            blocked)
+        tiles[coordKey(PLAYER.TMod.x.base, PLAYER.TMod.y.base)] = nil
+        local randomTile = Util.Math.randomElement(tiles).v
+        WorldMoveable({
+            x = randomTile[1],
+            y = randomTile[2],
+            type = "pickup",
+            extra = {
+                itemKey = Pools.misc.keys,
+                identifier = "mapHealing",
+                collection = "pickups",
+            },
+            updateOrder = 2,
+            drawOrder = 10
+        })
+        G.flags.saveData.curRoom.maxId = G.flags.saveData.curRoom.maxId + 1
+    end
+end
 function WorldMoveable:resolveSkeletonMove()
     local movement = {}
     local hitPlayer = false
