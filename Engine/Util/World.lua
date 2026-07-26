@@ -39,7 +39,7 @@ function Util.World.getOppositeSideDoor(side)
     return G.flags.saveData.curRoom.doors[1]
 end
 
-local function coordKey(x, y)
+function coordKey(x, y)
     return x .. "," .. y
 end
 
@@ -422,7 +422,7 @@ local function getCriticalPaths(room, blocked)
     return true, critical
 end
 
-local function getReachableTiles(room, start, blocked)
+function getReachableTiles(room, start, blocked)
     local startKey = coordKey(start.x, start.y)
     if not Util.World.isFloor(room, start.x, start.y) or blocked[startKey] then
         return {}, {}
@@ -2087,6 +2087,7 @@ function Util.World.generateRoom(
         identifier = addGrassHunters(room, reserved, identifier, index)
         identifier = addRuinsEnemies(room, reserved, identifier, index)
         addGrassCovers(room, reserved, index)
+        room.maxId = identifier
         assert(getCriticalPaths(room, roomBlockers(room)),
             "World generation produced a room with an unreachable exit")
     end
@@ -2199,7 +2200,7 @@ function Util.World.modHP(m)
     CALCULATECONTEXT({ modHP = true, hp = t, hurting = PLAYER })
     if t[1] < 0 then
         Util.Audio.playSfx("hit", 2)
-        Util.Event.screenShake(2 * Util.UI.getScalingFactor(), 0.3, "globalShake")
+        Util.Event.screenShake(2 * Util.UI.getScalingFactor(), 0.3)
     elseif t[1] > 0 then
         Util.Audio.playSfx("heal")
     end
