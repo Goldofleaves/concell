@@ -46,7 +46,7 @@ Macros = {
 
 		-- field
 		turret = 14,
-		hunter = 16,
+		hunter = 8,
 		wizard = 14,
 
 		-- ruins
