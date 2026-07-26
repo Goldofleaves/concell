@@ -147,6 +147,11 @@ function WorldMoveable:modHP(m, silent)
                     self.extra.goalVertice = nil
                     self.extra.goalPath = nil
                 end
+                if self.extra.name == "guardian" then
+                    self:clearGuardianDanger()
+                    self.extra.guardianAction = nil
+                    self.extra.guardianChargeStage = nil
+                end
                 for k, v in ipairs(G.flags.saveData.curRoom.enemies) do
                     if v.id == self.extra.identifier then
                         table.remove(G.flags.saveData.curRoom.enemies, k)
@@ -336,6 +341,14 @@ function WorldMoveable:draw()
             color = Macros.colors.transparent,
             radius = 5 * self.properties.mult
         },
+        statue = {
+            color = Macros.colors.transparent,
+            radius = 7 * self.properties.mult
+        },
+        floor_button = {
+            color = Macros.colors.transparent,
+            radius = 5 * self.properties.mult
+        },
     }
     local r, g, b, a = love.graphics.getColor()
     local visualX, visualY = self:getVisualGridPosition()
@@ -455,8 +468,17 @@ function WorldMoveable:draw()
             0, 2 * Util.UI.getScalingFactor(), 2 * Util.UI.getScalingFactor()
         )
     end
+    if self.properties.type == "floor_button" then
+        love.graphics.setColor(Macros.colors.white)
+        drawWorldTileAtlas("button", visualX, visualY)
+    end
+    if self.properties.type == "statue" then
+        love.graphics.setColor(Macros.colors.white)
+        drawWorldTileAtlas("statue", visualX, visualY)
+    end
     if self.properties.type == "danger" then
-        local frame = math.floor(love.timer.getTime() * 5) % 2 + 1
+        local frame = self.extra.steadyFrame
+            or math.floor(love.timer.getTime() * 5) % 2 + 1
         love.graphics.setColor(Util.Color.SetOpacity(Macros.colors.black, 0.2))
         drawWorldTileAtlas("danger_" .. frame, visualX+0.05, visualY+0.05)
         love.graphics.setColor(Macros.colors.white)
@@ -619,6 +641,7 @@ function WorldMoveable:update(dt)
 
     local visualX, visualY = self:getVisualGridPosition()
     local layerOffset = self.properties.type == "danger" and 9
+        or self.properties.type == "floor_button" and 8.5
         or self.properties.type == "cover" and 11.5
         or 12
     local getNum = function (a)
@@ -715,6 +738,138 @@ function WorldMoveable:unlock()
     end
     Util.Audio.playSfx("gate_unlock")
     self:juice()
+    return true
+end
+
+function Util.World.getStatueAt(x, y)
+    for _, statue in ipairs(
+        Util.World.getAllWorldMoveablesWithType("statue")
+    ) do
+        if statue.TMod.x.base == x and statue.TMod.y.base == y then
+            return statue
+        end
+    end
+end
+
+local function isDownedSkeleton(moveable)
+    return moveable.properties.type == "enemy"
+        and moveable.extra.name == "skeleton"
+        and moveable.extra.downedTurns ~= nil
+end
+
+function Util.World.canPushStatueTo(statue, x, y)
+    if not statue
+        or not Util.World.isFloor(G.flags.saveData.curRoom, x, y)
+    then
+        return false
+    end
+    for _, moveable in ipairs(
+        Util.World.getAllWorldMoveablesWithCoord({x, y})
+    ) do
+        if moveable ~= statue then
+            local moveableType = moveable.properties.type
+            if moveableType == "wall"
+                or (
+                    moveableType == "enemy"
+                    and not isDownedSkeleton(moveable)
+                )
+                or moveableType == "statue"
+                or moveableType == "door"
+                or (moveableType == "gate" and moveable.extra.locked)
+            then
+                return false
+            end
+        end
+    end
+    return true
+end
+
+function Util.World.executeStatuePush(push)
+    if not push then
+        return false
+    end
+    local statue
+    for _, candidate in ipairs(
+        Util.World.getAllWorldMoveablesWithType("statue")
+    ) do
+        if candidate.extra.identifier == push.identifier then
+            statue = candidate
+            break
+        end
+    end
+    if not statue
+        or statue.TMod.x.base ~= push.fromX
+        or statue.TMod.y.base ~= push.fromY
+        or not Util.World.canPushStatueTo(statue, push.toX, push.toY)
+    then
+        return false
+    end
+
+    local crushedSkeleton
+    for _, moveable in ipairs(
+        Util.World.getAllWorldMoveablesWithCoord({push.toX, push.toY})
+    ) do
+        if isDownedSkeleton(moveable) then
+            crushedSkeleton = moveable
+            break
+        end
+    end
+    if crushedSkeleton then
+        for index, record in ipairs(
+            G.flags.saveData.curRoom.enemies or {}
+        ) do
+            if record.id == crushedSkeleton.extra.identifier then
+                table.remove(G.flags.saveData.curRoom.enemies, index)
+                break
+            end
+        end
+        crushedSkeleton:remove()
+        G.flags.saveData.enemiesSlain =
+            G.flags.saveData.enemiesSlain + 1
+        spawnEnemyItemDrop(push.fromX, push.fromY)
+        Util.Event.screenShake(
+            3 * Util.UI.getScalingFactor(),
+            0.25,
+            "statueCrush"..crushedSkeleton.id
+        )
+        Util.Audio.playSfx("fatalhit", 2)
+    end
+
+    statue:moveToGrid(push.toX, push.toY)
+    Util.Audio.playSfx("move_statue")
+    for _, record in ipairs(G.flags.saveData.curRoom.statues or {}) do
+        if record.id == push.identifier then
+            record.x = push.toX
+            record.y = push.toY
+            break
+        end
+    end
+
+    for _, button in ipairs(G.flags.saveData.curRoom.buttons or {}) do
+        if not button.pressed
+            and button.x == push.toX
+            and button.y == push.toY
+        then
+            button.pressed = true
+            for _, buttonMoveable in ipairs(
+                Util.World.getAllWorldMoveablesWithType("floor_button")
+            ) do
+                if buttonMoveable.extra.identifier == button.id then
+                    buttonMoveable.extra.pressed = true
+                    break
+                end
+            end
+            for _, gate in ipairs(
+                Util.World.getAllWorldMoveablesWithType("gate")
+            ) do
+                if gate.extra.identifier == button.gateId then
+                    gate:unlock()
+                    break
+                end
+            end
+        end
+    end
+    statue:juice()
     return true
 end
 
@@ -817,6 +972,7 @@ local function enemyTileIsBlocked(enemy, x, y)
             if moveableType == "wall"
                 or (moveableType == "enemy" and not passableDownedSkeleton)
                 or moveableType == "door"
+                or moveableType == "statue"
                 or (moveableType == "gate" and moveable.extra.locked)
             then
                 return true
@@ -1002,6 +1158,144 @@ local function getFacingTowardPoint(fromX, fromY, toX, toY)
     elseif deltaY ~= 0 then
         return deltaY < 0 and "4" or "2"
     end
+end
+
+local GUARDIAN_FACING_VECTORS = {
+    ["1"] = {-1, 0},
+    ["2"] = {0, 1},
+    ["3"] = {1, 0},
+    ["4"] = {0, -1},
+}
+
+function WorldMoveable:clearGuardianDanger()
+    for _, marker in ipairs(self.extra.dangerMarkers or {}) do
+        marker:remove()
+    end
+    self.extra.dangerMarkers = nil
+    self.extra.dangerTiles = nil
+end
+
+function WorldMoveable:getGuardianAttackTiles()
+    local room = G.flags.saveData.curRoom
+    local forward = GUARDIAN_FACING_VECTORS[tostring(self.extra.facing)]
+    if not forward then
+        return {}
+    end
+    local perpendicular = {-forward[2], forward[1]}
+    local tiles = {}
+    local maximumDepth = math.max(room.size.w, room.size.h)
+    for depth = 1, maximumDepth do
+        for lateral = -1, 1 do
+            local x = self.TMod.x.base + forward[1] * depth
+                + perpendicular[1] * lateral
+            local y = self.TMod.y.base + forward[2] * depth
+                + perpendicular[2] * lateral
+            if Util.World.isFloor(room, x, y) then
+                tiles[#tiles + 1] = {x, y}
+            end
+        end
+    end
+    return tiles
+end
+
+function WorldMoveable:prepareGuardianAttack()
+    local tiles = self:getGuardianAttackTiles()
+    local playerInSight = false
+    for _, position in ipairs(tiles) do
+        if position[1] == PLAYER.TMod.x.base
+            and position[2] == PLAYER.TMod.y.base
+        then
+            playerInSight = true
+            break
+        end
+    end
+    if not playerInSight then
+        return false
+    end
+
+    self:clearGuardianDanger()
+    local markers = {}
+    for _, position in ipairs(tiles) do
+        markers[#markers + 1] = WorldMoveable({
+            x = position[1],
+            y = position[2],
+            type = "danger",
+            extra = {
+                guardianIdentifier = self.extra.identifier,
+                steadyFrame = 2,
+            },
+            updateOrder = 2,
+            drawOrder = position[1] + position[2] + 9,
+        })
+    end
+    self.extra.guardianAction = "charge"
+    self.extra.guardianChargeStage = 1
+    self.extra.dangerTiles = tiles
+    self.extra.dangerMarkers = markers
+    self:juice(2)
+    return true
+end
+
+function WorldMoveable:resolveGuardianAttack()
+    local tiles = self.extra.dangerTiles or {}
+    self.extra.attackSequence = (self.extra.attackSequence or 0) + 1
+    local sequence = self.extra.attackSequence
+    self:clearGuardianDanger()
+    self.extra.guardianAction = nil
+    self.extra.guardianChargeStage = nil
+
+    for index, position in ipairs(tiles) do
+        local x, y = position[1], position[2]
+        Util.Event.addEvent(Event({
+            duration = 0.4,
+            drawOrder = x + y + 10,
+            drawFunc = function(time)
+                local r, g, b, a = love.graphics.getColor()
+                love.graphics.setColor(Macros.colors.white)
+                local frame = math.min(4, math.floor(time * 4) + 1)
+                drawWorldTileAtlas("tileAttack_"..frame, x, y)
+                love.graphics.setColor(r, g, b, a)
+            end,
+        }), "guardianAttack"..self.id.."_"..sequence.."_"..index)
+    end
+    Util.Audio.playSfx("slam")
+    self:juice(5)
+
+    for _, position in ipairs(tiles) do
+        if position[1] == PLAYER.TMod.x.base
+            and position[2] == PLAYER.TMod.y.base
+        then
+            return Util.World.modHP(-Macros.guardian.damage)
+        end
+    end
+    return false
+end
+
+function WorldMoveable:resolveGuardianTurn()
+    if self.extra.guardianAction == "charge" then
+        if self.extra.guardianChargeStage < Macros.guardian.chargeTurns then
+            self.extra.guardianChargeStage =
+                self.extra.guardianChargeStage + 1
+            for _, marker in ipairs(self.extra.dangerMarkers or {}) do
+                marker.extra.steadyFrame = nil
+            end
+            self:juice(3)
+            return false
+        end
+        return self:resolveGuardianAttack()
+    end
+
+    if self:prepareGuardianAttack() then
+        return false
+    end
+    self.extra.facing = getFacingTowardPoint(
+        self.TMod.x.base,
+        self.TMod.y.base,
+        PLAYER.TMod.x.base,
+        PLAYER.TMod.y.base
+    ) or self.extra.facing
+    self:juice()
+    return false
 end
 
 local function getWizardCastRange()
@@ -1269,6 +1563,7 @@ local function eliteDangerCellIsBlocked(elite, x, y)
             local moveableType = moveable.properties.type
             if moveableType == "cover"
                 or moveableType == "wall"
+                or moveableType == "statue"
                 or (moveableType == "gate" and moveable.extra.locked)
                 or (
                     moveableType == "enemy"
@@ -2064,6 +2359,10 @@ function move_all_enemies()
                 if v:resolveWizardTurn() then
                     return
                 end
+            elseif v.extra.name == "guardian" then
+                if v:resolveGuardianTurn() then
+                    return
+                end
             elseif v.extra.goalVertice then
                 local goalX, goalY = v.extra.goalVertice[1], v.extra.goalVertice[2]
                 if goalX == PLAYER.TMod.x.base and goalY == PLAYER.TMod.y.base then
@@ -2156,6 +2455,7 @@ function WorldMoveable:decideMove()
         if self.extra.name == "guard" then return nil end
         if self.extra.name == "turret" then return nil end
         if isRangedEnemyName(self.extra.name) then return nil end
+        if self.extra.name == "guardian" then return nil end
         if self.extra.name == "skeleton" then
             self:planSkeletonMove()
             return
@@ -2214,9 +2514,36 @@ function WorldMoveable:initRoomStuff()
                 locked = v.locked ~= false,
                 dir = v.dir,
                 identifier = v.id,
+                unlockType = v.unlockType,
             },
             updateOrder = 2,
             drawOrder = 11
+        })
+    end
+    for _, v in ipairs(G.flags.saveData.curRoom.buttons or {}) do
+        WorldMoveable({
+            x = v.x,
+            y = v.y,
+            type = "floor_button",
+            extra = {
+                identifier = v.id,
+                gateId = v.gateId,
+                pressed = v.pressed == true,
+            },
+            updateOrder = 2,
+            drawOrder = 9,
+        })
+    end
+    for _, v in ipairs(G.flags.saveData.curRoom.statues or {}) do
+        WorldMoveable({
+            x = v.x,
+            y = v.y,
+            type = "statue",
+            extra = {
+                identifier = v.id,
+            },
+            updateOrder = 2,
+            drawOrder = 11,
         })
     end
     for _, v in ipairs(G.flags.saveData.curRoom.keys or {}) do

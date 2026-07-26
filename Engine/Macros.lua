@@ -53,6 +53,7 @@ Macros = {
 		skeleton = 3,
 		elite = 18,
 		abraham = 40,
+		guardian = 18,
 		
 	},
 	names = {
@@ -65,6 +66,7 @@ Macros = {
 		skeleton = "Skeleton",
 		elite = "Elite Hunter",
 		abraham = "Abraham",
+		guardian = "Guardian",
 		wizard = "Wizard",
 	},
 	cellBoss = {
@@ -114,9 +116,14 @@ Macros = {
 		aoeDamage = 14,
 		aoeRadius = 2,
 		aoeRange = 7,
-		aoeChance = 0.5,
+		aoeChance = 0.25,
 		jumpChance = 0.35,
 		lineAttackChance = 0.15,
+	},
+	guardian = {
+		spawnChance = 1 / 3,
+		damage = 12,
+		chargeTurns = 2,
 	},
 	wizard = {
 		damage = 10,
@@ -129,19 +136,7 @@ Macros = {
 		spawnChance = 1 / 3,
 		pool = "misc",
 	},
-	calculates = {
-		-- Guardian: moves around on a set axis, if player moves while near it, takes damage
-		-- THIS IS UNFINISHED PLEASE FINISH
-		guardian = function(context, e)
-			if context.player_move and Util.Math.pythagorean(context.pos, {x=e.TMod.x.base, y=e.TMod.y.base}) <= 2 then
-				Util.Event.delayFunc(0.15, function()
-					Util.World.modHP(-2)
-				end, "moveDelay")
-				Util.Event.delayFunc(0.15, function()
-				end, "moveDelay")
-			end
-		end,
-	},
+	calculates = {},
 	baseTileSize = 40,
 	maxtime = 360,
 	maxhp = 60,
