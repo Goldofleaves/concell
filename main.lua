@@ -146,6 +146,7 @@ wrapper("tree_3", 40, 60, "Tiles/")
 wrapper("tree_4", 40, 60, "Tiles/")
 wrapper("debris_1", 40, 60, "Tiles/")
 wrapper("debris_2", 40, 60, "Tiles/")
+wrapper("hp_package", 40, 60, "Tiles/")
 
 wrapper("cutscene", 600, 500)
 wrapper("gameOver", 600, 400)
