@@ -228,6 +228,31 @@ function love.keypressed(key)
 			print(err)
 		end
 	end
+
+	if G.debug.console or G.flags.isMoving or getEventByNid("transition") then
+		return
+	end
+
+	local grid = getObjectByNid("isoGridWeb")
+	local moveButton = getObjectByNid("MoveButton")
+	if not grid or not PLAYER or not moveButton then
+		return
+	end
+
+	local directions = {
+		up = { -1, 0 },
+		right = { 0, -1 },
+		down = { 1, 0 },
+		left = { 0, 1 },
+	}
+	local direction = directions[key]
+	if direction and grid.extra.tryPlanMove then
+		grid.extra.tryPlanMove(grid, direction[1], direction[2])
+	elseif (key == "return" or key == "kpenter") and #grid.extra.path > 1 then
+		moveButton:onClick()
+	elseif key == "space" and #grid.extra.path == 1 then
+		moveButton:onClick()
+	end
 end
 
 function Game:draw()

@@ -141,12 +141,57 @@ function Macros.MDef.isometricGrid(w, h, area)
             end
         end
     }
+    local function tryPlanMove(grid, dx, dy)
+        if not PLAYER or G.flags.isMoving then
+            return false
+        end
+
+        local path = grid.extra.path
+        local last = path[#path].coords
+        local targetX = Util.Math.round(last[1] - 0.2) + dx
+        local targetY = Util.Math.round(last[2] - 0.2) + dy
+        local targetCoords = { targetX + 0.2, targetY + 0.2 }
+
+        if #path > 1 then
+            local previous = path[#path - 1].coords
+            if previous[1] == targetCoords[1] and previous[2] == targetCoords[2] then
+                table.remove(path)
+                grid.extra.drawAlpha = 1
+                return true
+            end
+        end
+
+        local vertices = getAllValidVertices(w, h, { "wall", "enemy" })
+        if not isValidVertice(vertices, { targetX, targetY }) then
+            return false
+        end
+
+        local hasEnemies = #Util.World.getAllWorldMoveablesWithType("enemy") > 0
+        if hasEnemies and #path >= G.flags.saveData.gridsPerMove + 1 then
+            return false
+        end
+
+        for _, point in ipairs(path) do
+            if point.coords[1] == targetCoords[1] and point.coords[2] == targetCoords[2] then
+                return false
+            end
+        end
+
+        table.insert(path, {
+            point = Vector(targetCoords[1], targetCoords[2]),
+            coords = targetCoords,
+        })
+        grid.extra.drawAlpha = 1
+        return true
+    end
+
     local t2 = {
         extra = {
             w = w,
             h = h,
             drawAlpha = 0,
             held = false,
+            tryPlanMove = tryPlanMove,
             path = {
                 { point = Vector(PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2), coords = { PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2 } }
             }
@@ -155,20 +200,6 @@ function Macros.MDef.isometricGrid(w, h, area)
         drawOrder = 10,
         updateOrder = 1,
         updateFunc = function (s, dt)
-            local function alreadyExists(coords, k)
-                for kk, v in ipairs(s.extra.path) do
-                    if v.coords[1] == coords[1] and v.coords[2] == coords[2] and kk ~= k then
-                        return true
-                    end
-                end
-                return false
-            end
-            local function isAdjacent(coords)
-                if Vector(unpack(s.extra.path[#s.extra.path].coords)):sub(Vector(unpack(coords)),true):abs() <= 1.1 then
-                    return true
-                end
-                return false
-            end
             s.extra.path[1] = {point = Vector(PLAYER.TMod.x.base+0.2, PLAYER.TMod.y.base+0.2), coords = {PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2}}
             if PLAYER then
                 local vector = Util.World.toIsoPos(Vector(PLAYER.TMod.x.base + 0.2, PLAYER.TMod.y.base + 0.2))
@@ -181,25 +212,16 @@ function Macros.MDef.isometricGrid(w, h, area)
                         s.extra.held = false
                     end
                     s.extra.drawAlpha = 1
-                    local vertices = getAllValidVertices(w, h, {"wall", "enemy"})
                     local p, rr = getClosestPointAndDistance()
-                    local hasEnemies = #Util.World.getAllWorldMoveablesWithType("enemy") > 0
-                    local withinMoveLimit = not hasEnemies
-                        or #s.extra.path < G.flags.saveData.gridsPerMove + 1
-                    if rr < min
-                        and isValidVertice(vertices, { p.contents[1] - 0.2, p.contents[2] - 0.2 })
-                        and withinMoveLimit
-                        and not G.flags.isMoving
-                    then
-                        if not alreadyExists(p.contents) and isAdjacent(p.contents) then
-                            table.insert(s.extra.path, { point = p, coords = p.contents })
+                    if rr < min and not G.flags.isMoving then
+                        local last = s.extra.path[#s.extra.path].coords
+                        local dx = Util.Math.round(p.contents[1] - 0.2)
+                            - Util.Math.round(last[1] - 0.2)
+                        local dy = Util.Math.round(p.contents[2] - 0.2)
+                            - Util.Math.round(last[2] - 0.2)
+                        if math.abs(dx) + math.abs(dy) == 1 then
+                            s.extra.tryPlanMove(s, dx, dy)
                         end
-                    end
-                    -- Move backwards
-                    -- btw naku pls comment ure code -elle.
-                    if rr < min and alreadyExists(p.contents) and isAdjacent(p.contents) and #s.extra.path>1 and
-                    p.contents[1] == s.extra.path[#s.extra.path-1].coords[1] and p.contents[2] == s.extra.path[#s.extra.path-1].coords[2] then
-                        table.remove(s.extra.path,#s.extra.path)
                     end
                 elseif #s.extra.path > 1 then
                     s.extra.drawAlpha = 1
