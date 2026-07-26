@@ -2404,6 +2404,25 @@ local function resolveRangedEnemyActions(allEnemies)
     for _, shooter in ipairs(allEnemies) do
         if isRangedEnemyName(shooter.extra.name) and shooter.extra.hp > 0 then
             local config = Macros[shooter.extra.name]
+            local playerDistance =
+                math.abs(
+                    PLAYER.TMod.x.base - shooter.TMod.x.base
+                )
+                + math.abs(
+                    PLAYER.TMod.y.base - shooter.TMod.y.base
+                )
+            if playerDistance == 1 then
+                shooter.extra.adjacentPlayerTurns =
+                    (shooter.extra.adjacentPlayerTurns or 0) + 1
+            else
+                shooter.extra.adjacentPlayerTurns = 0
+            end
+            local forcedCloseReload =
+                shooter.extra.adjacentPlayerTurns >= 2
+                and shooter.extra.shotsRemaining > 0
+            if forcedCloseReload then
+                shooter.extra.adjacentPlayerTurns = 0
+            end
             if (shooter.extra.name == "elite"
                     or shooter.extra.name == "abraham")
                 and shooter.extra.eliteAction == "attack" then
@@ -2418,6 +2437,11 @@ local function resolveRangedEnemyActions(allEnemies)
                 if shooter:resolveAbrahamAoe() then
                     return true
                 end
+                goto continue
+            end
+            if forcedCloseReload then
+                repositionRangedEnemy(shooter)
+                shooter.extra.shotsRemaining = config.magazine
                 goto continue
             end
             if shooter.extra.name == "abraham"
