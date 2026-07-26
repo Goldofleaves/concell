@@ -6,6 +6,6 @@ Programming: ellestuff.dev, NakuAutumn, sylcoffeeflake, notmario, Tomato, invali
 Art: NakuAutumn, Tomato, Aikoyori, Sugarchips
 Music: NakuAutumn, Tomato
 Sound Design: Aikoyori
-Conceptualization: Corobo, incogniton, sylcoffeeflake, ellestuff.dev, invalidOS
+Conceptualization: Corobo, incogniton, sylcoffeeflake, ellestuff.dev, notmario, invalidOS
 
 and YOU for playing Count Dawn!
