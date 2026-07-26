@@ -88,7 +88,6 @@ function WorldMoveable:checkEaseMusic()
     elseif not should_be_in_combat and IN_COMBAT then
         IN_COMBAT = false
         Util.Audio.musicPop("battleID")
-        self:onRoomClear()
     end
 end
 
@@ -136,7 +135,9 @@ function WorldMoveable:modHP(m, silent)
                 if self.extra.name == "cellboss" then
                     self:clearCellBossDanger()
                 end
-                if self.extra.name == "elite" then
+                if self.extra.name == "elite"
+                    or self.extra.name == "abraham"
+                then
                     self:clearEliteDanger()
                 end
                 if self.extra.name == "wizard" then
@@ -279,6 +280,7 @@ local RANGED_ENEMY_NAMES = {
     hunter = true,
     officer = true,
     elite = true,
+    abraham = true,
 }
 
 local function isRangedEnemyName(name)
@@ -419,7 +421,11 @@ function WorldMoveable:draw()
         local v = Util.World.toIsoPos(Vector(visualX, visualY))
         local atlasKey = self.extra.itemKey == "prison_key"
             and "prisonKey"
-            or (self.extra.itemKey == "excalibur" and "excalibur_throne"or (type(self.extra.itemKey) == "table" and "hp_package" or Centers[self.extra.itemKey].sprite))
+            or (
+                self.extra.itemKey == "excalibur"
+                and "excalibur_throne"
+                or "hp_package"
+            )
         local atlas = Atlases[atlasKey]
         local scale = Util.UI.getScalingFactor()
         local drawX = v.contents[1] - 40 * scale
@@ -787,8 +793,12 @@ local function enemyTileIsBlocked(enemy, x, y)
     for _, moveable in ipairs(Util.World.getAllWorldMoveablesWithCoord({x, y})) do
         if moveable ~= enemy then
             local moveableType = moveable.properties.type
+            local passableDownedSkeleton =
+                moveableType == "enemy"
+                and moveable.extra.name == "skeleton"
+                and moveable.extra.downedTurns
             if moveableType == "wall"
-                or moveableType == "enemy"
+                or (moveableType == "enemy" and not passableDownedSkeleton)
                 or moveableType == "door"
                 or (moveableType == "gate" and moveable.extra.locked)
             then
@@ -1231,6 +1241,7 @@ function WorldMoveable:clearEliteDanger()
     end
     self.extra.dangerMarkers = nil
     self.extra.dangerTiles = nil
+    self.extra.dangerCenter = nil
 end
 
 local function eliteDangerCellIsBlocked(elite, x, y)
@@ -1255,6 +1266,7 @@ local function eliteDangerCellIsBlocked(elite, x, y)
 end
 
 function WorldMoveable:prepareEliteAttack()
+    local config = Macros[self.extra.name] or Macros.elite
     local startX, startY = self.TMod.x.base, self.TMod.y.base
     local playerX, playerY = PLAYER.TMod.x.base, PLAYER.TMod.y.base
     local cells = Util.World.getGridLineCells(
@@ -1271,7 +1283,7 @@ function WorldMoveable:prepareEliteAttack()
     local last = cells[#cells]
     local stepX = last[1] - previous[1]
     local stepY = last[2] - previous[2]
-    while #cells < Macros.elite.attackRange do
+    while #cells < config.attackRange do
         last = {
             last[1] + stepX,
             last[2] + stepY,
@@ -1282,7 +1294,7 @@ function WorldMoveable:prepareEliteAttack()
     self:clearEliteDanger()
     local tiles = {}
     local markers = {}
-    for index = 1, math.min(#cells, Macros.elite.attackRange) do
+    for index = 1, math.min(#cells, config.attackRange) do
         local x, y = cells[index][1], cells[index][2]
         if not Util.World.isFloor(G.flags.saveData.curRoom, x, y)
             or eliteDangerCellIsBlocked(self, x, y)
@@ -1317,12 +1329,13 @@ function WorldMoveable:prepareEliteAttack()
 end
 
 function WorldMoveable:resolveEliteAttack()
+    local config = Macros[self.extra.name] or Macros.elite
     local tiles = self.extra.dangerTiles or {}
     self.extra.attackSequence = (self.extra.attackSequence or 0) + 1
     local sequence = self.extra.attackSequence
     self:clearEliteDanger()
     self.extra.eliteAction = nil
-    self.extra.shotsRemaining = Macros.elite.magazine
+    self.extra.shotsRemaining = config.magazine
 
     for index, position in ipairs(tiles) do
         local x, y = position[1], position[2]
@@ -1345,7 +1358,94 @@ function WorldMoveable:resolveEliteAttack()
         if position[1] == PLAYER.TMod.x.base
             and position[2] == PLAYER.TMod.y.base
         then
-            return Util.World.modHP(-Macros.elite.attackDamage)
+            return Util.World.modHP(-config.attackDamage)
+        end
+    end
+    return false
+end
+
+function WorldMoveable:prepareAbrahamAoe()
+    local config = Macros.abraham
+    local centerX = PLAYER.TMod.x.base
+    local centerY = PLAYER.TMod.y.base
+    local distance = math.abs(centerX - self.TMod.x.base)
+        + math.abs(centerY - self.TMod.y.base)
+    if distance > config.aoeRange then
+        return false
+    end
+
+    self:clearEliteDanger()
+    local tiles = {}
+    local markers = {}
+    for x = centerX - config.aoeRadius, centerX + config.aoeRadius do
+        for y = centerY - config.aoeRadius, centerY + config.aoeRadius do
+            local deltaX = x - centerX
+            local deltaY = y - centerY
+            if deltaX * deltaX + deltaY * deltaY
+                <= config.aoeRadius * config.aoeRadius
+                and Util.World.isFloor(G.flags.saveData.curRoom, x, y)
+            then
+                tiles[#tiles + 1] = {x, y}
+                markers[#markers + 1] = WorldMoveable({
+                    x = x,
+                    y = y,
+                    type = "danger",
+                    extra = {abrahamIdentifier = self.extra.identifier},
+                    updateOrder = 2,
+                    drawOrder = x + y + 9,
+                })
+            end
+        end
+    end
+    if #tiles == 0 then
+        return false
+    end
+
+    self.extra.facing = getFacingTowardPoint(
+        self.TMod.x.base,
+        self.TMod.y.base,
+        centerX,
+        centerY
+    ) or self.extra.facing
+    self.extra.eliteAction = "aoe"
+    self.extra.dangerTiles = tiles
+    self.extra.dangerMarkers = markers
+    self.extra.dangerCenter = {centerX, centerY}
+    self:juice(3)
+    return true
+end
+
+function WorldMoveable:resolveAbrahamAoe()
+    local tiles = self.extra.dangerTiles or {}
+    self.extra.attackSequence = (self.extra.attackSequence or 0) + 1
+    local sequence = self.extra.attackSequence
+    self:clearEliteDanger()
+    self.extra.eliteAction = nil
+    self.extra.dangerCenter = nil
+    self.extra.shotsRemaining = Macros.abraham.magazine
+
+    for index, position in ipairs(tiles) do
+        local x, y = position[1], position[2]
+        Util.Event.addEvent(Event({
+            duration = 0.4,
+            drawOrder = x + y + 10,
+            drawFunc = function(time)
+                local r, g, b, a = love.graphics.getColor()
+                love.graphics.setColor(Macros.colors.white)
+                local frame = math.min(4, math.floor(time * 4) + 1)
+                drawWorldTileAtlas("tileAttack_"..frame, x, y)
+                love.graphics.setColor(r, g, b, a)
+            end,
+        }), "abrahamAoe"..self.id.."_"..sequence.."_"..index)
+    end
+    Util.Audio.playSfx("slam")
+    self:juice(5)
+
+    for _, position in ipairs(tiles) do
+        if position[1] == PLAYER.TMod.x.base
+            and position[2] == PLAYER.TMod.y.base
+        then
+            return Util.World.modHP(-Macros.abraham.aoeDamage)
         end
     end
     return false
@@ -1393,6 +1493,60 @@ local function rangedEnemyPositionIsClear(shooter, x, y)
             return false
         end
     end
+    return true
+end
+
+local function jumpAbraham(shooter)
+    local room = G.flags.saveData.curRoom
+    local startX, startY = shooter.TMod.x.base, shooter.TMod.y.base
+    local minimumJump = math.ceil(math.max(room.size.w, room.size.h) / 2)
+    local candidates = {}
+    local fallback = {}
+
+    for x = 0, room.size.w - 1 do
+        for y = 0, room.size.h - 1 do
+            if rangedEnemyPositionIsClear(shooter, x, y) then
+                local jumpDistance = math.abs(x - startX)
+                    + math.abs(y - startY)
+                local playerDistance = math.abs(PLAYER.TMod.x.base - x)
+                    + math.abs(PLAYER.TMod.y.base - y)
+                local candidate = {
+                    x = x,
+                    y = y,
+                    score = jumpDistance * 3
+                        - math.abs(
+                            playerDistance - Macros.abraham.idealDistance
+                        ) * 10
+                        + love.math.random(),
+                }
+                fallback[#fallback + 1] = candidate
+                if jumpDistance >= minimumJump then
+                    candidates[#candidates + 1] = candidate
+                end
+            end
+        end
+    end
+
+    if #candidates == 0 then
+        candidates = fallback
+    end
+    if #candidates == 0 then
+        return false
+    end
+    table.sort(candidates, function(a, b)
+        return a.score > b.score
+    end)
+
+    local destination = candidates[1]
+    shooter.extra.facing = getFacingTowardPoint(
+        destination.x,
+        destination.y,
+        PLAYER.TMod.x.base,
+        PLAYER.TMod.y.base
+    ) or shooter.extra.facing
+    shooter:moveToGrid(destination.x, destination.y, 0.3)
+    shooter.extra.shotsRemaining = Macros.abraham.magazine
+    shooter:juice(4)
     return true
 end
 
@@ -1533,14 +1687,53 @@ local function getRangedFriendlyFireTarget(shooter)
     end
 end
 
+local function chooseAbrahamAction(shooter, config)
+    if shooter.extra.shotsRemaining > 0 then
+        if Util.Math.chance(config.jumpChance) and jumpAbraham(shooter) then
+            return
+        end
+        repositionRangedEnemy(shooter)
+        shooter.extra.shotsRemaining = config.magazine
+        return
+    end
+
+    local choice = love.math.random()
+    if choice < config.aoeChance then
+        if shooter:prepareAbrahamAoe() then
+            return
+        end
+    elseif choice < config.aoeChance + config.jumpChance then
+        if jumpAbraham(shooter) then
+            return
+        end
+    elseif choice
+        < config.aoeChance + config.jumpChance + config.lineAttackChance
+    then
+        if shooter:prepareEliteAttack() then
+            return
+        end
+    end
+
+    repositionRangedEnemy(shooter)
+    shooter.extra.shotsRemaining = config.magazine
+end
+
 local function resolveRangedEnemyActions(allEnemies)
     for _, shooter in ipairs(allEnemies) do
         if isRangedEnemyName(shooter.extra.name) and shooter.extra.hp > 0 then
             local config = Macros[shooter.extra.name]
-            if shooter.extra.name == "elite"
-                and shooter.extra.eliteAction == "attack"
-            then
+            if (shooter.extra.name == "elite"
+                    or shooter.extra.name == "abraham")
+                and shooter.extra.eliteAction == "attack" then
                 if shooter:resolveEliteAttack() then
+                    return true
+                end
+                goto continue
+            end
+            if shooter.extra.name == "abraham"
+                and shooter.extra.eliteAction == "aoe"
+            then
+                if shooter:resolveAbrahamAoe() then
                     return true
                 end
                 goto continue
@@ -1569,6 +1762,8 @@ local function resolveRangedEnemyActions(allEnemies)
                 elseif Util.World.modHP(-config.damage) then
                     return true
                 end
+            elseif shooter.extra.name == "abraham" then
+                chooseAbrahamAction(shooter, config)
             else
                 local preparedAttack = shooter.extra.name == "elite"
                     and shooter.extra.shotsRemaining <= 0
@@ -1654,9 +1849,34 @@ function WorldMoveable:advanceSkeletonRevival()
         return true
     end
 
-    self.extra.downedTurns = self.extra.downedTurns - 1
     local roomRecord = getEnemyRoomRecord(self)
+    self.extra.downedTurns = self.extra.downedTurns - 1
     if self.extra.downedTurns <= 0 then
+        local tileOccupied = PLAYER
+            and PLAYER.TMod.x.base == self.TMod.x.base
+            and PLAYER.TMod.y.base == self.TMod.y.base
+        if not tileOccupied then
+            for _, enemy in ipairs(
+                Util.World.getAllWorldMoveablesWithType("enemy")
+            ) do
+                if enemy ~= self
+                    and enemy.extra.hp > 0
+                    and enemy.TMod.x.base == self.TMod.x.base
+                    and enemy.TMod.y.base == self.TMod.y.base
+                then
+                    tileOccupied = true
+                    break
+                end
+            end
+        end
+        if tileOccupied then
+            self.extra.downedTurns = 1
+            if roomRecord then
+                roomRecord.downedTurns = 1
+            end
+            return true
+        end
+
         self.extra.downedTurns = nil
         self.extra.hp = Macros.maxHps.skeleton
         if roomRecord then
@@ -1672,31 +1892,6 @@ function WorldMoveable:advanceSkeletonRevival()
         roomRecord.downedTurns = self.extra.downedTurns
     end
     return true
-end
-function WorldMoveable:onRoomClear()
-    if not G.flags.saveData.curRoom.hasHeals then
-        G.flags.saveData.curRoom.hasHeals = true
-        local blocked = {}
-        for _, wall in ipairs(G.flags.saveData.curRoom.walls) do
-            blocked[coordKey(wall.x, wall.y)] = true
-        end
-        local tiles = getReachableTiles(G.flags.saveData.curRoom, { x = PLAYER.TMod.x.base, y = PLAYER.TMod.y.base }, blocked)
-        tiles[coordKey( PLAYER.TMod.x.base, PLAYER.TMod.y.base)] = nil
-        local randomTile = Util.Math.randomElement(tiles).v
-        WorldMoveable({
-            x = randomTile[1],
-            y = randomTile[2],
-            type = "pickup",
-            extra = {
-                itemKey = Pools.misc.keys,
-                identifier = G.flags.saveData.curRoom.maxId + 1,
-                collection = "pickups",
-            },
-            updateOrder = 2,
-            drawOrder = 10
-        })
-        G.flags.saveData.curRoom.maxId = G.flags.saveData.curRoom.maxId + 1
-    end
 end
 function WorldMoveable:planSkeletonMove()
     if self.extra.downedTurns then

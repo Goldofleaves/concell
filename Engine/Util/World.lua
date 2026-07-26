@@ -170,6 +170,19 @@ function Util.World.hasTurretSightlineFrom(
         if roomBlocksSight(room, cell[1], cell[2]) then
             return false
         end
+        for _, enemy in ipairs(room.enemies or {}) do
+            if enemy.name == "turret"
+                and enemy.pos
+                and not (
+                    enemy.pos[1] == turretX
+                    and enemy.pos[2] == turretY
+                )
+                and enemy.pos[1] == cell[1]
+                and enemy.pos[2] == cell[2]
+            then
+                return false
+            end
+        end
     end
     return true
 end
@@ -1166,7 +1179,13 @@ local function addGrassHunters(room, reserved, identifier, index)
     return identifier
 end
 
-local function addRuinsEnemies(room, reserved, identifier, index)
+local function addRuinsEnemies(
+    room,
+    reserved,
+    identifier,
+    index,
+    abrahamRoomIndex
+)
     if not isRuinsIndex(index) then
         return identifier
     end
@@ -1203,6 +1222,31 @@ local function addRuinsEnemies(room, reserved, identifier, index)
         end
     end
 
+    local hasAbraham = false
+    if index == abrahamRoomIndex then
+        while #candidates > 0 do
+            local position = table.remove(
+                candidates,
+                love.math.random(1, #candidates)
+            )
+            local key = coordKey(position[1], position[2])
+            blocked[key] = true
+            if getCriticalPaths(room, blocked) then
+                room.enemies[#room.enemies + 1] = {
+                    name = "abraham",
+                    pos = position,
+                    facing = tostring(love.math.random(1, 4)),
+                    id = identifier,
+                }
+                reserved[key] = true
+                identifier = identifier + 1
+                hasAbraham = true
+                break
+            end
+            blocked[key] = nil
+        end
+    end
+
     local skeletonCount = room.size.w * room.size.h >= 60 and 3 or 2
     local skeletonsPlaced = 0
     while skeletonsPlaced < skeletonCount and #candidates > 0 do
@@ -1225,7 +1269,10 @@ local function addRuinsEnemies(room, reserved, identifier, index)
         end
     end
 
-    if #candidates > 0 and Util.Math.chance(Macros.elite.spawnChance) then
+    if not hasAbraham
+        and #candidates > 0
+        and Util.Math.chance(Macros.elite.spawnChance)
+    then
         while #candidates > 0 do
             local position = table.remove(
                 candidates,
@@ -1934,11 +1981,14 @@ function Util.World.regenerateRoom(room, index)
     addPrisonGatePuzzle(replacement, reserved, index)
     local bossRoomIndex
     local wizardBossRoomIndex
+    local abrahamRoomIndex
     for _, enemy in ipairs(room.enemies or {}) do
         if enemy.name == "cellboss" then
             bossRoomIndex = index
         elseif enemy.name == "wizard" then
             wizardBossRoomIndex = index
+        elseif enemy.name == "abraham" then
+            abrahamRoomIndex = index
         end
     end
     identifier = addPrisonCellBoss(
@@ -1964,7 +2014,13 @@ function Util.World.regenerateRoom(room, index)
     )
     identifier = addGrassTurrets(replacement, reserved, identifier, index)
     identifier = addGrassHunters(replacement, reserved, identifier, index)
-    identifier = addRuinsEnemies(replacement, reserved, identifier, index)
+    identifier = addRuinsEnemies(
+        replacement,
+        reserved,
+        identifier,
+        index,
+        abrahamRoomIndex
+    )
     addGrassCovers(replacement, reserved, index)
     addGroundHealingItem(replacement, reserved, index)
     assert(getCriticalPaths(replacement, roomBlockers(replacement)),
@@ -2139,7 +2195,8 @@ function Util.World.generateRoom(
     getprev,
     index,
     bossRoomIndex,
-    wizardBossRoomIndex
+    wizardBossRoomIndex,
+    abrahamRoomIndex
 )
     local room = {}
     room.size, room.layout = randomRoomSize(index)
@@ -2252,7 +2309,13 @@ function Util.World.generateRoom(
         )
         identifier = addGrassTurrets(room, reserved, identifier, index)
         identifier = addGrassHunters(room, reserved, identifier, index)
-        identifier = addRuinsEnemies(room, reserved, identifier, index)
+        identifier = addRuinsEnemies(
+            room,
+            reserved,
+            identifier,
+            index,
+            abrahamRoomIndex
+        )
         addGrassCovers(room, reserved, index)
         addGroundHealingItem(room, reserved, index)
         room.maxId = identifier
@@ -2277,6 +2340,9 @@ function Util.World.generateDungeon()
         ]
         or nil
     local wizardBossRoomIndex = love.math.random(8, 10)
+    local abrahamRoomIndex = Util.Math.chance(Macros.abraham.spawnChance)
+        and love.math.random(13, 16)
+        or nil
     local alphabet = "abcdefghij"
     local function getprevletter(a)
         return string.char(string.byte(a)-1)
@@ -2330,7 +2396,8 @@ function Util.World.generateDungeon()
             getPrevIndex,
             getIndex(),
             bossRoomIndex,
-            wizardBossRoomIndex
+            wizardBossRoomIndex,
+            abrahamRoomIndex
         )
         rooms[getIndex()] = room
         incrementCounters()
@@ -2472,7 +2539,13 @@ function getAllValidVertices(www, hhh, blockades)
                     break
                 end
                 for kk, vv in ipairs(blockades) do
-                    if v.properties.type == vv then
+                    local passableDownedSkeleton =
+                        v.properties.type == "enemy"
+                        and v.extra.name == "skeleton"
+                        and v.extra.downedTurns
+                    if v.properties.type == vv
+                        and not passableDownedSkeleton
+                    then
                         hasblockade = true
                         break
                     end
