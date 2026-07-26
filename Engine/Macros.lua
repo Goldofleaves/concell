@@ -52,6 +52,7 @@ Macros = {
 		-- ruins
 		skeleton = 3,
 		elite = 18,
+		abraham = 40,
 		
 	},
 	names = {
@@ -63,6 +64,7 @@ Macros = {
 		officer = "Officer",
 		skeleton = "Skeleton",
 		elite = "Elite Hunter",
+		abraham = "Abraham",
 		wizard = "Wizard",
 	},
 	cellBoss = {
@@ -99,6 +101,22 @@ Macros = {
 		attackDamage = 10,
 		attackRange = 7,
 		attackChance = 1 / 2,
+	},
+	abraham = {
+		spawnChance = 1 / 8,
+		damage = 7,
+		magazine = 4,
+		range = 8,
+		idealDistance = 6,
+		moveDistance = 3,
+		attackDamage = 15,
+		attackRange = 9,
+		aoeDamage = 14,
+		aoeRadius = 2,
+		aoeRange = 7,
+		aoeChance = 0.35,
+		jumpChance = 0.35,
+		lineAttackChance = 0.15,
 	},
 	wizard = {
 		damage = 10,
