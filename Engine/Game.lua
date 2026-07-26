@@ -230,6 +230,42 @@ function love.keypressed(key)
 	if key == "k" then
 		G.debug.console = not G.debug.console
 	end
+	if key == "l" then
+		for i = 1, 7 do
+			local char = string.char(string.byte("a")+i)
+			if not G.flags.saveData.rooms[char] then
+				print(i)
+				local index = string.char(string.byte("a") + i - 1)
+				G.flags.saveData.curRoomIndex = index
+				G.flags.saveData.curRoom = G.flags.saveData.rooms[index]
+
+				getObjectByNid("isoGrid"):remove()
+				getObjectByNid("isoGridWeb"):remove()
+				Macros.MDef.isometricGrid(G.flags.saveData.curRoom.size.w, G.flags.saveData.curRoom.size.h,
+					Util.World.getArea(index))
+				local list = {}
+				for k, v in ipairs(G.I.MOVEABLES) do
+					if v.objectType == "WORLDMOVEABLE" then
+						table.insert(list, v)
+					end
+				end
+				for k, v in ipairs(list) do
+					v:remove()
+				end
+				PLAYER = WorldMoveable({
+					x = 0,
+					y = 1,
+					type = "player",
+					drawOrder = 31,
+					updateOrder = 1,
+					extra = { facing = "1" }
+				})
+				WorldMoveable:initRoomStuff()
+				WorldMoveable:checkEaseMusic()
+				break
+			end
+		end
+	end
 	if key == "g" then
 		Util.World.gameWin()
 	end
