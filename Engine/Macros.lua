@@ -41,16 +41,16 @@ Macros = {
 		-- prison
 		guard = 1,
 		cellmate = 5,
-		cellboss = 40,
-		turret = 11,
-		hunter = 8,
+		cellboss = 20,
 		officer = 5,
-		skeleton = 3,
-		elite = 14,
 
 		-- field
+		turret = 14,
+		hunter = 16,
 
 		-- ruins
+		skeleton = 3,
+		elite = 18,
 		
 	},
 	names = {

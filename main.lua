@@ -84,6 +84,7 @@ wrapper("ItemLunchbox", 50, 47, "Items/")
 wrapper("ItemBloodphial", 50, 47, "Items/")
 wrapper("ItemStrawberry", 50, 47, "Items/")
 wrapper("ItemBloodbag", 50, 47, "Items/")
+wrapper("ItemExcalibur", 50, 47, "Items/")
 
 
 wrapper("Door", 40, 60, "Tiles/")

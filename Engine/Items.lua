@@ -421,8 +421,7 @@ registerItem({
         "|s:2,2|Cost: {2} Mins",
         "|s:2,2|Damage: {1}",
         "|s:2,2|This weapon can attack",
-        "|s:2,2|all units within an",
-        "|s:2,2|taxi-cab distance of 2."
+        "|s:2,2|all units 2 tiles away.",
     },
     canUse = function(self)
         local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
@@ -831,4 +830,49 @@ registerItem({
         Util.World.modTime(self.config.timeCost)
         discardItem(nil, self.key)
     end,
+})
+registerItem({
+    key = "excalibur",
+    sprite = "ItemExcalibur",
+    pool = "legendary",
+    config = {
+        damage = -12,
+        timeCost = 7,
+        vars = {
+            12,
+            7
+        },
+    },
+    text = {
+        "|s:2,2||c:yellow|Excal|c:blue|ibur",
+        "|c:lightBlack|The ultimate weapon.",
+        "|s:2,2|Type: Weapon",
+        "|s:2,2|Cost: {2} Mins",
+        "|s:2,2|Damage: {1}",
+        "|s:2,2|This weapon can attack",
+        "|s:2,2|all units 3 tiles away.",
+    },
+    canUse = function(self)
+        local enemies = Util.World.getAllWorldMoveablesWithType("enemy")
+
+        if not self.isBeingUsed then
+            self.targets = {}
+            for _, e in ipairs(enemies) do
+                local dist = get_orthogonal_dist(e, PLAYER)
+                if dist <= 3 then
+                    self.targets[#self.targets + 1] = e
+                end
+            end
+            if #self.targets > 0 then return "hasState" end
+        end
+        return false
+    end,
+    onUse = function(self, enemy)
+        if not self.isBeingUsed then
+            TARGETED_ENEMIES = self.targets
+        else
+            enemy:modHP(self.config.damage)
+            Util.World.modTime(self.config.timeCost)
+        end
+    end
 })
