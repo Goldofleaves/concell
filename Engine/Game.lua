@@ -257,7 +257,7 @@ function love.keypressed(key)
 		G.debug.constext = ""
 		if func then
 			local suc, res = pcall(func)
-			print(res or "nil")
+			print(res)
 		else
 			print(err)
 		end
