@@ -183,7 +183,7 @@ function Macros.UIDef.overlay()
             w = 29/20,
             h = 27/20,
             outlineWidth = 3,
-            drawOrder = 10,
+            drawOrder = 999,
             outlineColor = Macros.colors.transparent,
             inlineColor = Macros.colors.transparent,
             onRightClick = function(self)
