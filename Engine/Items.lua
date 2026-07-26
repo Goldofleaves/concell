@@ -154,6 +154,68 @@ function CALCULATECONTEXT(context)
     end
 end
 
+function cancelActiveItemUse()
+    TARGETED_ENEMIES = nil
+    for _, item in ipairs(G.flags.saveData.items) do
+        item.isBeingUsed = false
+    end
+end
+
+function activateItemSlot(slot)
+    local item = G.flags.saveData.items[slot]
+    if not item then
+        return false
+    end
+    if item.isBeingUsed then
+        cancelActiveItemUse()
+        return true
+    end
+
+    cancelActiveItemUse()
+    local center = Centers[item.key]
+    local state = center.canUse(item)
+    local key = item.key
+    if state == "noState" then
+        center.onUse(item)
+        CALCULATECONTEXT({
+            itemUsed = true,
+            usedItem = { slot = slot, key = key },
+            hasState = false,
+        })
+        return true
+    elseif state == "hasState" then
+        center.onUse(item)
+        item.isBeingUsed = true
+        CALCULATECONTEXT({
+            itemUsed = true,
+            usedItem = { slot = slot, key = key },
+            hasState = false,
+        })
+        return true
+    end
+    return false
+end
+
+function useActiveItemOnTarget(target)
+    for slot, item in ipairs(G.flags.saveData.items) do
+        if item.isBeingUsed then
+            local key = item.key
+            Centers[key].onUse(item, target)
+            move_all_enemies()
+            item.isBeingUsed = false
+            TARGETED_ENEMIES = nil
+            CALCULATECONTEXT({
+                itemUsed = true,
+                usedItem = { slot = slot, key = key },
+                hasState = true,
+            })
+            return true
+        end
+    end
+    TARGETED_ENEMIES = nil
+    return false
+end
+
 local get_orthogonal_dist = function(a, b)
     return math.abs(a.TMod.x.base - b.TMod.x.base) + math.abs(a.TMod.y.base - b.TMod.y.base)
 end

@@ -197,15 +197,7 @@ function Macros.UIDef.overlay()
                 end
             end,
             onClick = function(self)
-                if G.flags.saveData.items[i] and Centers[G.flags.saveData.items[i].key].canUse(G.flags.saveData.items[i]) == "noState" then
-                    Centers[G.flags.saveData.items[i].key].onUse(G.flags.saveData.items[i])
-                    CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = G.flags.saveData.items[i].key }, hasState = false })
-                end
-                if G.flags.saveData.items[i] and Centers[G.flags.saveData.items[i].key].canUse(G.flags.saveData.items[i]) == "hasState" then
-                    Centers[G.flags.saveData.items[i].key].onUse(G.flags.saveData.items[i])
-                    G.flags.saveData.items[i].isBeingUsed = true
-                    CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = G.flags.saveData.items[i].key }, hasState = false })
-                end
+                activateItemSlot(i)
             end,
             onHover = function (self)
                 if G.flags.saveData.items[i] then
@@ -440,15 +432,7 @@ function Macros.UIDef.overlay()
                     if Util.Math.precisionCheck(enemy.TMod.x.base, pt.contents[1] - 0.2, 0.1) and Util.Math.precisionCheck(enemy.TMod.y.base, pt.contents[2] - 0.2, 0.1) then
                         -- use our item
                         if G.mouseController[1].pressed then
-	                        for i, v in ipairs(G.flags.saveData.items) do
-                                if v.isBeingUsed then
-                                    Centers[v.key].onUse(v, enemy)
-                                    move_all_enemies()
-                                    v.isBeingUsed = false
-                                    CALCULATECONTEXT({ itemUsed = true, usedItem = { slot = i, key = v.key }, hasState = true })
-                                end
-                            end
-                            TARGETED_ENEMIES = nil
+                            useActiveItemOnTarget(enemy)
                             break
                         end
                     end

@@ -197,6 +197,30 @@ function love.textinput(t)
 	end
 end
 
+local function getDirectionalItemTarget(direction)
+	local bestTarget
+	local bestAlignment = -math.huge
+	local bestDistance = math.huge
+	for _, target in ipairs(TARGETED_ENEMIES or {}) do
+		local dx = target.TMod.x.base - PLAYER.TMod.x.base
+		local dy = target.TMod.y.base - PLAYER.TMod.y.base
+		local distance = math.sqrt(dx * dx + dy * dy)
+		if distance > 0 then
+			local alignment = (dx * direction[1] + dy * direction[2]) / distance
+			if alignment >= 0.5
+				and (alignment > bestAlignment + 0.0001
+					or math.abs(alignment - bestAlignment) <= 0.0001
+					and distance < bestDistance)
+			then
+				bestTarget = target
+				bestAlignment = alignment
+				bestDistance = distance
+			end
+		end
+	end
+	return bestTarget
+end
+
 function love.keypressed(key)
 	if key == "backspace" and G.debug.console then
 		G.debug.constext = string.sub(G.debug.constext, 1, -2)
@@ -245,8 +269,29 @@ function love.keypressed(key)
 		down = { 1, 0 },
 		left = { 0, 1 },
 	}
+	local itemSlots = {
+		["1"] = 1,
+		["2"] = 2,
+		["3"] = 3,
+		["4"] = 4,
+		kp1 = 1,
+		kp2 = 2,
+		kp3 = 3,
+		kp4 = 4,
+	}
+	local itemSlot = itemSlots[key]
 	local direction = directions[key]
-	if direction and grid.extra.tryPlanMove then
+	if itemSlot then
+		local itemButton = getObjectByNid("itemButton"..itemSlot)
+		if itemButton then
+			itemButton:onClick()
+		end
+	elseif direction and TARGETED_ENEMIES then
+		local target = getDirectionalItemTarget(direction)
+		if target then
+			useActiveItemOnTarget(target)
+		end
+	elseif direction and grid.extra.tryPlanMove then
 		grid.extra.tryPlanMove(grid, direction[1], direction[2])
 	elseif (key == "return" or key == "kpenter") and #grid.extra.path > 1 then
 		moveButton:onClick()
