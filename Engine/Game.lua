@@ -230,7 +230,7 @@ function love.keypressed(key)
 	if key == "k" then
 		G.debug.console = not G.debug.console
 	end
-	if key == "l" then
+	if key == "l" and not G.debug.console then
 		for i = 1, 7 do
 			local char = string.char(string.byte("a")+i)
 			if not G.flags.saveData.rooms[char] then
@@ -266,10 +266,10 @@ function love.keypressed(key)
 			end
 		end
 	end
-	if key == "g" then
+	if key == "g" and not G.debug.console then
 		Util.World.gameWin()
 	end
-	if key == "u" then
+	if key == "u" and not G.debug.console then
 		Util.World.gameOver()
 	end
 	if key == "r"
