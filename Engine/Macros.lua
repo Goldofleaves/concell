@@ -8,6 +8,11 @@ local function hex(hex)
 	return color
 end
 
+local function pixelFont(font)
+	font:setFilter("nearest", "nearest", 1)
+	return font
+end
+
 Macros = {
 	fileSuffix = ".con",
 	gridSingleSubdivision = 5,
@@ -33,9 +38,9 @@ Macros = {
 	},
 	posCenter = {x = 10, y = 7.5},
 	fonts = {
-		base = love.graphics.newFont("Assets/Fonts/aseprite.ttf", 7),
-		times = love.graphics.newFont("Assets/Fonts/times.ttf", 50),
-		timer = love.graphics.newImageFont("Assets/Sprites/TimerFont.png", " 0123456789/")
+		base = pixelFont(love.graphics.newFont("Assets/Fonts/aseprite.ttf", 7, "normal", 1)),
+		times = pixelFont(love.graphics.newFont("Assets/Fonts/times.ttf", 50, "normal", 1)),
+		timer = pixelFont(love.graphics.newImageFont("Assets/Sprites/TimerFont.png", " 0123456789/", 0, 1))
 	},
 	maxHps = {
 		-- prison

@@ -392,6 +392,10 @@ function TextChar:update()
 	end
 end
 
+local function drawGlyph(char, font, x, y, sx, sy)
+	love.graphics.print(char, font, x, y, 0, sx, sy)
+end
+
 function TextChar:draw(x, y)
 	local dispx, dispy =
 	self.other.displacement.x + (self.effects.effects == "wavy" and self.other.waveDisplacement.x or 0),
@@ -405,19 +409,18 @@ function TextChar:draw(x, y)
 	if self.effects.outlineColor then
 		local color = Macros.colors[self.effects.outlineColor] or Util.Other.hex(self.effects.outlineColor)
 		love.graphics.setColor { color[1], color[2], color[3], self.transparency * color[4] }
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx + dd, ddy, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx - dd, ddy, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx, ddy + dd, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx, ddy - dd, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx + dd, ddy + dd, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx - dd, ddy - dd, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx - dd, ddy + dd, 999, 'left', 0, sx, sy)
-		love.graphics.printf(self.other.displayChar, self.effects.font,ddx + dd, ddy - dd, 999, 'left', 0, sx, sy)
+		drawGlyph(self.other.displayChar, self.effects.font, ddx + dd, ddy, sx, sy)
+		drawGlyph(self.other.displayChar, self.effects.font, ddx - dd, ddy, sx, sy)
+		drawGlyph(self.other.displayChar, self.effects.font, ddx, ddy + dd, sx, sy)
+		drawGlyph(self.other.displayChar, self.effects.font, ddx, ddy - dd, sx, sy)
+		drawGlyph(self.other.displayChar, self.effects.font, ddx + dd, ddy + dd, sx, sy)
+		drawGlyph(self.other.displayChar, self.effects.font, ddx - dd, ddy - dd, sx, sy)
+		drawGlyph(self.other.displayChar, self.effects.font, ddx - dd, ddy + dd, sx, sy)
+		drawGlyph(self.other.displayChar, self.effects.font, ddx + dd, ddy - dd, sx, sy)
 	end
 	local color = Macros.colors[self.effects.color] or Util.Other.hex(self.effects.color)
 	love.graphics.setColor{color[1], color[2], color[3], self.transparency * color[4]}
-	love.graphics.printf(self.other.displayChar, self.effects.font, ddx, ddy,
-	999, 'left', 0, sx, sy)
+	drawGlyph(self.other.displayChar, self.effects.font, ddx, ddy, sx, sy)
 	love.graphics.setColor { r, g, b, a }
 end
 
