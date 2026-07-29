@@ -2918,6 +2918,22 @@ function Util.World.getAllWorldMoveablesWithType(type)
     return t
 end
 function Util.World.saveGame()
+    local function getprevletter(a)
+        return string.char(string.byte(a) - 1)
+    end
+    local function getPrevIndex(i)
+        if type(i) == "number" then
+            return i - 1
+        elseif i == "a" then
+            local room = G.flags.saveData.rooms[i]
+            for k, v in pairs(room.doors) do
+                if type(v.index) == "number" then
+                    return v.index
+                end
+            end        else
+            return getprevletter(i)
+        end
+    end
     print("[WORLD] Saving game...")
     local cachedTargets = {}
     for index, item in ipairs(G.flags.saveData.items) do
@@ -2926,18 +2942,38 @@ function Util.World.saveGame()
             item.targets = nil
         end
     end
-
-    local saveSnapshot = Util.Other.copyTable(G.flags.saveData)
+    local t = {}
+    for k, v in pairs(G.flags.saveData) do
+        if k ~= "rooms" and k ~= "curRoom" then
+            t[k] = v
+        end
+    end
+    local saveSnapshot = t
 
     for index, targets in pairs(cachedTargets) do
         G.flags.saveData.items[index].targets = targets
     end
-
+    local prevIndex = getPrevIndex(G.flags.saveData.curRoomIndex)
+    local room = G.flags.saveData.rooms[prevIndex]
+    Util.File.saveTableToFile(room, "rooms/" .. prevIndex)
     Util.File.saveTableToFile(saveSnapshot, "runInfo")
 end
 function Util.World.loadGame()
     print("[WORLD] Loading game...")
+    G.flags.saveData.rooms = G.flags.saveData.rooms or {}
     Util.File.setTableWithFile(G.flags.saveData, "runInfo")
+    local rooms = love.filesystem.getDirectoryItems( "rooms" )
+    for k, v in ipairs(rooms) do
+        local index = v:sub(1, #v - 4)
+        if tonumber(index) then
+            G.flags.saveData.rooms[tonumber(index)] = G.flags.saveData.rooms[tonumber(index)] or {}
+            Util.File.setTableWithFile(G.flags.saveData.rooms[tonumber(index)], "rooms/" .. index)
+        else
+            G.flags.saveData.rooms[index] = G.flags.saveData.rooms[index] or {}
+            Util.File.setTableWithFile(G.flags.saveData.rooms[index], "rooms/" .. index)
+        end
+    end
+    G.flags.saveData.curRoom = G.flags.saveData.rooms[G.flags.saveData.curRoomIndex]
 end
 function getAllValidVertices(www, hhh, blockades)
     blockades = blockades or { "wall" }
@@ -3036,6 +3072,7 @@ function Util.World.gameOver()
         v.source:release()
     end
     G = Game()
+    love.filesystem.remove("rooms")
     love.filesystem.remove("runInfo.con")
     Macros.CDefs.Death()
 end
@@ -3051,6 +3088,7 @@ function Util.World.gameWin()
             music = {},
             musicHandler = {}
         }
+        love.filesystem.remove("rooms")
         love.filesystem.remove("runInfo.con")
         local data = Util.Other.copyTable(G.flags.saveData)
         Util.Event.addEvent(Event(

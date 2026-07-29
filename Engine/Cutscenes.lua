@@ -48,6 +48,10 @@ Macros.CDefs.Opening = function()
 					Macros.UIDef.overlay()
 					Util.Event.easeInMusic(2, "overworld", "overworldID", "normal", nil, 2)
 					G.flags.saveData.rooms = Util.World.generateDungeon()
+					love.filesystem.createDirectory("rooms")
+					for k, v in pairs(G.flags.saveData.rooms) do
+						Util.File.saveTableToFile(v, "rooms/"..k)
+					end
 					G.flags.saveData.curRoomIndex = 1
 					G.flags.saveData.curRoom = G.flags.saveData.rooms[1]
 					PLAYER = WorldMoveable({

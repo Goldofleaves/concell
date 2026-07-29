@@ -2840,15 +2840,6 @@ function WorldMoveable:switchRoom()
                 for k, v in ipairs(list) do
                     v:remove()
                 end
-                local convert = function(s)
-                    local array = {
-                        tl = '1',
-                        tr = '4',
-                        dl = '2',
-                        dr = '3'
-                    }
-                    return array[s]
-                end
                 PLAYER = WorldMoveable({
                     x = spawn.x,
                     y = spawn.y,
@@ -2859,7 +2850,7 @@ function WorldMoveable:switchRoom()
                 })
                 WorldMoveable:initRoomStuff()
                 G.flags.saveData.playerPos = { x = spawn.x, y = spawn.y }
-                G.flags.saveData.playerFacing = convert(entrance.side)
+                G.flags.saveData.playerFacing = old_facing
                 self:checkEaseMusic()
                 Util.World.saveGame()
             end, "delay2")

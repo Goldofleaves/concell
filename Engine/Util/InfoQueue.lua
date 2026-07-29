@@ -53,7 +53,6 @@ local RANGED_TUTORIAL_ENEMIES = {
     elite = true,
     abraham = true,
 }
-
 local function createTutorialQueue()
     return Moveable({
         nid = TUTORIAL_QUEUE_NID,
@@ -66,13 +65,6 @@ local function createTutorialQueue()
             local current = self.extra.queue[1]
             if not current or getEventByNid("transition") then
                 return
-            end
-            current.elapsed = current.elapsed + dt
-            if current.elapsed >= current.duration then
-                table.remove(self.extra.queue, 1)
-                if #self.extra.queue == 0 then
-                    self:remove()
-                end
             end
         end,
         drawFunc = function(self)
@@ -89,7 +81,19 @@ local function createTutorialQueue()
         end,
     })
 end
-
+local ref = CALCULATECONTEXT
+function CALCULATECONTEXT(context)
+    ref(context)
+    if context.player_move then
+        local queueMoveable = getObjectByNid(TUTORIAL_QUEUE_NID)
+        if queueMoveable and #queueMoveable.extra.queue > 0 then
+            table.remove(queueMoveable.extra.queue, 1)
+            if #queueMoveable.extra.queue == 0 then
+                queueMoveable:remove()
+            end
+        end
+    end
+end
 function InfoQueue.showTutorial(identifier, text, duration)
     if not G or not G.flags or not G.flags.saveData then
         return false
@@ -106,9 +110,7 @@ function InfoQueue.showTutorial(identifier, text, duration)
         queueMoveable = createTutorialQueue()
     end
     queueMoveable.extra.queue[#queueMoveable.extra.queue + 1] = {
-        info = InfoQueue(text),
-        elapsed = 0,
-        duration = duration or math.max(5, 2 + #text * 1.5),
+        info = InfoQueue(text)
     }
     return true
 end
@@ -127,6 +129,10 @@ function InfoQueue.checkRoomTutorials()
             "|s:2,2|Press Enter to move. Press Space to bide time.",
             "|s:2,2|Remember, your time is finite...",
             "|s:2,2|You must escape before the sun rises.",
+            "|s:2,2||c:night| M",
+            "|s:2,2||c:yellow|TUTORIALS",
+            "|s:2,2|These display boxes are tutorials, they provide information.",
+            "|s:2,2|Tutorials only dissappear when you move.",
         })
     end
     if #(room.keys or {}) > 0 then
